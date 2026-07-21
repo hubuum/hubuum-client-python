@@ -13,6 +13,7 @@ from hubuum_client import (
     ClassCreate,
     ClassId,
     Client,
+    ClientOptions,
     CollectionCreate,
     CollectionId,
     ConfigurationError,
@@ -25,6 +26,7 @@ from hubuum_client import (
     PermissionDeniedError,
     Query,
     RateLimitError,
+    RequestOptions,
     ResultCardinalityError,
     TransportError,
 )
@@ -196,7 +198,7 @@ def test_http_errors_are_structured_and_secret_safe(
         )
 
     with _client(handler, token="bearer-secret") as client, pytest.raises(error_type) as raised:
-        client.request("GET", "/api/v1/classes", params={"q": "visible"})
+        client.request("GET", "/api/v1/classes", options=RequestOptions(params={"q": "visible"}))
 
     error = raised.value
     assert error.status_code == status
@@ -208,6 +210,78 @@ def test_http_errors_are_structured_and_secret_safe(
         assert error.retry_after == 2
 
 
+def test_error_responses_and_transport_failures_redact_request_secrets() -> None:
+    password = "login-password-secret"
+
+    def rejected(request: httpx.Request) -> httpx.Response:
+        assert json.loads(request.content)["password"] == password
+        return httpx.Response(
+            400,
+            json={
+                "error": "InvalidCredentials",
+                "message": f"rejected password {password}",
+                "password": password,
+                "access_token": "server-token-secret",
+            },
+            headers={"X-Request-Id": f"request-{password}"},
+        )
+
+    with _client(rejected) as client, pytest.raises(APIError) as raised:
+        client.login(Credentials("admin", password))
+
+    error = raised.value
+    assert password not in str(error)
+    assert password not in repr(error)
+    assert "server-token-secret" not in repr(error)
+    assert error.response_body["password"] == "<redacted>"
+    assert error.response_body["access_token"] == "<redacted>"
+
+    def offline(request: httpx.Request) -> httpx.Response:
+        authorization = request.headers["authorization"]
+        raise httpx.ConnectError(f"failed while sending {authorization}", request=request)
+
+    with (
+        _client(offline, token="bearer-secret") as client,
+        pytest.raises(TransportError) as raised_transport,
+    ):
+        client.request("GET", "/api/v1/classes")
+
+    assert "bearer-secret" not in str(raised_transport.value)
+    assert "bearer-secret" not in repr(raised_transport.value)
+
+
+def test_configured_auth_replaces_header_case_insensitively_and_host_is_locked() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.headers.get_list("authorization") == ["Bearer configured-token"]
+        assert request.headers["host"] == "hubuum.test"
+        return httpx.Response(200, json={})
+
+    with _client(handler, token="configured-token") as client:
+        client.request(
+            "GET",
+            "/api/v1/custom",
+            options=RequestOptions(headers={"authorization": "Bearer caller-token"}),
+        )
+        with pytest.raises(ConfigurationError, match="Host header"):
+            client.request(
+                "GET",
+                "/api/v1/custom",
+                options=RequestOptions(headers={"hOsT": "evil.test"}),
+            )
+
+    with Client(
+        "https://hubuum.test",
+        options=ClientOptions(user_agent="hubuum-test-suite"),
+        transport=httpx.MockTransport(
+            lambda request: httpx.Response(
+                200 if request.headers["user-agent"] == "hubuum-test-suite" else 400,
+                json={},
+            )
+        ),
+    ) as client:
+        assert client.request("GET", "/healthz", options=RequestOptions(authenticated=False)) == {}
+
+
 @pytest.mark.parametrize(
     "path",
     [
@@ -216,6 +290,10 @@ def test_http_errors_are_structured_and_secret_safe(
         "//evil.example/api/v1/classes",
         "/api/../secret",
         "/api/%2e%2e/secret",
+        "/api/%252e%252e/secret",
+        "/api/..\\secret",
+        "/api/\tsecret",
+        "/api/%00/secret",
         "/api/v1/classes?q=embedded",
     ],
 )
@@ -229,7 +307,16 @@ def test_raw_request_rejects_unsafe_paths(path: str) -> None:
 
 @pytest.mark.parametrize(
     "base_url",
-    ["hubuum.test", "ftp://hubuum.test", "https://alice:secret@hubuum.test", "https://x.test?q=1"],
+    [
+        "hubuum.test",
+        "ftp://hubuum.test",
+        "https://alice:secret@hubuum.test",
+        "https://x.test?q=1",
+        "https://hubuum.test:invalid",
+        "https://hubuum.test/%252e%252e/secret",
+        "https://hubuum.test/\nsecret",
+        "https://hubuum.test/%00",
+    ],
 )
 def test_client_rejects_unsafe_base_urls(base_url: str) -> None:
     with pytest.raises(ConfigurationError):
@@ -247,7 +334,7 @@ def test_decode_and_transport_errors_are_wrapped() -> None:
         raise httpx.ConnectError("offline", request=request)
 
     with _client(failing_handler) as client, pytest.raises(TransportError, match="offline"):
-        client.request("GET", "/healthz", authenticated=False)
+        client.request("GET", "/healthz", options=RequestOptions(authenticated=False))
 
 
 def test_raw_request_returns_json_for_unmodeled_route() -> None:
@@ -256,7 +343,9 @@ def test_raw_request_returns_json_for_unmodeled_route() -> None:
         return httpx.Response(200, json={"results": {"objects": []}})
 
     with _client(handler, token="token") as client:
-        result = client.request("GET", "/api/v1/search", params={"q": "server"})
+        result = client.request(
+            "GET", "/api/v1/search", options=RequestOptions(params={"q": "server"})
+        )
 
     assert result == {"results": {"objects": []}}
 

@@ -42,7 +42,7 @@ class ProbeResponse(HubuumModel):
 
 
 class LoginResponse(HubuumModel):
-    token: str
+    token: str = Field(repr=False)
 
 
 class Collection(HubuumModel):

@@ -37,16 +37,18 @@ cover the normal resource lifecycle; `request()` covers the remainder without
 giving up the configured origin:
 
 ```python
+from hubuum_client import RequestOptions
+
 result = client.request(
     "GET",
     "/api/v1/search",
-    params={"q": "server", "limit_per_kind": 10},
+    options=RequestOptions(params={"q": "server", "limit_per_kind": 10}),
 )
 ```
 
 The path must begin with one slash and may not contain an origin, traversal
-segment, query string, or fragment. Pass query values through `params`, request
-bodies through `json`, and additional headers through `headers`.
+segment, query string, or fragment. Pass query values and additional headers
+through `RequestOptions`, and request bodies through `json`.
 
 Use `response_model=MyPydanticModel` to decode an extension route into an
 application model:
@@ -65,10 +67,11 @@ Imports, exports, backups, restores, and computed-field rebuilds return tasks.
 Once a task ID is known, wait for a terminal state with a bounded poller:
 
 ```python
-task = client.tasks.wait(task_id, timeout=300, poll_interval=0.5)
+task = client.tasks.wait(task_id, timeout_seconds=300, poll_interval=0.5)
 if task.status.value != "succeeded":
     raise RuntimeError(task.summary or "Hubuum task failed")
 ```
 
-The async equivalent uses `timeout_seconds` and awaits without blocking the
-event loop.
+The async equivalent uses the same `timeout_seconds` and `poll_interval`
+keywords and awaits without blocking the event loop. Both pollers reject
+invalid bounds and cap each sleep to the remaining timeout.

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import builtins
 from collections.abc import Iterator
+from math import isfinite
 from time import monotonic, sleep
 from typing import TYPE_CHECKING, Generic, TypeVar
 from urllib.parse import quote
@@ -11,7 +12,7 @@ from urllib.parse import quote
 import httpx
 from pydantic import BaseModel, ValidationError
 
-from ._transport import safe_response_url
+from ._transport import safe_response_url, validation_error_reason
 from .errors import DecodeError, ResultCardinalityError
 from .models import (
     ClassCreate,
@@ -35,6 +36,7 @@ from .models import (
     UserCreate,
     UserUpdate,
 )
+from .options import RequestOptions
 from .query import Page, Query
 from .types import ClassId, CollectionId, GroupId, PrincipalId, TaskId, UserId
 
@@ -68,7 +70,9 @@ class ResourceService(Generic[ModelT, CreateT, UpdateT]):
 
     def page(self, query: Query | None = None) -> Page[ModelT]:
         response = self._client._request_response(
-            "GET", self._collection_path, params=(query or Query()).as_params()
+            "GET",
+            self._collection_path,
+            options=RequestOptions(params=(query or Query()).as_params()),
         )
         items = _decode_model_list(response, self._model)
         return Page(
@@ -82,8 +86,10 @@ class ResourceService(Generic[ModelT, CreateT, UpdateT]):
         return builtins.list(self.page(query))
 
     def pages(self, query: Query | None = None, *, max_pages: int = 100) -> Iterator[Page[ModelT]]:
+        if max_pages < 1:
+            raise ValueError("max_pages must be at least 1")
         current = query or Query()
-        seen: set[str] = set()
+        seen = {current.cursor_value} if current.cursor_value is not None else set()
         for _ in range(max_pages):
             page = self.page(current)
             yield page
@@ -102,11 +108,13 @@ class ResourceService(Generic[ModelT, CreateT, UpdateT]):
         max_pages: int = 100,
         max_items: int = 10_000,
     ) -> builtins.list[ModelT]:
+        if max_items < 1:
+            raise ValueError("max_items must be at least 1")
         items: builtins.list[ModelT] = []
         for page in self.pages(query, max_pages=max_pages):
-            items.extend(page)
-            if len(items) > max_items:
+            if len(page) > max_items - len(items):
                 raise RuntimeError(f"pagination exceeded max_items={max_items}")
+            items.extend(page)
         return items
 
     def one(self, query: Query) -> ModelT:
@@ -337,17 +345,24 @@ class TasksService:
         self,
         task_id: TaskId | int,
         *,
-        timeout: float = 300.0,
+        timeout_seconds: float = 300.0,
         poll_interval: float = 0.5,
     ) -> Task:
-        deadline = monotonic() + timeout
+        if not isfinite(timeout_seconds) or timeout_seconds < 0:
+            raise ValueError("timeout_seconds must be finite and non-negative")
+        if not isfinite(poll_interval) or poll_interval <= 0:
+            raise ValueError("poll_interval must be finite and greater than 0")
+        deadline = monotonic() + timeout_seconds
         while True:
             task = self.get(task_id)
             if task.status.terminal:
                 return task
-            if monotonic() >= deadline:
-                raise TimeoutError(f"task {task_id} did not finish within {timeout} seconds")
-            sleep(poll_interval)
+            remaining = deadline - monotonic()
+            if remaining <= 0:
+                raise TimeoutError(
+                    f"task {task_id} did not finish within {timeout_seconds} seconds"
+                )
+            sleep(min(poll_interval, remaining))
 
 
 def _decode_model_list(response: httpx.Response, model: type[ModelT]) -> builtins.list[ModelT]:
@@ -361,7 +376,7 @@ def _decode_model_list(response: httpx.Response, model: type[ModelT]) -> builtin
             response.request.method,
             safe_response_url(response),
             response.status_code,
-            str(error),
+            validation_error_reason(error, response),
         ) from error
 
 

@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 import httpx
 import pytest
 
+import hubuum_client.async_services as async_services_module
+import hubuum_client.services as services_module
 from hubuum_client import (
     AsyncClient,
     ClassId,
@@ -24,6 +27,7 @@ from hubuum_client import (
     ObjectUpdate,
     PrincipalId,
     Query,
+    RequestOptions,
     TaskId,
     UserCreate,
     UserId,
@@ -301,7 +305,11 @@ def test_sync_relations_tasks_probes_and_service_properties() -> None:
 
         assert client.tasks.list()[0].id == TaskId(40)
         assert client.tasks.get(40).id == TaskId(40)
-        assert client.tasks.wait(40, timeout=0).status.value == "succeeded"
+        assert client.tasks.wait(40, timeout_seconds=0).status.value == "succeeded"
+        with pytest.raises(ValueError, match="timeout_seconds"):
+            client.tasks.wait(40, timeout_seconds=float("nan"))
+        with pytest.raises(ValueError, match="poll_interval"):
+            client.tasks.wait(40, poll_interval=float("inf"))
 
 
 def test_sync_pagination_and_decode_guards(class_json: dict[str, Any]) -> None:
@@ -322,8 +330,15 @@ def test_sync_pagination_and_decode_guards(class_json: dict[str, Any]) -> None:
         assert client.classes.page().total_count is None
         with pytest.raises(RuntimeError, match="max_pages"):
             client.classes.all(max_pages=1)
-        with pytest.raises(RuntimeError, match="max_items"):
+        with pytest.raises(ValueError, match="max_items"):
             client.classes.all(max_items=0)
+        with pytest.raises(ValueError, match="max_pages"):
+            client.classes.all(max_pages=0)
+
+        calls_before_cycle = calls
+        with pytest.raises(RuntimeError, match="repeated"):
+            client.classes.all(Query().cursor(str(calls + 1)))
+        assert calls == calls_before_cycle + 1
 
     with (
         Client(
@@ -485,6 +500,10 @@ async def test_async_timeout_and_transport_error() -> None:
     async with AsyncClient(
         "https://hubuum.test", token="token", transport=httpx.MockTransport(queued)
     ) as client:
+        with pytest.raises(ValueError, match="timeout_seconds"):
+            await client.tasks.wait(40, timeout_seconds=float("nan"))
+        with pytest.raises(ValueError, match="poll_interval"):
+            await client.tasks.wait(40, poll_interval=float("inf"))
         with pytest.raises(TimeoutError, match="did not finish"):
             await client.tasks.wait(40, timeout_seconds=0)
 
@@ -493,4 +512,53 @@ async def test_async_timeout_and_transport_error() -> None:
 
     async with AsyncClient("https://hubuum.test", transport=httpx.MockTransport(offline)) as client:
         with pytest.raises(Exception, match="offline"):
-            await client.request("GET", "/healthz", authenticated=False)
+            await client.request("GET", "/healthz", options=RequestOptions(authenticated=False))
+
+
+def test_sync_task_wait_caps_sleep_to_remaining_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls = 0
+    sleeps: list[float] = []
+    clock = iter((10.0, 10.75))
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return httpx.Response(200, json=_task_json("queued" if calls == 1 else "succeeded"))
+
+    monkeypatch.setattr(services_module, "monotonic", lambda: next(clock))
+    monkeypatch.setattr(services_module, "sleep", sleeps.append)
+
+    with Client(
+        "https://hubuum.test", token="token", transport=httpx.MockTransport(handler)
+    ) as client:
+        task = client.tasks.wait(40, timeout_seconds=1.0, poll_interval=5.0)
+
+    assert task.status.value == "succeeded"
+    assert sleeps == [0.25]
+
+
+async def test_async_task_wait_caps_sleep_to_remaining_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls = 0
+    sleeps: list[float] = []
+    clock = iter((20.0, 20.25))
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return httpx.Response(200, json=_task_json("queued" if calls == 1 else "succeeded"))
+
+    async def record_sleep(delay: float) -> None:
+        sleeps.append(delay)
+
+    monkeypatch.setattr(async_services_module, "monotonic", lambda: next(clock))
+    monkeypatch.setattr(asyncio, "sleep", record_sleep)
+
+    async with AsyncClient(
+        "https://hubuum.test", token="token", transport=httpx.MockTransport(handler)
+    ) as client:
+        task = await client.tasks.wait(40, timeout_seconds=0.5, poll_interval=5.0)
+
+    assert task.status.value == "succeeded"
+    assert sleeps == [0.25]

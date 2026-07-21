@@ -17,6 +17,8 @@ Before opening a pull request, run the same non-container checks as CI:
 uv run ruff format --check .
 uv run ruff check .
 uv run mypy
+uv run bandit -q -r src scripts
+uv run zizmor .
 uv run pytest --cov
 uv run mkdocs build --strict
 uv build

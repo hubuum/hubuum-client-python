@@ -20,7 +20,10 @@ if [[ -n "${HUBUUM_E2E_BASE_URL:-}" || -n "${HUBUUM_E2E_ADMIN_PASSWORD:-}" ]]; t
         echo "HUBUUM_E2E_BASE_URL and HUBUUM_E2E_ADMIN_PASSWORD must be set together." >&2
         exit 2
     fi
-    exec uv run pytest -m e2e tests/e2e "${PYTEST_ARGS[@]}"
+    if ((${#PYTEST_ARGS[@]})); then
+        exec uv run pytest -m e2e tests/e2e "${PYTEST_ARGS[@]}"
+    fi
+    exec uv run pytest -m e2e tests/e2e
 fi
 
 if [[ -z "${CONTAINER_RUNTIME}" ]]; then
@@ -139,4 +142,8 @@ export HUBUUM_E2E_BASE_URL="${base_url}"
 export HUBUUM_E2E_ADMIN_PASSWORD="${admin_password}"
 
 echo "Running Python e2e tests against Hubuum v0.0.3 at ${base_url}"
-uv run pytest -m e2e tests/e2e "${PYTEST_ARGS[@]}"
+if ((${#PYTEST_ARGS[@]})); then
+    uv run pytest -m e2e tests/e2e "${PYTEST_ARGS[@]}"
+else
+    uv run pytest -m e2e tests/e2e
+fi

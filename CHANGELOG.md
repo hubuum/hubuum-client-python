@@ -6,6 +6,31 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Updated every GitHub Action to its latest immutable release commit and
+  corrected invalid checkout and Python setup action versions; release artifact
+  validation now uses an explicit Twine version.
+- Disabled persisted checkout credentials and release-job caching, added a
+  dependency update cooldown, bounded contract downloads to HTTPS sources, and
+  added Bandit and zizmor security gates to CI.
+- Aligned synchronous and asynchronous task polling on the same
+  `timeout_seconds` keyword, validated polling and pagination bounds before
+  doing work, and prevented poll sleeps from exceeding the remaining timeout.
+- Fixed the end-to-end wrapper on Bash 3.2 when invoked without additional
+  pytest arguments.
+- Replaced long client and raw-request parameter lists with shared typed
+  `ClientOptions` and `RequestOptions` values and re-enabled Ruff's argument
+  count rule.
+
+### Security
+
+- Hardened origin-locked requests against nested URL traversal, ambiguous path
+  characters, and caller-supplied `Host` headers.
+- Made bearer-header replacement case-insensitive and redact request secrets
+  from transport, API, and decoding exception details.
+- Redacted login tokens from model representations.
+
 ## [0.0.1] - 2026-07-21
 
 ### Added
