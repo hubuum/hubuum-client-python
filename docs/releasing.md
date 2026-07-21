@@ -18,6 +18,13 @@ PyPI upload is deliberately disabled until trusted publishing is configured.
 The workflow requests `id-token: write` only for the publishing job and does
 not require a stored PyPI password or API token.
 
+## Repository baseline
+
+Repository metadata, merge behavior, dependency security updates, Actions token
+permissions, and `main` branch protection are codified in
+`scripts/configure-github-repository.sh`. Maintainers can rerun the idempotent
+script with an authenticated GitHub CLI session after changing the baseline.
+
 ## Release process
 
 1. Choose the version and update it in `pyproject.toml` and
