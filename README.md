@@ -1,0 +1,149 @@
+# Hubuum client library (Python)
+
+[![CI](https://github.com/hubuum/hubuum-client-python/actions/workflows/ci.yml/badge.svg)](https://github.com/hubuum/hubuum-client-python/actions/workflows/ci.yml)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+[![Typed](https://img.shields.io/badge/typing-typed-blue.svg)](https://peps.python.org/pep-0561/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
+`hubuum-client` is a modern, fully typed Python client for the
+[Hubuum](https://github.com/hubuum/hubuum) asset-management API. It provides
+matching synchronous and asynchronous clients, Pydantic v2 models, typed
+resource IDs, immutable queries, cursor pagination, structured errors, and a
+safe escape hatch for the complete REST surface.
+
+Version 0.0.1 targets Hubuum server **v0.0.3**. Compatibility is tested against
+the immutable server image recorded in [the compatibility guide](docs/compatibility.md).
+
+## Installation
+
+```bash
+python -m pip install hubuum-client
+```
+
+Python 3.11 or newer is required. The runtime dependencies are only
+[HTTPX](https://www.python-httpx.org/) and
+[Pydantic](https://docs.pydantic.dev/).
+
+## Quick start
+
+```python
+from hubuum_client import ClassCreate, Client, Credentials, Query
+
+with Client("https://hubuum.example.com") as client:
+    client.login(Credentials("alice", "correct-horse-battery-staple"))
+
+    classes = client.classes.list(
+        Query().where("name", "server").limit(25).include_total()
+    )
+
+    created = client.classes.create(
+        ClassCreate(
+            name="server",
+            collection_id=1,
+            description="Server inventory",
+        )
+    )
+    print(created.id, len(classes))
+```
+
+The asynchronous API has the same shape:
+
+```python
+import asyncio
+
+from hubuum_client import AsyncClient, Credentials, Query
+
+
+async def main() -> None:
+    async with AsyncClient("https://hubuum.example.com") as client:
+        await client.login(Credentials("alice", "secret"))
+        page = await client.objects(42).page(
+            Query().where("name", "web-01").include_total()
+        )
+        print(page.total_count, page.items)
+
+
+asyncio.run(main())
+```
+
+Credentials and bearer tokens have redacted representations. TLS certificate
+validation is enabled by default; disabling it is an explicit client option and
+should be limited to disposable development systems.
+
+## Resource services
+
+The typed surface currently covers the most common Hubuum workflows:
+
+- collections, hierarchy traversal, and parent moves;
+- classes and class-scoped objects, including exact-name addressing;
+- users, groups, memberships, and user anonymization;
+- class relations and object relations;
+- cursor pagination and task polling;
+- health, readiness, and public server configuration.
+
+Every authenticated v0.0.3 route remains available through `request()`:
+
+```python
+result = client.request(
+    "GET",
+    "/api/v1/search",
+    params={"q": "server", "limit_per_kind": 10},
+)
+```
+
+The raw path is constrained to the configured server origin and rejects URL
+origins, embedded query strings, and traversal segments.
+
+## Querying and pagination
+
+Queries are immutable and reusable:
+
+```python
+from hubuum_client import FilterOperator, Query
+
+base = Query().where("name", "server", FilterOperator.ICONTAINS)
+first_page = client.classes.page(base.limit(25).include_total())
+all_matches = client.classes.all(base, max_items=5_000)
+```
+
+`Page` exposes `items`, `next_cursor`, `total_count`, and the effective
+`page_limit`. Automatic pagination detects repeated cursors and enforces page
+and item limits.
+
+## Documentation
+
+- [Client setup](docs/client.md)
+- [Queries and pagination](docs/querying.md)
+- [API reference](docs/api.md)
+- [Compatibility policy](docs/compatibility.md)
+- [Docker-backed end-to-end tests](docs/e2e.md)
+- [Changelog](CHANGELOG.md)
+
+## Development
+
+```bash
+uv sync --extra dev
+uv run ruff format --check .
+uv run ruff check .
+uv run mypy
+uv run pytest --cov
+uv run mkdocs build --strict
+```
+
+The full pinned-server workflow is:
+
+```bash
+./scripts/run-e2e-tests.sh
+```
+
+See [AGENTS.md](AGENTS.md) for repository conventions and the exact e2e stack.
+Contributions are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md) for the
+development and pull-request workflow. Maintainers can find the release process
+in [the release guide](docs/releasing.md).
+
+Please report security issues according to [SECURITY.md](SECURITY.md), rather
+than in a public issue.
+
+## License
+
+Distributed under the MIT License. See [LICENSE](LICENSE).
