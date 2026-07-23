@@ -93,6 +93,11 @@ same in both modes.
 Create and close an `AsyncClient` within the same application and event-loop
 lifetime.
 
+Resource-service accessors such as `client.classes` are created lazily and
+cached for the lifetime of each client. Class-scoped services such as
+`client.classes.by_id(class_id).objects` remain created on demand for the
+requested class.
+
 ## Identity scopes
 
 Provider-scoped authentication uses the optional `identity_scope` value:

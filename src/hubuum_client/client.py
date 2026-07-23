@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
+from functools import cached_property
 from typing import Any, Self, TypeVar, overload
 
 import httpx
@@ -110,31 +111,31 @@ class Client:
         value = self.request("GET", "/api/v1/config", options=_PUBLIC_REQUEST)
         return value if isinstance(value, dict) else {}
 
-    @property
+    @cached_property
     def collections(self) -> CollectionsService:
         return CollectionsService(self)
 
-    @property
+    @cached_property
     def classes(self) -> ClassesService:
         return ClassesService(self)
 
-    @property
+    @cached_property
     def users(self) -> UsersService:
         return UsersService(self)
 
-    @property
+    @cached_property
     def groups(self) -> GroupsService:
         return GroupsService(self)
 
-    @property
+    @cached_property
     def class_relations(self) -> ClassRelationsService:
         return ClassRelationsService(self)
 
-    @property
+    @cached_property
     def object_relations(self) -> ObjectRelationsService:
         return ObjectRelationsService(self)
 
-    @property
+    @cached_property
     def tasks(self) -> TasksService:
         return TasksService(self)
 

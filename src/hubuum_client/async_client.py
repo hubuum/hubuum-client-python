@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator, Mapping
 from contextlib import asynccontextmanager
+from functools import cached_property
 from typing import Any, Self, TypeVar, overload
 
 import httpx
@@ -107,31 +108,31 @@ class AsyncClient:
         value = await self.request("GET", "/api/v1/config", options=_PUBLIC_REQUEST)
         return value if isinstance(value, dict) else {}
 
-    @property
+    @cached_property
     def collections(self) -> AsyncCollectionsService:
         return AsyncCollectionsService(self)
 
-    @property
+    @cached_property
     def classes(self) -> AsyncClassesService:
         return AsyncClassesService(self)
 
-    @property
+    @cached_property
     def users(self) -> AsyncUsersService:
         return AsyncUsersService(self)
 
-    @property
+    @cached_property
     def groups(self) -> AsyncGroupsService:
         return AsyncGroupsService(self)
 
-    @property
+    @cached_property
     def class_relations(self) -> AsyncClassRelationsService:
         return AsyncClassRelationsService(self)
 
-    @property
+    @cached_property
     def object_relations(self) -> AsyncObjectRelationsService:
         return AsyncObjectRelationsService(self)
 
-    @property
+    @cached_property
     def tasks(self) -> AsyncTasksService:
         return AsyncTasksService(self)
 

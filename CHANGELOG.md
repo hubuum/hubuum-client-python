@@ -65,6 +65,8 @@ All notable changes to this project are documented here. The format follows
   and added cursor-aware membership page and collection helpers.
 - Parsed both standard `Retry-After` forms into safe, non-negative rate-limit
   delays and ignored malformed or non-finite values.
+- Cached lazily created resource-service accessors per client while keeping
+  class-scoped object services on demand.
 
 ### Security
 
