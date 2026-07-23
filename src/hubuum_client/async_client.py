@@ -233,7 +233,11 @@ class AsyncClient:
         try:
             return await self._http.send(request, stream=stream)
         except httpx.HTTPError as error:
-            secrets = sensitive_request_values(request.headers, request_body)
+            secrets = sensitive_request_values(
+                request.headers,
+                request_body,
+                request.url.params,
+            )
             raise TransportError(
                 request.method,
                 str(request.url.copy_with(query=None, fragment=None)),
