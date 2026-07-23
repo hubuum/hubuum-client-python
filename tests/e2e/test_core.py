@@ -284,7 +284,7 @@ def test_iam_and_relations(client: Client, admin_group_id: GroupId, unique_name:
     object_relation = None
     try:
         client.groups.add_member(group.id, PrincipalId(user.id))
-        assert any(member["principal_id"] == user.id for member in client.groups.members(group.id))
+        assert any(member.principal_id == user.id for member in client.groups.members(group.id))
         client.groups.remove_member(group.id, PrincipalId(user.id))
 
         for suffix in ("from", "to"):

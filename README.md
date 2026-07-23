@@ -145,6 +145,13 @@ and item limits. The fluent `data()` selector supports nested paths, typed
 comparisons, arrays, nulls, object keys, and IP/network operators; see
 [Queries and pagination](docs/querying.md).
 
+Group membership uses the same typed, cursor-aware interface:
+
+```python
+member_page = client.groups.members_page(group_id, Query().limit(25).include_total())
+all_members = client.groups.all_members(group_id, max_items=5_000)
+```
+
 ## Documentation
 
 - [Client setup](docs/client.md)

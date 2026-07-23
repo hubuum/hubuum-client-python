@@ -32,6 +32,7 @@ from .models import (
     ObjectRelation,
     ObjectRelationCreate,
     ObjectUpdate,
+    PrincipalMember,
     Task,
     User,
     UserCreate,
@@ -457,9 +458,49 @@ class GroupsService(ResourceService[Group, GroupCreate, GroupUpdate]):
     def get_by_name(self, name: str) -> Group:
         return self.one(Query().where("groupname", name))
 
-    def members(self, group_id: GroupId | int) -> list[dict[str, object]]:
-        value = self._client.request("GET", f"/api/v1/iam/groups/{_segment(group_id)}/members")
-        return value if isinstance(value, list) else []
+    def _members_service(
+        self, group_id: GroupId | int
+    ) -> ResourceService[PrincipalMember, BaseModel, BaseModel]:
+        path = f"/api/v1/iam/groups/{_segment(group_id)}/members"
+        return ResourceService(
+            self._client,
+            collection_path=path,
+            item_path=f"{path}/{{id}}",
+            model=PrincipalMember,
+        )
+
+    def members_page(
+        self, group_id: GroupId | int, query: Query | None = None
+    ) -> Page[PrincipalMember]:
+        return self._members_service(group_id).page(query)
+
+    def members(
+        self, group_id: GroupId | int, query: Query | None = None
+    ) -> builtins.list[PrincipalMember]:
+        return self._members_service(group_id).list(query)
+
+    def member_pages(
+        self,
+        group_id: GroupId | int,
+        query: Query | None = None,
+        *,
+        max_pages: int = 100,
+    ) -> Iterator[Page[PrincipalMember]]:
+        return self._members_service(group_id).pages(query, max_pages=max_pages)
+
+    def all_members(
+        self,
+        group_id: GroupId | int,
+        query: Query | None = None,
+        *,
+        max_pages: int = 100,
+        max_items: int = 10_000,
+    ) -> builtins.list[PrincipalMember]:
+        return self._members_service(group_id).all(
+            query,
+            max_pages=max_pages,
+            max_items=max_items,
+        )
 
     def add_member(self, group_id: GroupId | int, principal_id: PrincipalId | int) -> None:
         self._client.request(
