@@ -27,7 +27,7 @@ Python 3.11 or newer is required. The runtime dependencies are only
 ## Quick start
 
 ```python
-from hubuum_client import ClassCreate, Client, Credentials, Query
+from hubuum_client import ClassCreate, Client, Credentials, Query, RequestOptions
 
 with Client("https://hubuum.example.com") as client:
     client.login(Credentials("alice", "correct-horse-battery-staple"))
@@ -87,7 +87,7 @@ Every authenticated v0.0.3 route remains available through `request()`:
 result = client.request(
     "GET",
     "/api/v1/search",
-    params={"q": "server", "limit_per_kind": 10},
+    options=RequestOptions(params={"q": "server", "limit_per_kind": 10}),
 )
 ```
 
@@ -126,6 +126,8 @@ uv sync --extra dev
 uv run ruff format --check .
 uv run ruff check .
 uv run mypy
+uv run bandit -q -r src scripts
+uv run zizmor .
 uv run pytest --cov
 uv run mkdocs build --strict
 ```

@@ -53,13 +53,25 @@ client.login(credentials)
 
 ## HTTP configuration
 
-Both clients accept:
+Both clients accept a shared `ClientOptions` value:
+
+```python
+from hubuum_client import Client, ClientOptions
+
+client = Client(
+    "https://hubuum.example.com",
+    options=ClientOptions(timeout=15.0, user_agent="inventory-service/1.0"),
+)
+```
+
+`ClientOptions` contains:
 
 - `timeout`: a float or HTTPX timeout object;
 - `verify`: certificate validation settings, enabled by default;
-- `user_agent`: an application-specific user agent;
-- `transport`: an HTTPX transport, useful for proxy policies and deterministic
-  tests.
+- `user_agent`: an application-specific user agent.
+
+The optional `transport` constructor argument accepts an HTTPX transport. It is
+primarily useful for explicit proxy policies and deterministic tests.
 
 The base URL must be an absolute HTTP or HTTPS URL without credentials, a query
 string, or a fragment. A deployment prefix such as

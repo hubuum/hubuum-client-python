@@ -14,6 +14,7 @@ from hubuum_client import (
     HubuumClass,
     TaskStatus,
 )
+from hubuum_client.models import LoginResponse
 
 
 def test_response_model_decodes_ids_datetimes_and_forward_fields(
@@ -89,6 +90,10 @@ def test_secret_values_are_redacted_but_can_produce_wire_values() -> None:
     assert token.value == "token-secret"
     with pytest.raises(ValueError, match="must not be empty"):
         AccessToken(" ")
+
+    login_response = LoginResponse(token="login-token-secret")
+    assert "login-token-secret" not in repr(login_response)
+    assert login_response.token == "login-token-secret"
 
 
 @pytest.mark.parametrize(

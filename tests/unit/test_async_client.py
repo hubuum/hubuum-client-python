@@ -7,7 +7,18 @@ from typing import Any
 import httpx
 import pytest
 
-from hubuum_client import AsyncClient, ClassId, CollectionId, Credentials, Query
+from hubuum_client import (
+    APIError,
+    AsyncClient,
+    ClassId,
+    ClientOptions,
+    CollectionId,
+    ConfigurationError,
+    Credentials,
+    Query,
+    RequestOptions,
+    TransportError,
+)
 
 
 def _client(
@@ -75,3 +86,58 @@ async def test_async_logout_clears_token_on_server_error() -> None:
         with pytest.raises(Exception, match="failed"):
             await client.logout()
         assert not client.is_authenticated
+
+
+async def test_async_headers_and_exceptions_are_secret_safe() -> None:
+    def authenticated(request: httpx.Request) -> httpx.Response:
+        assert request.headers.get_list("authorization") == ["Bearer async-token"]
+        return httpx.Response(200, json={})
+
+    async with _client(authenticated, token="async-token") as client:
+        await client.request(
+            "GET",
+            "/api/v1/custom",
+            options=RequestOptions(headers={"AUTHORIZATION": "Bearer caller-token"}),
+        )
+        with pytest.raises(ConfigurationError, match="Host header"):
+            await client.request(
+                "GET",
+                "/api/v1/custom",
+                options=RequestOptions(headers={"host": "evil.test"}),
+            )
+
+    async with AsyncClient(
+        "https://hubuum.test",
+        options=ClientOptions(user_agent="hubuum-async-test"),
+        transport=httpx.MockTransport(
+            lambda request: httpx.Response(
+                200 if request.headers["user-agent"] == "hubuum-async-test" else 400,
+                json={},
+            )
+        ),
+    ) as client:
+        assert (
+            await client.request("GET", "/healthz", options=RequestOptions(authenticated=False))
+            == {}
+        )
+
+    password = "async-password-secret"
+
+    def rejected(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(400, text=f"rejected {password}")
+
+    async with _client(rejected) as client:
+        with pytest.raises(APIError) as raised:
+            await client.login(Credentials("admin", password))
+
+    assert password not in str(raised.value)
+    assert password not in repr(raised.value)
+
+    def offline(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError(f"failed with {request.headers['authorization']}", request=request)
+
+    async with _client(offline, token="transport-secret") as client:
+        with pytest.raises(TransportError) as raised_transport:
+            await client.request("GET", "/api/v1/custom")
+
+    assert "transport-secret" not in str(raised_transport.value)

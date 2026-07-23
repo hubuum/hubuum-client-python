@@ -10,6 +10,14 @@
     options:
       members: true
 
+::: hubuum_client.ClientOptions
+    options:
+      members: true
+
+::: hubuum_client.RequestOptions
+    options:
+      members: true
+
 ## Queries
 
 ::: hubuum_client.Query

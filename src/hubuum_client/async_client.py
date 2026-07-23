@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from typing import Any, Self, TypeVar, overload
 
 import httpx
@@ -14,23 +14,19 @@ from ._transport import (
     decode_model,
     json_body,
     normalize_base_url,
+    prepare_request_headers,
     raise_api_error,
+    redact_text,
+    sensitive_request_values,
     validate_relative_path,
 )
 from .errors import TransportError
 from .models import LoginResponse, ProbeResponse
+from .options import ClientOptions, RequestOptions
 from .types import AccessToken, ClassId, Credentials
 
 T = TypeVar("T", bound=BaseModel)
-ParamValue = str | int | float | bool | None
-Params = (
-    Mapping[str, ParamValue | Sequence[ParamValue]]
-    | list[tuple[str, ParamValue]]
-    | tuple[tuple[str, ParamValue], ...]
-    | str
-    | bytes
-    | None
-)
+_PUBLIC_REQUEST = RequestOptions(authenticated=False)
 
 
 class AsyncClient:
@@ -41,19 +37,20 @@ class AsyncClient:
         base_url: str,
         *,
         token: str | AccessToken | None = None,
-        timeout: float | httpx.Timeout = 30.0,
-        verify: bool | str = True,
-        user_agent: str | None = None,
+        options: ClientOptions | None = None,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
+        client_options = options or ClientOptions()
         self._base_url = normalize_base_url(base_url)
         self._token = AccessToken(token) if isinstance(token, str) else token
         self._http = httpx.AsyncClient(
             base_url=self._base_url,
-            timeout=timeout,
-            verify=verify,
+            timeout=client_options.timeout,
+            verify=client_options.verify,
             transport=transport,
-            headers={"User-Agent": user_agent or f"hubuum-client-python/{__version__}"},
+            headers={
+                "User-Agent": client_options.user_agent or f"hubuum-client-python/{__version__}"
+            },
         )
 
     @property
@@ -83,7 +80,7 @@ class AsyncClient:
             "/api/v0/auth/login",
             json=credentials.as_payload(),
             response_model=LoginResponse,
-            authenticated=False,
+            options=_PUBLIC_REQUEST,
         )
         self._token = AccessToken(response.token)
         return self
@@ -96,16 +93,16 @@ class AsyncClient:
 
     async def healthz(self) -> ProbeResponse:
         return await self.request(
-            "GET", "/healthz", response_model=ProbeResponse, authenticated=False
+            "GET", "/healthz", response_model=ProbeResponse, options=_PUBLIC_REQUEST
         )
 
     async def readyz(self) -> ProbeResponse:
         return await self.request(
-            "GET", "/readyz", response_model=ProbeResponse, authenticated=False
+            "GET", "/readyz", response_model=ProbeResponse, options=_PUBLIC_REQUEST
         )
 
     async def config(self) -> dict[str, Any]:
-        value = await self.request("GET", "/api/v1/config", authenticated=False)
+        value = await self.request("GET", "/api/v1/config", options=_PUBLIC_REQUEST)
         return value if isinstance(value, dict) else {}
 
     @property
@@ -145,11 +142,9 @@ class AsyncClient:
         method: str,
         path: str,
         *,
-        params: Params = None,
         json: BaseModel | Mapping[str, Any] | list[Any] | None = None,
-        headers: Mapping[str, str] | None = None,
         response_model: type[T],
-        authenticated: bool = True,
+        options: RequestOptions | None = None,
     ) -> T: ...
 
     @overload
@@ -158,11 +153,9 @@ class AsyncClient:
         method: str,
         path: str,
         *,
-        params: Params = None,
         json: BaseModel | Mapping[str, Any] | list[Any] | None = None,
-        headers: Mapping[str, str] | None = None,
         response_model: None = None,
-        authenticated: bool = True,
+        options: RequestOptions | None = None,
     ) -> Any: ...
 
     async def request(
@@ -170,19 +163,15 @@ class AsyncClient:
         method: str,
         path: str,
         *,
-        params: Params = None,
         json: BaseModel | Mapping[str, Any] | list[Any] | None = None,
-        headers: Mapping[str, str] | None = None,
         response_model: type[T] | None = None,
-        authenticated: bool = True,
+        options: RequestOptions | None = None,
     ) -> T | Any:
         response = await self._request_response(
             method,
             path,
-            params=params,
             json=json,
-            headers=headers,
-            authenticated=authenticated,
+            options=options,
         )
         return (
             decode_model(response, response_model)
@@ -195,26 +184,30 @@ class AsyncClient:
         method: str,
         path: str,
         *,
-        params: Params = None,
         json: BaseModel | Mapping[str, Any] | list[Any] | None = None,
-        headers: Mapping[str, str] | None = None,
-        authenticated: bool = True,
+        options: RequestOptions | None = None,
     ) -> httpx.Response:
+        request_options = options or RequestOptions()
         relative_path = validate_relative_path(path)
-        request_headers = dict(headers or {})
-        if authenticated and self._token is not None:
-            request_headers["Authorization"] = f"Bearer {self._token.value}"
+        bearer_token = (
+            self._token.value if request_options.authenticated and self._token is not None else None
+        )
+        request_headers = prepare_request_headers(request_options.headers, bearer_token)
+        request_body = json_body(json)
         try:
             response = await self._http.request(
                 method.upper(),
                 relative_path,
-                params=params,
-                json=json_body(json),
+                params=request_options.params,
+                json=request_body,
                 headers=request_headers,
             )
         except httpx.HTTPError as error:
+            secrets = sensitive_request_values(request_headers, request_body)
             raise TransportError(
-                method.upper(), f"{self._base_url}{relative_path}", str(error)
+                method.upper(),
+                f"{self._base_url}{relative_path}",
+                redact_text(str(error), secrets),
             ) from error
         raise_api_error(response)
         return response

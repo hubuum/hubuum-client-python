@@ -40,6 +40,7 @@ from .models import (
     UserCreate,
     UserUpdate,
 )
+from .options import ClientOptions, RequestOptions
 from .query import Page, Query, QueryFilter
 from .types import (
     AccessToken,
@@ -71,6 +72,7 @@ __all__ = [
     "ClassRelationId",
     "ClassUpdate",
     "Client",
+    "ClientOptions",
     "Collection",
     "CollectionCreate",
     "CollectionId",
@@ -100,6 +102,7 @@ __all__ = [
     "Query",
     "QueryFilter",
     "RateLimitError",
+    "RequestOptions",
     "ResultCardinalityError",
     "Task",
     "TaskId",

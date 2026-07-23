@@ -56,8 +56,9 @@ items = client.classes.all(query, max_pages=50, max_items=5_000)
 ```
 
 The client rejects repeated cursors, more than `max_pages`, and more than
-`max_items`. The async client provides the same API, and its `pages()` method is
-an async iterator.
+`max_items`. Bounds must be positive and are validated before the client makes a
+request. The async client provides the same API, and its `pages()` method is an
+async iterator.
 
 The default bounds are intentionally conservative. Increase them explicitly for
 a known large result set, or consume pages individually when streaming work is

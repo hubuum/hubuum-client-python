@@ -10,11 +10,13 @@ import sys
 import urllib.request
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 TARGET_URL = "https://raw.githubusercontent.com/hubuum/hubuum/v0.0.3/docs/openapi.json"
 TARGET_SHA256 = "3f072aa40ed8a2cb94987a5e35c91b64236fdbbd770100baeaa6057990ef6a10"
 TARGET_VERSION = "0.0.3"
 TARGET_OPERATION_COUNT = 196
+MAX_SOURCE_BYTES = 10 * 1024 * 1024
 HTTP_METHODS = {"get", "put", "post", "delete", "patch", "head", "options", "trace"}
 REQUIRED_OPERATIONS = {
     ("post", "/api/v0/auth/login"),
@@ -39,9 +41,23 @@ def _read_source(source: str) -> bytes:
     path = Path(source)
     if path.is_file():
         return path.read_bytes()
+
+    parsed = urlsplit(source)
+    if parsed.scheme != "https" or not parsed.netloc:
+        raise ValueError("source must be an existing local file or an absolute HTTPS URL")
+    if parsed.username is not None or parsed.password is not None:
+        raise ValueError("source URL must not contain credentials")
+
     request = urllib.request.Request(source, headers={"User-Agent": "hubuum-client-python"})
-    with urllib.request.urlopen(request, timeout=30) as response:
-        return response.read()
+    # The requested and final schemes are constrained immediately around this call.
+    with urllib.request.urlopen(request, timeout=30) as response:  # nosec B310
+        final_url = urlsplit(response.geturl())
+        if final_url.scheme != "https" or not final_url.netloc:
+            raise ValueError("source URL redirected outside HTTPS")
+        payload = response.read(MAX_SOURCE_BYTES + 1)
+    if len(payload) > MAX_SOURCE_BYTES:
+        raise ValueError(f"OpenAPI source exceeds {MAX_SOURCE_BYTES} bytes")
+    return payload
 
 
 def _operations(document: dict[str, Any]) -> set[tuple[str, str]]:
