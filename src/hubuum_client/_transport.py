@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Mapping
 from contextlib import suppress
+from datetime import UTC, datetime, timedelta
 from typing import Any, TypeVar
 from urllib.parse import quote_plus, unquote, urlsplit
 
@@ -40,6 +42,47 @@ _MAX_PATH_DECODING_PASSES = 8
 _ASCII_CONTROL_END = 32
 _ASCII_DELETE = 127
 _MAX_PORT = 65_535
+_LEAP_SECOND = 60
+_MONTHS = {
+    "Jan": 1,
+    "Feb": 2,
+    "Mar": 3,
+    "Apr": 4,
+    "May": 5,
+    "Jun": 6,
+    "Jul": 7,
+    "Aug": 8,
+    "Sep": 9,
+    "Oct": 10,
+    "Nov": 11,
+    "Dec": 12,
+}
+_SHORT_WEEKDAYS = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+_LONG_WEEKDAYS = (
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+)
+_SHORT_WEEKDAY_PATTERN = r"(?P<weekday>Mon|Tue|Wed|Thu|Fri|Sat|Sun)"
+_LONG_WEEKDAY_PATTERN = r"(?P<weekday>Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)"
+_MONTH_PATTERN = r"(?P<month>Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)"
+_TIME_PATTERN = r"(?P<hour>[0-9]{2}):(?P<minute>[0-9]{2}):(?P<second>[0-9]{2})"
+_IMF_FIXDATE = re.compile(
+    rf"{_SHORT_WEEKDAY_PATTERN}, (?P<day>[0-9]{{2}}) {_MONTH_PATTERN} "
+    rf"(?P<year>[0-9]{{4}}) {_TIME_PATTERN} GMT"
+)
+_RFC850_DATE = re.compile(
+    rf"{_LONG_WEEKDAY_PATTERN}, (?P<day>[0-9]{{2}})-{_MONTH_PATTERN}-"
+    rf"(?P<year>[0-9]{{2}}) {_TIME_PATTERN} GMT"
+)
+_ASCTIME_DATE = re.compile(
+    rf"{_SHORT_WEEKDAY_PATTERN} {_MONTH_PATTERN} (?P<day>[0-9]{{2}}| [0-9]) "
+    rf"{_TIME_PATTERN} (?P<year>[0-9]{{4}})"
+)
 
 
 def _reject_ambiguous_characters(value: str, *, label: str) -> None:
@@ -203,6 +246,76 @@ def safe_response_url(response: httpx.Response) -> str:
     return str(response.request.url.copy_with(query=None, fragment=None))
 
 
+def _parse_http_date(value: str, *, received_at: datetime) -> datetime | None:
+    received_at = (
+        received_at.replace(tzinfo=UTC)
+        if received_at.tzinfo is None
+        else received_at.astimezone(UTC)
+    )
+    match = _IMF_FIXDATE.fullmatch(value)
+    weekdays = _SHORT_WEEKDAYS
+    rfc850 = False
+    if match is None:
+        match = _RFC850_DATE.fullmatch(value)
+        weekdays = _LONG_WEEKDAYS
+        rfc850 = match is not None
+    if match is None:
+        match = _ASCTIME_DATE.fullmatch(value)
+        weekdays = _SHORT_WEEKDAYS
+    if match is None:
+        return None
+
+    try:
+        month = _MONTHS[match.group("month")]
+        day = int(match.group("day").strip())
+        hour = int(match.group("hour"))
+        minute = int(match.group("minute"))
+        second = int(match.group("second"))
+        if second > _LEAP_SECOND:
+            return None
+        year = int(match.group("year"))
+        if rfc850:
+            year += received_at.year // 100 * 100
+            if year > received_at.year + 50 or (
+                year == received_at.year + 50
+                and (month, day, hour, minute, second)
+                > (
+                    received_at.month,
+                    received_at.day,
+                    received_at.hour,
+                    received_at.minute,
+                    received_at.second,
+                )
+            ):
+                year -= 100
+        parsed = datetime(year, month, day, hour, minute, min(second, 59), tzinfo=UTC)
+        if match.group("weekday") != weekdays[parsed.weekday()]:
+            return None
+        return parsed + timedelta(seconds=second == _LEAP_SECOND)
+    except (KeyError, ValueError, OverflowError):
+        return None
+
+
+def _parse_retry_after(value: str | None, *, received_at: datetime) -> float | None:
+    if value is None:
+        return None
+    value = value.strip(" \t")
+    if value.isascii() and value.isdigit():
+        try:
+            return float(int(value))
+        except OverflowError:
+            return None
+    retry_at = _parse_http_date(value, received_at=received_at)
+    if retry_at is None:
+        return None
+    if received_at.tzinfo is None:
+        received_at = received_at.replace(tzinfo=UTC)
+    try:
+        return max(0.0, (retry_at - received_at.astimezone(UTC)).total_seconds())
+    except (ValueError, OverflowError):
+        return None
+
+
 def raise_api_error(response: httpx.Response) -> None:
     """Map a failed HTTP response onto the public exception hierarchy."""
     if response.is_success:
@@ -240,10 +353,10 @@ def raise_api_error(response: httpx.Response) -> None:
         request_id=redact_text(response.headers.get("x-request-id", ""), secrets) or None,
     )
     if isinstance(api_error, RateLimitError):
-        try:
-            api_error.retry_after = float(response.headers["retry-after"])
-        except (KeyError, ValueError):
-            api_error.retry_after = None
+        api_error.retry_after = _parse_retry_after(
+            response.headers.get("retry-after"),
+            received_at=datetime.now(UTC),
+        )
     raise api_error
 
 

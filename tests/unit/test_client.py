@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
+from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import quote_plus
 
@@ -33,6 +34,7 @@ from hubuum_client import (
     ResultCardinalityError,
     TransportError,
 )
+from hubuum_client._transport import _parse_retry_after
 
 
 def _client(
@@ -253,6 +255,77 @@ def test_http_errors_are_structured_and_secret_safe(
     assert "?" not in error.url
     if isinstance(error, RateLimitError):
         assert error.retry_after == 2
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["-1", "1.5", "nan", "inf", "not-a-date", "9" * 400],
+)
+def test_invalid_retry_after_values_are_ignored(value: str) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            429,
+            json={"error": "RateLimited", "message": "slow down"},
+            headers={"Retry-After": value},
+        )
+
+    with _client(handler) as client, pytest.raises(RateLimitError) as raised:
+        client.request("GET", "/api/v1/classes")
+
+    assert raised.value.retry_after is None
+
+
+def test_retry_after_http_dates_become_non_negative_delays() -> None:
+    received_at = datetime(2026, 7, 23, 12, tzinfo=UTC)
+
+    for value in (
+        "Thu, 23 Jul 2026 12:02:00 GMT",
+        "Thursday, 23-Jul-26 12:02:00 GMT",
+        "Thu Jul 23 12:02:00 2026",
+    ):
+        assert _parse_retry_after(value, received_at=received_at) == 120
+    assert (
+        _parse_retry_after(
+            "Thu, 23 Jul 2026 11:58:00 GMT",
+            received_at=received_at,
+        )
+        == 0
+    )
+    assert (
+        _parse_retry_after(
+            "Thu, 31 Dec 2026 23:59:60 GMT",
+            received_at=datetime(2026, 12, 31, 23, 59, 59, tzinfo=UTC),
+        )
+        == 1
+    )
+    assert (
+        _parse_retry_after(
+            "Saturday, 23-Jul-77 12:02:00 GMT",
+            received_at=received_at,
+        )
+        == 0
+    )
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "Thu, 23 Jul 2026 12:02:00 UTC",
+        "Thu, 23 Jul 2026 12:02:00 +0000",
+        "Thu, 23 Jul 2026 12:02:00 GMT trailing",
+        "thu, 23 Jul 2026 12:02:00 GMT",
+        "Fri, 23 Jul 2026 12:02:00 GMT",
+        "Thu,  23 Jul 2026 12:02:00 GMT",
+    ],
+)
+def test_non_http_retry_after_dates_are_ignored(value: str) -> None:
+    assert (
+        _parse_retry_after(
+            value,
+            received_at=datetime(2026, 7, 23, 12, tzinfo=UTC),
+        )
+        is None
+    )
 
 
 def test_error_responses_and_transport_failures_redact_request_secrets() -> None:

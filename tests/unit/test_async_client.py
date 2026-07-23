@@ -19,6 +19,7 @@ from hubuum_client import (
     Credentials,
     DecodeError,
     Query,
+    RateLimitError,
     RequestOptions,
     TransportError,
 )
@@ -131,6 +132,22 @@ async def test_async_logout_clears_token_on_server_error() -> None:
         with pytest.raises(Exception, match="failed"):
             await client.logout()
         assert not client.is_authenticated
+
+
+async def test_async_rate_limit_error_parses_retry_after_http_date() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            429,
+            json={"error": "RateLimited", "message": "slow down"},
+            headers={"Retry-After": "Thu, 23 Jul 2099 12:02:00 GMT"},
+        )
+
+    async with _client(handler) as client:
+        with pytest.raises(RateLimitError) as raised:
+            await client.request("GET", "/api/v1/classes")
+
+    assert raised.value.retry_after is not None
+    assert raised.value.retry_after > 0
 
 
 async def test_async_headers_and_exceptions_are_secret_safe() -> None:
