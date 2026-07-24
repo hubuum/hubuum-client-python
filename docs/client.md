@@ -22,6 +22,58 @@ client = Client("https://hubuum.example.com", token=token)
 `logout()` invalidates the current token on the server and always clears the
 local token, including when the server reports an error.
 
+## Application lifetime and connection reuse
+
+Each `Client` owns an HTTPX connection pool. A context-managed client is already
+persistent for the entire `with` block; it is not recreated for each request.
+Keep that block around the application's work when the application's lifetime
+fits naturally into one scope:
+
+```python
+from hubuum_client import Client, Credentials
+
+with Client("https://hubuum.example.com") as client:
+    client.login(Credentials("alice", "secret"))
+    run_application(client)
+```
+
+Frameworks, workers, and dependency-injection containers can instead create the
+client during application startup and close it during shutdown:
+
+```python
+from hubuum_client import Client, Credentials
+
+client = Client("https://hubuum.example.com")
+try:
+    client.login(Credentials("alice", "secret"))
+    servers = client.classes.by_name("Servers").objects
+    for server in servers.all():
+        print(server.name)
+finally:
+    client.close()
+```
+
+The asynchronous client follows the same ownership pattern:
+
+```python
+from hubuum_client import AsyncClient, Credentials
+
+client = AsyncClient("https://hubuum.example.com")
+try:
+    await client.login(Credentials("alice", "secret"))
+    servers = client.classes.by_name("Servers").objects
+    for server in await servers.all():
+        print(server.name)
+finally:
+    await client.close()
+```
+
+Reuse a client for a meaningful application lifetime rather than constructing
+one for every API call. HTTPX reuses eligible TCP/TLS connections from the
+client's pool and transparently opens replacements when a connection is no
+longer usable. `close()` releases local network resources; `logout()` also
+invalidates the current bearer token on the server.
+
 ## Asynchronous client
 
 The async client mirrors the resource surface and uses HTTPX's async connection
@@ -37,6 +89,9 @@ async with AsyncClient("https://hubuum.example.com") as client:
 
 Only I/O methods are awaited. Query construction and Pydantic models are the
 same in both modes.
+
+Create and close an `AsyncClient` within the same application and event-loop
+lifetime.
 
 ## Identity scopes
 

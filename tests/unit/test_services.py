@@ -38,6 +38,7 @@ from hubuum_client import (
 from hubuum_client.async_services import (
     AsyncClassesService,
     AsyncClassRelationsService,
+    AsyncClassService,
     AsyncCollectionsService,
     AsyncGroupsService,
     AsyncObjectRelationsService,
@@ -50,6 +51,7 @@ from hubuum_client.models import Group, User
 from hubuum_client.services import (
     ClassesService,
     ClassRelationsService,
+    ClassService,
     CollectionsService,
     GroupsService,
     ObjectRelationsService,
@@ -125,6 +127,7 @@ def test_sync_and_async_services_keep_public_method_parity() -> None:
         (ResourceService, AsyncResourceService),
         (CollectionsService, AsyncCollectionsService),
         (ClassesService, AsyncClassesService),
+        (ClassService, AsyncClassService),
         (ObjectsService, AsyncObjectsService),
         (UsersService, AsyncUsersService),
         (GroupsService, AsyncGroupsService),

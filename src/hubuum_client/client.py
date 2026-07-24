@@ -119,10 +119,17 @@ class Client:
         return ClassesService(self)
 
     def objects(self, class_id: ClassId | int) -> ObjectsService:
+        """Select objects by class ID.
+
+        Prefer ``client.classes.by_id(class_id).objects`` in new code.
+        """
         return ObjectsService(self, ClassId(class_id))
 
     def objects_by_class_name(self, class_name: str) -> NamedObjectsService:
-        """Select objects through the server's exact class-name route."""
+        """Select objects through the server's exact class-name route.
+
+        Prefer ``client.classes.by_name(class_name).objects`` in new code.
+        """
         return NamedObjectsService(self, class_name)
 
     @property
