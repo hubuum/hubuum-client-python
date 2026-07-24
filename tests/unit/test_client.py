@@ -6,6 +6,7 @@ from typing import Any
 
 import httpx
 import pytest
+from pydantic import BaseModel
 
 from hubuum_client import (
     APIError,
@@ -291,6 +292,7 @@ def test_configured_auth_replaces_header_case_insensitively_and_host_is_locked()
         "/api/../secret",
         "/api/%2e%2e/secret",
         "/api/%252e%252e/secret",
+        "/api/%252525252525252525",
         "/api/..\\secret",
         "/api/\tsecret",
         "/api/%00/secret",
@@ -313,6 +315,8 @@ def test_raw_request_rejects_unsafe_paths(path: str) -> None:
         "https://alice:secret@hubuum.test",
         "https://x.test?q=1",
         "https://hubuum.test:invalid",
+        "https://hubuum.test:0",
+        "https://hubuum.test:65536",
         "https://hubuum.test/%252e%252e/secret",
         "https://hubuum.test/\nsecret",
         "https://hubuum.test/%00",
@@ -361,3 +365,85 @@ def test_class_create_serializes_typed_request(class_json: dict[str, Any]) -> No
         )
 
     assert created.id == ClassId(12)
+
+
+def test_plain_basemodel_config_fallback_and_client_metadata() -> None:
+    class PlainPayload(BaseModel):
+        enabled: bool
+        omitted: str | None = None
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/v1/config":
+            return httpx.Response(200, json=[])
+        assert json.loads(request.content) == {"enabled": True}
+        return httpx.Response(204)
+
+    with _client(handler, token="token") as client:
+        assert client.base_url == "https://hubuum.test/"
+        assert client.config() == {}
+        assert client.request("POST", "/api/v1/custom", json=PlainPayload(enabled=True)) is None
+
+
+def test_decode_validation_and_nested_error_redaction_edges() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/v1/custom-invalid-json":
+            return httpx.Response(
+                200,
+                content=b"{",
+                headers={"Content-Type": "application/json"},
+            )
+        if request.url.path == "/api/v1/classes/1":
+            return httpx.Response(200, json={"name": "missing-required-fields"})
+        return httpx.Response(
+            400,
+            json=[
+                {"password": "response-secret"},
+                {"details": ["visible", 7]},
+            ],
+        )
+
+    with _client(handler, token="token") as client:
+        with pytest.raises(DecodeError):
+            client.request("GET", "/api/v1/custom-invalid-json")
+        with pytest.raises(DecodeError) as model_error:
+            client.classes.get(1)
+        with pytest.raises(APIError) as api_error:
+            client.request("GET", "/api/v1/custom-error-list")
+
+    assert "input" not in model_error.value.reason
+    assert api_error.value.response_body == [
+        {"password": "<redacted>"},
+        {"details": ["visible", 7]},
+    ]
+
+
+def test_nested_request_secrets_are_redacted_from_transport_errors() -> None:
+    first_secret = "nested-secret-one"
+    second_secret = "nested-secret-two"
+
+    def offline(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError(
+            f"failed with {first_secret} and {second_secret}",
+            request=request,
+        )
+
+    with _client(offline) as client, pytest.raises(TransportError) as raised:
+        client.request(
+            "POST",
+            "/api/v1/custom",
+            json={"password": [first_secret, (second_secret,)]},
+        )
+
+    assert first_secret not in str(raised.value)
+    assert second_secret not in str(raised.value)
+
+
+@pytest.mark.parametrize("headers", [{}, {"Retry-After": "not-a-number"}])
+def test_invalid_or_missing_retry_after_is_ignored(headers: dict[str, str]) -> None:
+    with (
+        _client(lambda request: httpx.Response(429, text="limited", headers=headers)) as client,
+        pytest.raises(RateLimitError) as raised,
+    ):
+        client.request("GET", "/api/v1/custom")
+
+    assert raised.value.retry_after is None

@@ -74,6 +74,18 @@ def test_class_normalizes_live_embedded_collection() -> None:
     assert hubuum_class.collection.name == "inventory"
     assert hubuum_class.validate_schema is None
 
+    with pytest.raises(ValidationError, match="collection_id"):
+        HubuumClass.model_validate(
+            {
+                "id": 7,
+                "name": "invalid",
+                "description": "No usable collection",
+                "collection": {"name": "missing-id"},
+                "created_at": "2026-07-21T10:00:00Z",
+                "updated_at": "2026-07-21T10:00:00Z",
+            }
+        )
+
 
 def test_secret_values_are_redacted_but_can_produce_wire_values() -> None:
     credentials = Credentials("alice", "super-secret", "local")

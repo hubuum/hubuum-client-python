@@ -31,6 +31,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- Raised the branch-aware unit coverage gate from 90% to 95% after adding
+  request-construction coverage for every pinned OpenAPI operation and focused
+  transport, streaming, decoding, pagination, and sync/async failure tests.
 - Changed PyPI trusted publishing to run from protected `v*` tag pushes, with a
   manually approved GitHub environment and an exact package-version check.
 - Added an evidence-linked client/server compatibility matrix and identified

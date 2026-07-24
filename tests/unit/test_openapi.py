@@ -1,19 +1,31 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Callable
+from typing import Any
 
 import httpx
 import pytest
 
 from hubuum_client import (
+    APIError,
     AsyncClient,
+    AsyncResponseStream,
     Client,
     DecodeError,
     ObjectDataPatchOperation,
     OpenAPIOptions,
+    ResponseStream,
 )
-from hubuum_client._operations import OPERATIONS, SUPPORTED_OPERATIONS
+from hubuum_client._operations import (
+    OPERATIONS,
+    PUBLIC_OPERATION_IDS,
+    STREAMING_OPERATION_IDS,
+    SUPPORTED_OPERATIONS,
+)
+
+_PATH_PARAMETER = re.compile(r"\{([A-Za-z_][A-Za-z0-9_]*)\}")
 
 
 def _client(handler: Callable[[httpx.Request], httpx.Response]) -> Client:
@@ -46,6 +58,40 @@ def test_manifest_deliberately_covers_all_v003_operations() -> None:
         "text/html",
         "text/plain",
     )
+
+
+@pytest.mark.parametrize("operation_id", tuple(OPERATIONS))
+def test_every_manifest_operation_constructs_its_declared_request(operation_id: str) -> None:
+    operation = OPERATIONS[operation_id]
+    path_params = {name: f"value-{name}" for name in _PATH_PARAMETER.findall(operation.path)}
+    expected_path = _PATH_PARAMETER.sub(
+        lambda match: f"value-{match.group(1)}",
+        operation.path,
+    )
+    body: dict[str, Any] | list[Any] | None = None
+    if operation.request_media_type == "application/json-patch+json":
+        body = []
+    elif operation.request_media_type is not None:
+        body = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == operation.method, operation_id
+        assert request.url.path == expected_path, operation_id
+        if operation_id in PUBLIC_OPERATION_IDS:
+            assert "authorization" not in request.headers, operation_id
+        else:
+            assert request.headers["authorization"] == "Bearer token", operation_id
+        if operation.request_media_type is not None:
+            assert request.headers["content-type"] == operation.request_media_type, operation_id
+        return httpx.Response(204)
+
+    with _client(handler) as client:
+        options = OpenAPIOptions(path_params=path_params)
+        if operation_id in STREAMING_OPERATION_IDS:
+            with client.openapi.stream(operation_id, options=options) as response:
+                assert response.status_code == 204
+        else:
+            assert client.openapi.call(operation_id, json=body, options=options) is None
 
 
 def test_openapi_call_formats_paths_media_types_and_response_modes() -> None:
@@ -186,6 +232,8 @@ async def test_async_openapi_call_and_stream_match_sync_behavior() -> None:
         return httpx.Response(200, json={"id": 9})
 
     async with _async_client(handler) as client:
+        assert len(client.openapi.operation_ids) == 196
+        assert client.openapi.operation("getApiV1TasksByTaskId").method == "GET"
         result = await client.openapi.call(
             "getApiV1TasksByTaskId",
             options=OpenAPIOptions(path_params={"task_id": 9}),
@@ -195,6 +243,11 @@ async def test_async_openapi_call_and_stream_match_sync_behavior() -> None:
             options=OpenAPIOptions(params={"q": "done"}),
         ) as response:
             lines = [line async for line in response.iter_lines()]
+        with pytest.raises(ValueError, match="streaming"):
+            await client.openapi.call("getApiV1SearchStream")
+        with pytest.raises(ValueError, match="not a streaming"):
+            async with client.openapi.stream("getApiV1Config"):
+                pass
 
     assert result == {"id": 9}
     assert lines == ["data: done", ""]
@@ -215,6 +268,91 @@ def test_openapi_invalid_json_does_not_fall_back_to_text() -> None:
         client.openapi.call("getApiV1Config")
 
 
+def test_openapi_binary_empty_and_operation_metadata() -> None:
+    responses = iter(
+        (
+            httpx.Response(
+                200,
+                content=b"\x00\x01",
+                headers={"Content-Type": "application/octet-stream"},
+            ),
+            httpx.Response(205),
+        )
+    )
+
+    with _client(lambda request: next(responses)) as client:
+        assert len(client.openapi.operation_ids) == 196
+        assert client.openapi.operation("getApiV1Config").path == "/api/v1/config"
+        assert client.openapi.call("getApiV1Config") == b"\x00\x01"
+        assert client.openapi.call("getApiV1Config") is None
+
+
+def test_stream_wrappers_delegate_all_response_modes() -> None:
+    sync = ResponseStream(
+        httpx.Response(
+            200,
+            content=b"first\nsecond\n",
+            headers={"X-Stream": "sync"},
+        )
+    )
+
+    assert sync.status_code == 200
+    assert sync.headers["x-stream"] == "sync"
+    assert b"".join(sync.iter_bytes()) == b"first\nsecond\n"
+    assert "".join(sync.iter_text()) == "first\nsecond\n"
+    assert list(sync.iter_lines()) == ["first", "second"]
+
+
+async def test_async_stream_wrapper_delegates_all_response_modes() -> None:
+    stream = AsyncResponseStream(
+        httpx.Response(
+            200,
+            content=b"first\nsecond\n",
+            headers={"X-Stream": "async"},
+        )
+    )
+
+    assert stream.status_code == 200
+    assert stream.headers["x-stream"] == "async"
+    assert b"".join([chunk async for chunk in stream.iter_bytes()]) == b"first\nsecond\n"
+    assert "".join([chunk async for chunk in stream.iter_text()]) == "first\nsecond\n"
+    assert [line async for line in stream.iter_lines()] == ["first", "second"]
+
+
+def test_failed_stream_response_is_read_mapped_and_closed() -> None:
+    captured: list[httpx.Response] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        response = httpx.Response(503, json={"error": "Unavailable", "message": "try later"})
+        captured.append(response)
+        return response
+
+    with (
+        _client(handler) as client,
+        pytest.raises(APIError, match="try later"),
+        client.stream("GET", "/api/v1/search/stream"),
+    ):
+        pass
+
+    assert captured[0].is_closed
+
+
+async def test_async_failed_stream_response_is_read_mapped_and_closed() -> None:
+    captured: list[httpx.Response] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        response = httpx.Response(503, json={"error": "Unavailable", "message": "try later"})
+        captured.append(response)
+        return response
+
+    async with _async_client(handler) as client:
+        with pytest.raises(APIError, match="try later"):
+            async with client.stream("GET", "/api/v1/search/stream"):
+                pass
+
+    assert captured[0].is_closed
+
+
 def test_object_data_patch_operation_enforces_rfc_member_shapes_without_losing_null() -> None:
     add_null = ObjectDataPatchOperation(op="add", path="/optional", value=None)
     move = ObjectDataPatchOperation(op="move", path="/new", from_path="/old")
@@ -223,5 +361,11 @@ def test_object_data_patch_operation_enforces_rfc_member_shapes_without_losing_n
     assert move.payload() == {"op": "move", "path": "/new", "from": "/old"}
     with pytest.raises(ValueError, match="require value"):
         ObjectDataPatchOperation(op="add", path="/missing")
+    with pytest.raises(ValueError, match="require from"):
+        ObjectDataPatchOperation(op="move", path="/new")
     with pytest.raises(ValueError, match="only valid"):
         ObjectDataPatchOperation(op="remove", path="/old", value="secret")
+    with pytest.raises(ValueError, match="only valid"):
+        ObjectDataPatchOperation(op="remove", path="/old", from_path="/other")
+    with pytest.raises(ValueError, match="valid dictionary"):
+        ObjectDataPatchOperation.model_validate("not-an-operation")

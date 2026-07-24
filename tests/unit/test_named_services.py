@@ -5,11 +5,13 @@ from collections.abc import Callable
 from typing import Any
 
 import httpx
+import pytest
 
 from hubuum_client import (
     AsyncClient,
     ClassUpdate,
     Client,
+    DecodeError,
     ObjectCreate,
     ObjectUpdate,
     Query,
@@ -81,6 +83,7 @@ def test_complete_by_name_surface_and_miami_workflow(
 
     with _client(handler) as client:
         selected = client.classes.by_name("Hosts 2")
+        assert selected.objects.class_name == "Hosts 2"
         assert selected.get().id == 12
         assert selected.update(ClassUpdate(description="updated")).id == 12
         assert selected.permissions()[0]["permission"] == "ReadClass"
@@ -171,6 +174,7 @@ async def test_async_complete_by_name_surface(
 
     async with _async_client(handler) as client:
         selected = client.classes.by_name("Hosts")
+        assert selected.objects.class_name == "Hosts"
         assert (await selected.get()).id == 12
         assert (await selected.update(ClassUpdate(description="updated"))).id == 12
         assert (await selected.permissions())[0]["permission"] == "ReadClass"
@@ -202,3 +206,88 @@ async def test_async_complete_by_name_surface(
         assert (await objects.related_graph("host"))["relations"] == []
         await objects.delete("host")
         await selected.delete()
+
+
+def test_named_service_input_and_patch_validation_happens_before_io() -> None:
+    def unexpected(request: httpx.Request) -> httpx.Response:
+        pytest.fail(f"unexpected request: {request.method} {request.url}")
+
+    with _client(unexpected) as client:
+        with pytest.raises(ValueError, match="class name"):
+            client.classes.by_name(" ")
+        with pytest.raises(ValueError, match="class name"):
+            client.objects_by_class_name(" ")
+        with pytest.raises(ValueError, match="index 0"):
+            client.objects(12).patch_data(13, [{}])
+        with pytest.raises(ValueError, match="more than 1000"):
+            client.objects(12).patch_data(
+                13,
+                [{"op": "remove", "path": "/old"} for _ in range(1_001)],
+            )
+
+
+async def test_async_named_service_input_validation_happens_before_io() -> None:
+    def unexpected(request: httpx.Request) -> httpx.Response:
+        pytest.fail(f"unexpected request: {request.method} {request.url}")
+
+    async with _async_client(unexpected) as client:
+        with pytest.raises(ValueError, match="class name"):
+            client.classes.by_name(" ")
+        with pytest.raises(ValueError, match="class name"):
+            client.objects_by_class_name(" ")
+
+
+def test_named_services_reject_unexpected_json_shapes() -> None:
+    with (
+        _client(lambda request: httpx.Response(200, json={})) as client,
+        pytest.raises(TypeError, match="array of objects"),
+    ):
+        client.classes.by_name("Hosts").permissions()
+
+    with (
+        _client(lambda request: httpx.Response(200, json=[])) as client,
+        pytest.raises(TypeError, match="JSON object"),
+    ):
+        client.classes.by_name("Hosts").related_graph()
+
+    with (
+        _client(
+            lambda request: httpx.Response(
+                200,
+                content=b"{",
+                headers={"Content-Type": "application/json"},
+            )
+        ) as client,
+        pytest.raises(DecodeError),
+    ):
+        client.classes.by_name("Hosts").object_aggregates(params={"group_by": "name"})
+
+    with (
+        _client(lambda request: httpx.Response(200, json={})) as client,
+        pytest.raises(DecodeError, match="array of objects"),
+    ):
+        client.classes.by_name("Hosts").object_aggregates(params={"group_by": "name"})
+
+
+async def test_async_named_services_reject_unexpected_json_shapes() -> None:
+    async with _async_client(lambda request: httpx.Response(200, json={})) as client:
+        with pytest.raises(TypeError, match="array of objects"):
+            await client.classes.by_name("Hosts").permissions()
+
+    async with _async_client(lambda request: httpx.Response(200, json=[])) as client:
+        with pytest.raises(TypeError, match="JSON object"):
+            await client.classes.by_name("Hosts").related_graph()
+
+    async with _async_client(
+        lambda request: httpx.Response(
+            200,
+            content=b"{",
+            headers={"Content-Type": "application/json"},
+        )
+    ) as client:
+        with pytest.raises(DecodeError):
+            await client.classes.by_name("Hosts").object_aggregates(params={"group_by": "name"})
+
+    async with _async_client(lambda request: httpx.Response(200, json={})) as client:
+        with pytest.raises(DecodeError, match="array of objects"):
+            await client.classes.by_name("Hosts").object_aggregates(params={"group_by": "name"})

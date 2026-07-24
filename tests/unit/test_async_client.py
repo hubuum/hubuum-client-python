@@ -15,6 +15,7 @@ from hubuum_client import (
     CollectionId,
     ConfigurationError,
     Credentials,
+    DecodeError,
     Query,
     RequestOptions,
     TransportError,
@@ -142,3 +143,21 @@ async def test_async_headers_and_exceptions_are_secret_safe() -> None:
             await client.request("GET", "/api/v1/custom")
 
     assert "transport-secret" not in str(raised_transport.value)
+
+
+async def test_async_metadata_config_fallback_and_raw_decode_error() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/v1/config":
+            return httpx.Response(200, json=[])
+        return httpx.Response(
+            200,
+            content=b"{",
+            headers={"Content-Type": "application/json"},
+        )
+
+    async with _client(handler, token="token") as client:
+        assert client.base_url == "https://hubuum.test/"
+        assert client.token is not None
+        assert await client.config() == {}
+        with pytest.raises(DecodeError):
+            await client.request("GET", "/api/v1/custom-invalid-json")

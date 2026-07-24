@@ -17,6 +17,7 @@ from hubuum_client import (
     Client,
     CollectionId,
     CollectionUpdate,
+    DecodeError,
     GroupCreate,
     GroupId,
     GroupUpdate,
@@ -28,6 +29,7 @@ from hubuum_client import (
     PrincipalId,
     Query,
     RequestOptions,
+    ResultCardinalityError,
     TaskId,
     UserCreate,
     UserId,
@@ -221,6 +223,10 @@ def test_sync_object_user_and_group_methods(object_json: dict[str, Any]) -> None
         )
         assert objects.update(13, ObjectUpdate(description="Updated")).id == ObjectId(13)
         assert objects.update_by_name("web", ObjectUpdate(name="web-2")).id == ObjectId(13)
+        assert objects.patch_data(
+            13,
+            [{"op": "add", "path": "/verified", "value": True}],
+        ).id == ObjectId(13)
         assert objects.list()[0].id == ObjectId(13)
         objects.delete(13)
         objects.delete_by_name("web")
@@ -417,6 +423,12 @@ async def test_async_crud_specific_services_and_relations(
         assert (await objects.create(ObjectCreate(name="web", data={}, description="Web"))).id == 13
         assert (await objects.update(13, ObjectUpdate(description="new"))).id == 13
         assert (await objects.update_by_name("web", ObjectUpdate(name="web-2"))).id == 13
+        assert (
+            await objects.patch_data(
+                13,
+                [{"op": "add", "path": "/verified", "value": True}],
+            )
+        ).id == 13
         assert (await objects.list())[0].id == 13
         await objects.delete(13)
         await objects.delete_by_name("web")
@@ -513,6 +525,56 @@ async def test_async_timeout_and_transport_error() -> None:
     async with AsyncClient("https://hubuum.test", transport=httpx.MockTransport(offline)) as client:
         with pytest.raises(Exception, match="offline"):
             await client.request("GET", "/healthz", options=RequestOptions(authenticated=False))
+
+
+async def test_async_pagination_and_decode_guards(class_json: dict[str, Any]) -> None:
+    def paginated(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json=[class_json, class_json | {"id": 13}],
+            headers={"X-Next-Cursor": "same", "X-Total-Count": "invalid"},
+        )
+
+    async with AsyncClient(
+        "https://hubuum.test",
+        token="token",
+        transport=httpx.MockTransport(paginated),
+    ) as client:
+        assert (await client.classes.page()).total_count is None
+        with pytest.raises(ValueError, match="max_pages"):
+            await client.classes.all(max_pages=0)
+        with pytest.raises(ValueError, match="max_items"):
+            await client.classes.all(max_items=0)
+        with pytest.raises(RuntimeError, match="max_pages"):
+            await client.classes.all(max_pages=1)
+        with pytest.raises(RuntimeError, match="repeated"):
+            await client.classes.all(Query().cursor("same"))
+        with pytest.raises(RuntimeError, match="max_items"):
+            await client.classes.all(max_items=1)
+        with pytest.raises(ResultCardinalityError, match="received 2"):
+            await client.classes.one(Query())
+
+    async with AsyncClient(
+        "https://hubuum.test",
+        token="token",
+        transport=httpx.MockTransport(lambda request: httpx.Response(200, json={})),
+    ) as client:
+        with pytest.raises(DecodeError, match="expected a JSON array"):
+            await client.classes.list()
+
+
+def test_sync_task_wait_times_out_after_a_nonterminal_response() -> None:
+    with (
+        Client(
+            "https://hubuum.test",
+            token="token",
+            transport=httpx.MockTransport(
+                lambda request: httpx.Response(200, json=_task_json("queued"))
+            ),
+        ) as client,
+        pytest.raises(TimeoutError, match="did not finish"),
+    ):
+        client.tasks.wait(40, timeout_seconds=0)
 
 
 def test_sync_task_wait_caps_sleep_to_remaining_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
