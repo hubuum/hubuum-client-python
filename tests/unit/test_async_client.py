@@ -100,6 +100,8 @@ async def test_async_classes_by_id_selects_class_and_nested_objects(
         return httpx.Response(200, json=class_json)
 
     async with _client(handler, token="token") as client:
+        assert not hasattr(client, "objects")
+        assert not hasattr(client, "objects_by_class_name")
         selected = client.classes.by_id(ClassId(12))
         assert selected.class_id == ClassId(12)
         assert selected.objects.class_id == ClassId(12)

@@ -25,7 +25,7 @@ from .errors import TransportError
 from .models import LoginResponse, ProbeResponse
 from .options import ClientOptions, RequestOptions
 from .streaming import AsyncResponseStream
-from .types import AccessToken, ClassId, Credentials
+from .types import AccessToken, Credentials
 
 T = TypeVar("T", bound=BaseModel)
 _PUBLIC_REQUEST = RequestOptions(authenticated=False)
@@ -114,20 +114,6 @@ class AsyncClient:
     @property
     def classes(self) -> AsyncClassesService:
         return AsyncClassesService(self)
-
-    def objects(self, class_id: ClassId | int) -> AsyncObjectsService:
-        """Select objects by class ID.
-
-        Prefer ``client.classes.by_id(class_id).objects`` in new code.
-        """
-        return AsyncObjectsService(self, ClassId(class_id))
-
-    def objects_by_class_name(self, class_name: str) -> AsyncNamedObjectsService:
-        """Select objects through the server's exact class-name route.
-
-        Prefer ``client.classes.by_name(class_name).objects`` in new code.
-        """
-        return AsyncNamedObjectsService(self, class_name)
 
     @property
     def users(self) -> AsyncUsersService:
@@ -301,9 +287,7 @@ from .async_services import (  # noqa: E402
     AsyncClassRelationsService,
     AsyncCollectionsService,
     AsyncGroupsService,
-    AsyncNamedObjectsService,
     AsyncObjectRelationsService,
-    AsyncObjectsService,
     AsyncTasksService,
     AsyncUsersService,
 )

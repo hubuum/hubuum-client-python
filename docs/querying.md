@@ -44,7 +44,7 @@ query = (
     .contains_all("web", "api")
 )
 
-objects = client.objects(class_id).all(query)
+objects = client.classes.by_id(class_id).objects.all(query)
 ```
 
 The path is passed as one key per argument. For example,
@@ -163,7 +163,5 @@ id_scoped_objects = id_selected_class.objects.all()
 
 Both names are encoded as opaque path segments after explicit `by-name`
 markers, so spaces, slashes, and numeric-looking values remain unambiguous.
-The `client.objects(class_id)` and
-`client.objects_by_class_name(class_name)` conveniences remain available for
-compatibility. New code should prefer the nested class selectors because they
-make the resource hierarchy and ID-versus-name choice explicit.
+The nested selectors make the resource hierarchy and ID-versus-name choice
+explicit.

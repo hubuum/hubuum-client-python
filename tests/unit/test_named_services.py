@@ -92,7 +92,7 @@ def test_complete_by_name_surface_and_miami_workflow(
         assert selected.related_graph()["objects"] == []
         assert selected.object_aggregates(params=[("group_by", "description")]).total_count == 1
 
-        objects = client.objects_by_class_name("Hosts 2")
+        objects = selected.objects
         query = Query().data("status").equals("active").sort("id.asc").include_total(False)
         assert objects.page(query)[0].id == 13
         assert objects.list()[0].id == 13
@@ -185,7 +185,7 @@ async def test_async_complete_by_name_surface(
             await selected.object_aggregates(params=[("group_by", "description")])
         ).total_count == 1
 
-        objects = client.objects_by_class_name("Hosts")
+        objects = selected.objects
         assert (await objects.page())[0].id == 13
         assert (await objects.list())[0].id == 13
         pages = [page async for page in objects.pages()]
@@ -215,12 +215,10 @@ def test_named_service_input_and_patch_validation_happens_before_io() -> None:
     with _client(unexpected) as client:
         with pytest.raises(ValueError, match="class name"):
             client.classes.by_name(" ")
-        with pytest.raises(ValueError, match="class name"):
-            client.objects_by_class_name(" ")
         with pytest.raises(ValueError, match="index 0"):
-            client.objects(12).patch_data(13, [{}])
+            client.classes.by_id(12).objects.patch_data(13, [{}])
         with pytest.raises(ValueError, match="more than 1000"):
-            client.objects(12).patch_data(
+            client.classes.by_id(12).objects.patch_data(
                 13,
                 [{"op": "remove", "path": "/old"} for _ in range(1_001)],
             )
@@ -233,8 +231,6 @@ async def test_async_named_service_input_validation_happens_before_io() -> None:
     async with _async_client(unexpected) as client:
         with pytest.raises(ValueError, match="class name"):
             client.classes.by_name(" ")
-        with pytest.raises(ValueError, match="class name"):
-            client.objects_by_class_name(" ")
 
 
 def test_named_services_reject_unexpected_json_shapes() -> None:

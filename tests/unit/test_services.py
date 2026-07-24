@@ -220,7 +220,7 @@ def test_sync_object_user_and_group_methods(object_json: dict[str, Any]) -> None
     with Client(
         "https://hubuum.test", token="token", transport=httpx.MockTransport(handler)
     ) as client:
-        objects = client.objects(12)
+        objects = client.classes.by_id(12).objects
         assert objects.create(ObjectCreate(name="web", data={}, description="Web")).id == ObjectId(
             13
         )
@@ -422,7 +422,7 @@ async def test_async_crud_specific_services_and_relations(
         ).id == 12
         await client.classes.delete_by_name("server")
 
-        objects = client.objects(12)
+        objects = client.classes.by_id(12).objects
         assert (await objects.create(ObjectCreate(name="web", data={}, description="Web"))).id == 13
         assert (await objects.update(13, ObjectUpdate(description="new"))).id == 13
         assert (await objects.update_by_name("web", ObjectUpdate(name="web-2"))).id == 13
