@@ -89,7 +89,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - run: uv sync --extra test
-      - run: ./scripts/run-e2e-tests.sh
+      - name: Build wheel and run pinned live-server suite
+        run: ./scripts/run-e2e-tests.sh
         env:
           HUBUUM_E2E_SERVER_IMAGE: ${{ env.HUBUUM_TARGET_SERVER_IMAGE }}

@@ -34,6 +34,10 @@ All notable changes to this project are documented here. The format follows
 - Raised the branch-aware unit coverage gate from 90% to 95% after adding
   request-construction coverage for every pinned OpenAPI operation and focused
   transport, streaming, decoding, pagination, and sync/async failure tests.
+- Strengthened pinned-server compatibility evidence with forced multi-page
+  cursor traversal, a complete async resource lifecycle, non-administrator
+  permission boundaries, and live `400`, `401`, `403`, `404`, and `409` error
+  mapping; the e2e wrapper now tests the built wheel in an isolated environment.
 - Changed PyPI trusted publishing to run from protected `v*` tag pushes, with a
   manually approved GitHub environment and an exact package-version check.
 - Added an evidence-linked client/server compatibility matrix and identified

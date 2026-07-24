@@ -20,7 +20,10 @@ from resolving to different content later. The same reference is stored in
 
 The linked run passed the complete unit and OpenAPI contract suites and the
 pinned live-server suite, including core CRUD/natural keys, nested object-data
-queries and JSON Patch, IAM/relations, and async consumption.
+queries and JSON Patch, IAM/relations, forced cursor traversal,
+non-administrator authorization and live error mapping, and a complete async
+resource lifecycle. The live suite imports the wheel built from the tested
+source in a clean environment.
 
 ## Meaning of compatibility
 
@@ -28,8 +31,10 @@ For this project, targeting server v0.0.3 means:
 
 - authentication, public probes, and client configuration work against the
   pinned server;
-- the typed collection, class, object, IAM, relation, query, and pagination
-  workflows pass live-server tests;
+- the typed collection, class, object, IAM, relation, query, forced multi-page
+  pagination, and sync/async mutation workflows pass live-server tests;
+- the live server confirms non-administrator read grants and denied writes,
+  plus client mappings for `400`, `401`, `403`, `404`, and `409` responses;
 - every one of the 196 v0.0.3 OpenAPI operations is present in the checked
   operation manifest, including JSON Patch, rendered export media, and SSE;
 - arbitrary extension routes remain accessible through the safe request
@@ -42,6 +47,11 @@ or convenience method in 0.0.1. Administrative features such as backups,
 restores, computed fields, event sinks, remote targets, and imports/exports use
 the complete `openapi.call()` interface while their higher-level resource
 models mature.
+
+Contract completeness and live behavioral coverage are separate claims. The
+OpenAPI check validates every method, path, request media type, and success
+response media type; the live suite concentrates on representative core
+workflows and does not invoke all 196 operations.
 
 ## Known v0.0.3 contract gap
 

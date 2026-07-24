@@ -14,16 +14,68 @@ DB_USER="hubuum"
 DB_PASSWORD="hubuum_password"
 DB_NAME="hubuum"
 PYTEST_ARGS=("$@")
+E2E_TEMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/hubuum-python-e2e.XXXXXX")"
+E2E_WHEEL_DIR="${E2E_TEMP_DIR}/dist"
+E2E_VENV_DIR="${E2E_TEMP_DIR}/venv"
+E2E_PYTHON=""
+network_name=""
+db_container=""
+server_container=""
+
+container() {
+    "${CONTAINER_RUNTIME}" "$@"
+}
+
+cleanup() {
+    if [[ -n "${network_name}" ]]; then
+        if [[ "${KEEP}" == "1" || "${KEEP}" == "true" ]]; then
+            echo "Keeping e2e resources:"
+            echo "  network=${network_name}"
+            echo "  database=${db_container}"
+            echo "  server=${server_container}"
+        else
+            container rm -f "${server_container}" "${db_container}" >/dev/null 2>&1 || true
+            container network rm "${network_name}" >/dev/null 2>&1 || true
+        fi
+    fi
+    rm -rf -- "${E2E_TEMP_DIR}"
+}
+trap cleanup EXIT INT TERM
+
+prepare_test_environment() {
+    mkdir -p "${E2E_WHEEL_DIR}"
+    echo "Building the wheel used by the e2e suite..."
+    uv build --wheel --out-dir "${E2E_WHEEL_DIR}"
+
+    wheel_paths=("${E2E_WHEEL_DIR}"/*.whl)
+    if ((${#wheel_paths[@]} != 1)) || [[ ! -f "${wheel_paths[0]}" ]]; then
+        echo "Expected exactly one built wheel in ${E2E_WHEEL_DIR}." >&2
+        exit 1
+    fi
+
+    uv venv --python "${HUBUUM_E2E_PYTHON:-python3}" "${E2E_VENV_DIR}"
+    uv pip install --python "${E2E_VENV_DIR}/bin/python" "${wheel_paths[0]}[test]"
+    E2E_PYTHON="${E2E_VENV_DIR}/bin/python"
+    echo "Testing installed wheel: ${wheel_paths[0]}"
+}
+
+run_e2e_tests() {
+    if ((${#PYTEST_ARGS[@]})); then
+        "${E2E_PYTHON}" -m pytest -m e2e tests/e2e "${PYTEST_ARGS[@]}"
+    else
+        "${E2E_PYTHON}" -m pytest -m e2e tests/e2e
+    fi
+}
+
+prepare_test_environment
 
 if [[ -n "${HUBUUM_E2E_BASE_URL:-}" || -n "${HUBUUM_E2E_ADMIN_PASSWORD:-}" ]]; then
     if [[ -z "${HUBUUM_E2E_BASE_URL:-}" || -z "${HUBUUM_E2E_ADMIN_PASSWORD:-}" ]]; then
         echo "HUBUUM_E2E_BASE_URL and HUBUUM_E2E_ADMIN_PASSWORD must be set together." >&2
         exit 2
     fi
-    if ((${#PYTEST_ARGS[@]})); then
-        exec uv run pytest -m e2e tests/e2e "${PYTEST_ARGS[@]}"
-    fi
-    exec uv run pytest -m e2e tests/e2e
+    run_e2e_tests
+    exit
 fi
 
 if [[ -z "${CONTAINER_RUNTIME}" ]]; then
@@ -37,27 +89,10 @@ if [[ -z "${CONTAINER_RUNTIME}" ]]; then
     fi
 fi
 
-container() {
-    "${CONTAINER_RUNTIME}" "$@"
-}
-
 suffix="$(date +%s)-$$-${RANDOM}"
 network_name="hubuum-python-e2e-net-${suffix}"
 db_container="hubuum-python-e2e-db-${suffix}"
 server_container="hubuum-python-e2e-server-${suffix}"
-
-cleanup() {
-    if [[ "${KEEP}" == "1" || "${KEEP}" == "true" ]]; then
-        echo "Keeping e2e resources:"
-        echo "  network=${network_name}"
-        echo "  database=${db_container}"
-        echo "  server=${server_container}"
-        return
-    fi
-    container rm -f "${server_container}" "${db_container}" >/dev/null 2>&1 || true
-    container network rm "${network_name}" >/dev/null 2>&1 || true
-}
-trap cleanup EXIT INT TERM
 
 diagnostics() {
     echo "Hubuum server diagnostics:" >&2
@@ -142,8 +177,4 @@ export HUBUUM_E2E_BASE_URL="${base_url}"
 export HUBUUM_E2E_ADMIN_PASSWORD="${admin_password}"
 
 echo "Running Python e2e tests against Hubuum v0.0.3 at ${base_url}"
-if ((${#PYTEST_ARGS[@]})); then
-    uv run pytest -m e2e tests/e2e "${PYTEST_ARGS[@]}"
-else
-    uv run pytest -m e2e tests/e2e
-fi
+run_e2e_tests

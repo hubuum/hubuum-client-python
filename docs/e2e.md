@@ -1,12 +1,15 @@
 # Docker-backed end-to-end tests
 
-The e2e suite exercises the installed Python package against a real Hubuum
-v0.0.3 server and PostgreSQL database. It covers public probes, login, public
-configuration, typed CRUD, natural-key addressing, filtering, cursor metadata,
-typed nested object-data filters (including scalar, numeric, array, structure,
-null, combined, and network cases), natural-key object listing and atomic
-object-data JSON Patch, IAM membership, class and object relations, cleanup,
-and async reads.
+The e2e suite builds the project wheel, installs that artifact into an isolated
+virtual environment, and exercises the installed distribution against a real
+Hubuum v0.0.3 server and PostgreSQL database. It covers public probes, login,
+public configuration, typed CRUD, natural-key addressing, forced multi-page
+cursor traversal and metadata, typed nested object-data filters (including
+scalar, numeric, array, structure, null, combined, and network cases),
+natural-key object listing and atomic object-data JSON Patch, IAM membership,
+class and object relations, non-administrator permission boundaries, live
+`400`, `401`, `403`, `404`, and `409` errors, cleanup, and a complete async
+create/query/update/patch/delete lifecycle.
 
 ## Canonical command
 
@@ -16,16 +19,20 @@ and async reads.
 
 The wrapper:
 
-1. detects Docker or Podman;
-2. pulls the immutable target server and PostgreSQL images;
-3. creates an isolated network and uniquely named containers;
-4. waits for PostgreSQL and `/readyz`;
-5. resets the generated local administrator password inside the server;
-6. exports the connection details and runs `tests/e2e`;
-7. removes the stack even when a test fails.
+1. builds the wheel and installs its `test` extra into a temporary virtual
+   environment;
+2. detects Docker or Podman;
+3. pulls the immutable target server and PostgreSQL images;
+4. creates an isolated network and uniquely named containers;
+5. waits for PostgreSQL and `/readyz`;
+6. resets the generated local administrator password inside the server;
+7. exports the connection details and runs `tests/e2e` with the isolated
+   interpreter;
+8. removes the stack and temporary test environment even when a test fails.
 
 Set `HUBUUM_E2E_KEEP=1` to retain the stack for diagnosis. The script prints the
-exact resource names before returning.
+exact resource names before returning. The temporary wheel environment is
+always removed.
 
 ## Caller-managed server
 
@@ -37,8 +44,8 @@ HUBUUM_E2E_ADMIN_PASSWORD=secret \
 ./scripts/run-e2e-tests.sh
 ```
 
-Both variables are required together. This mode does not create or remove
-containers.
+Both variables are required together. This mode still builds and installs the
+wheel, but it does not create or remove containers.
 
 ## Environment variables
 
@@ -47,6 +54,7 @@ containers.
 | `HUBUUM_E2E_SERVER_IMAGE` | Override the server image | Immutable v0.0.3 tag and digest |
 | `HUBUUM_E2E_POSTGRES_IMAGE` | Override PostgreSQL | `postgres:18` |
 | `HUBUUM_E2E_CONTAINER_RUNTIME` | Select `docker` or `podman` | Auto-detected |
+| `HUBUUM_E2E_PYTHON` | Interpreter used for the isolated wheel environment | `python3` |
 | `HUBUUM_E2E_TIMEOUT` | Stack startup deadline in seconds | `300` |
 | `HUBUUM_E2E_KEEP` | Keep the provisioned stack | `0` |
 
