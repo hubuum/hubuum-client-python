@@ -4,7 +4,7 @@
 
 | Python client | Hubuum server tag | Status | End-to-end evidence |
 | --- | --- | --- | --- |
-| 0.0.1 | [`v0.0.3`](https://github.com/hubuum/hubuum/releases/tag/v0.0.3) | Verified | [Pinned e2e passed on 2026-07-24](https://github.com/hubuum/hubuum-client-python/actions/runs/30126233605) |
+| 0.0.1 | [`v0.0.3`](https://github.com/hubuum/hubuum/releases/tag/v0.0.3) | Verified | [Pinned e2e passed on 2026-07-24](https://github.com/hubuum/hubuum-client-python/actions/runs/30128172912) |
 
 `Verified` means the complete Docker-backed suite passed for the exact
 client/server pair. The server release is selected by tag and locked to the
