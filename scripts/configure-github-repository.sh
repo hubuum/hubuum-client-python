@@ -5,6 +5,9 @@ set -euo pipefail
 repository="${1:-hubuum/hubuum-client-python}"
 branch="${2:-main}"
 api_version="2026-03-10"
+release_reviewer="${3:-}"
+release_environment="pypi"
+release_ruleset_name="Protect release tags"
 
 if ! command -v gh >/dev/null 2>&1; then
   echo "GitHub CLI (gh) is required." >&2
@@ -12,6 +15,10 @@ if ! command -v gh >/dev/null 2>&1; then
 fi
 
 gh auth status --hostname github.com >/dev/null
+
+if [[ -z "${release_reviewer}" ]]; then
+  release_reviewer="$(gh api user --jq .login)"
+fi
 
 permission="$({
   login="$(gh api user --jq .login)"
@@ -25,6 +32,13 @@ if [[ "${permission}" != "admin" ]]; then
   echo "Administrator permission on ${repository} is required (found: ${permission})." >&2
   exit 1
 fi
+
+release_reviewer_id="$(
+  gh api \
+    --header "X-GitHub-Api-Version: ${api_version}" \
+    "users/${release_reviewer}" \
+    --jq .id
+)"
 
 echo "Configuring repository metadata and merge behavior..."
 gh repo edit "${repository}" \
@@ -59,6 +73,105 @@ gh api --silent --method PUT \
   "repos/${repository}/actions/permissions/workflow" \
   --field default_workflow_permissions=read \
   --field can_approve_pull_request_reviews=false
+
+echo "Configuring protected PyPI trusted publishing..."
+gh api --silent --method PUT \
+  --header "X-GitHub-Api-Version: ${api_version}" \
+  "repos/${repository}/environments/${release_environment}" \
+  --input - <<JSON
+{
+  "wait_timer": 0,
+  "prevent_self_review": false,
+  "reviewers": [
+    {
+      "type": "User",
+      "id": ${release_reviewer_id}
+    }
+  ],
+  "deployment_branch_policy": {
+    "protected_branches": false,
+    "custom_branch_policies": true
+  }
+}
+JSON
+
+release_tag_policy_id="$(
+  gh api \
+    --header "X-GitHub-Api-Version: ${api_version}" \
+    "repos/${repository}/environments/${release_environment}/deployment-branch-policies" \
+    --jq '.branch_policies[]
+      | select(.name == "v*" and .type == "tag")
+      | .id'
+)"
+if [[ -z "${release_tag_policy_id}" ]]; then
+  gh api --silent --method POST \
+    --header "X-GitHub-Api-Version: ${api_version}" \
+    "repos/${repository}/environments/${release_environment}/deployment-branch-policies" \
+    --input - <<'JSON'
+{
+  "name": "v*",
+  "type": "tag"
+}
+JSON
+fi
+
+if gh api \
+  --header "X-GitHub-Api-Version: ${api_version}" \
+  "repos/${repository}/actions/variables/PYPI_PUBLISH_ENABLED" \
+  >/dev/null 2>&1; then
+  gh api --silent --method PATCH \
+    --header "X-GitHub-Api-Version: ${api_version}" \
+    "repos/${repository}/actions/variables/PYPI_PUBLISH_ENABLED" \
+    --raw-field name=PYPI_PUBLISH_ENABLED \
+    --raw-field value=true
+else
+  gh api --silent --method POST \
+    --header "X-GitHub-Api-Version: ${api_version}" \
+    "repos/${repository}/actions/variables" \
+    --raw-field name=PYPI_PUBLISH_ENABLED \
+    --raw-field value=true
+fi
+
+release_ruleset_id="$(
+  gh api \
+    --header "X-GitHub-Api-Version: ${api_version}" \
+    "repos/${repository}/rulesets?includes_parents=false" \
+    --jq ".[] | select(.name == \"${release_ruleset_name}\") | .id"
+)"
+release_ruleset_method="POST"
+release_ruleset_endpoint="repos/${repository}/rulesets"
+if [[ -n "${release_ruleset_id}" ]]; then
+  release_ruleset_method="PUT"
+  release_ruleset_endpoint="${release_ruleset_endpoint}/${release_ruleset_id}"
+fi
+gh api --silent --method "${release_ruleset_method}" \
+  --header "X-GitHub-Api-Version: ${api_version}" \
+  "${release_ruleset_endpoint}" \
+  --input - <<JSON
+{
+  "name": "${release_ruleset_name}",
+  "target": "tag",
+  "enforcement": "active",
+  "bypass_actors": [
+    {
+      "actor_id": ${release_reviewer_id},
+      "actor_type": "User",
+      "bypass_mode": "always"
+    }
+  ],
+  "conditions": {
+    "ref_name": {
+      "include": ["refs/tags/v*"],
+      "exclude": []
+    }
+  },
+  "rules": [
+    {"type": "creation"},
+    {"type": "update"},
+    {"type": "deletion"}
+  ]
+}
+JSON
 
 head_sha="$(
   gh api \

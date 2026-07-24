@@ -1,12 +1,16 @@
 name: Release
 
 on:
-  release:
-    types: [published]
+  push:
+    tags: ["v*"]
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -23,7 +27,7 @@ jobs:
         with:
           enable-cache: false
       - name: Verify release tag
-        if: github.event_name == 'release'
+        if: github.ref_type == 'tag'
         run: test "${GITHUB_REF_NAME}" = "v$(uv version --short)"
       - name: Build distributions
         run: uv build
@@ -37,7 +41,7 @@ jobs:
 
   publish-pypi:
     name: Publish to PyPI
-    if: github.event_name == 'release' && vars.PYPI_PUBLISH_ENABLED == 'true'
+    if: github.event_name == 'push' && vars.PYPI_PUBLISH_ENABLED == 'true'
     needs: build
     runs-on: ubuntu-latest
     environment:

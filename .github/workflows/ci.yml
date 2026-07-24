@@ -13,7 +13,7 @@ permissions:
 env:
   UV_FROZEN: "1"
   HUBUUM_TARGET_SERVER_VERSION: "0.0.3"
-  HUBUUM_TARGET_SERVER_IMAGE: ghcr.io/hubuum/hubuum-server@sha256:f1f57a991f69005ee81f24e77533e61f75b5586949d98cccf1c40fc4329eb186
+  HUBUUM_TARGET_SERVER_IMAGE: ghcr.io/hubuum/hubuum-server:v0.0.3@sha256:f1f57a991f69005ee81f24e77533e61f75b5586949d98cccf1c40fc4329eb186
 
 jobs:
   quality:
