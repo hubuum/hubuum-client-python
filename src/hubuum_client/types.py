@@ -45,8 +45,10 @@ class AccessToken:
     value: str
 
     def __post_init__(self) -> None:
-        if not self.value.strip():
+        normalized = self.value.strip()
+        if not normalized:
             raise ValueError("access token must not be empty")
+        object.__setattr__(self, "value", normalized)
 
     def __repr__(self) -> str:
         return "AccessToken(<redacted>)"
@@ -88,6 +90,26 @@ class FilterOperator(StrEnum):
     NOT_LTE = "not_lte"
     BETWEEN = "between"
     NOT_BETWEEN = "not_between"
+    IN = "in"
+    NOT_IN = "not_in"
+    ALL = "all"
+    NOT_ALL = "not_all"
+    ARRAY_LENGTH = "array_length"
+    NOT_ARRAY_LENGTH = "not_array_length"
+    HAS_KEY = "has_key"
+    NOT_HAS_KEY = "not_has_key"
+    IS_NULL = "is_null"
+    NOT_IS_NULL = "not_is_null"
+    WITHIN_NETWORK = "within_network"
+    NOT_WITHIN_NETWORK = "not_within_network"
+    CONTAINS_NETWORK = "contains_network"
+    NOT_CONTAINS_NETWORK = "not_contains_network"
+    CONTAINS_IP = "contains_ip"
+    NOT_CONTAINS_IP = "not_contains_ip"
+    OVERLAPS_NETWORK = "overlaps_network"
+    NOT_OVERLAPS_NETWORK = "not_overlaps_network"
+    INET_EQUALS = "inet_equals"
+    NOT_INET_EQUALS = "not_inet_equals"
 
 
 QueryValue = str | int | float | bool

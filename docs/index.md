@@ -21,7 +21,8 @@ with Client("https://hubuum.example.com") as client:
 - **Predictable typing.** Request and response bodies are Pydantic v2 models;
   resource identities use distinct `NewType` declarations.
 - **Runtime parity.** `Client` and `AsyncClient` expose matching resources,
-  errors, authentication behavior, and pagination semantics.
+  errors, authentication behavior, pagination semantics, and all 196 pinned
+  OpenAPI operations.
 - **Secure defaults.** TLS validation is enabled, tokens and credentials are
   redacted, and raw requests cannot switch origin or traverse URL paths.
 - **Forward compatibility.** Response models accept new server fields while
@@ -39,14 +40,18 @@ Python 3.11 and later are supported.
 
 ## What is typed
 
-The dedicated service surface includes collections, hierarchy operations,
-classes, class-scoped objects, users, groups, group membership, class and object
-relations, and tasks. Health, readiness, and public configuration are available
-before authentication.
+The strongly modeled service surface includes collections, hierarchy
+operations, classes, class-scoped objects, natural-key class/object routes,
+atomic object-data JSON Patch, users, groups, group membership, class and
+object relations, and tasks. Health, readiness, and public configuration are
+available before authentication.
 
-Hubuum v0.0.3 has a wider administrative and task-backed API. Those routes can
-be used immediately through the origin-locked `request()` method. Dedicated
-models and helpers will be added without removing the safe extension point.
+The `openapi` service deliberately registers every operation in the immutable
+v0.0.3 specification. Administrative and task-backed domains that do not yet
+have dedicated Pydantic resources are invoked by `operationId` and return
+standard typed JSON, text, or byte values. CI compares that manifest with the
+authoritative server contract so an endpoint cannot silently fall out of
+coverage.
 
 Continue with [client setup](client.md), then see
 [queries and pagination](querying.md).

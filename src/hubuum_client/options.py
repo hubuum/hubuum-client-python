@@ -35,3 +35,13 @@ class RequestOptions:
     params: Params = None
     headers: Mapping[str, str] | None = None
     authenticated: bool = True
+
+
+@dataclass(frozen=True, slots=True)
+class OpenAPIOptions:
+    """Path, query, header, and response controls for an OpenAPI operation."""
+
+    path_params: Mapping[str, str | int] | None = None
+    params: Params = None
+    headers: Mapping[str, str] | None = None
+    accept: str | None = None

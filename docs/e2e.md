@@ -3,7 +3,10 @@
 The e2e suite exercises the installed Python package against a real Hubuum
 v0.0.3 server and PostgreSQL database. It covers public probes, login, public
 configuration, typed CRUD, natural-key addressing, filtering, cursor metadata,
-IAM membership, class and object relations, cleanup, and async reads.
+typed nested object-data filters (including scalar, numeric, array, structure,
+null, combined, and network cases), natural-key object listing and atomic
+object-data JSON Patch, IAM membership, class and object relations, cleanup,
+and async reads.
 
 ## Canonical command
 
@@ -41,14 +44,15 @@ containers.
 
 | Variable | Purpose | Default |
 | --- | --- | --- |
-| `HUBUUM_E2E_SERVER_IMAGE` | Override the server image | Immutable v0.0.3 digest |
+| `HUBUUM_E2E_SERVER_IMAGE` | Override the server image | Immutable v0.0.3 tag and digest |
 | `HUBUUM_E2E_POSTGRES_IMAGE` | Override PostgreSQL | `postgres:18` |
 | `HUBUUM_E2E_CONTAINER_RUNTIME` | Select `docker` or `podman` | Auto-detected |
 | `HUBUUM_E2E_TIMEOUT` | Stack startup deadline in seconds | `300` |
 | `HUBUUM_E2E_KEEP` | Keep the provisioned stack | `0` |
 
 An overridden or caller-managed server run is useful during development, but a
-release compatibility claim requires the default immutable server image.
+release compatibility claim requires the default server tag and immutable
+digest recorded in the compatibility matrix.
 
 ## Passing pytest options
 

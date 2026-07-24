@@ -28,6 +28,7 @@ from .models import (
     HubuumClass,
     HubuumObject,
     ObjectCreate,
+    ObjectDataPatchInput,
     ObjectRelation,
     ObjectRelationCreate,
     ObjectUpdate,
@@ -35,8 +36,9 @@ from .models import (
     User,
     UserCreate,
     UserUpdate,
+    _object_data_patch_payload,
 )
-from .options import RequestOptions
+from .options import Params, RequestOptions
 from .query import Page, Query
 from .types import ClassId, CollectionId, GroupId, PrincipalId, TaskId, UserId
 
@@ -208,6 +210,10 @@ class ClassesService(ResourceService[HubuumClass, ClassCreate, ClassUpdate]):
     def delete_by_name(self, name: str) -> None:
         self._client.request("DELETE", f"/api/v1/classes/by-name/{_segment(name)}")
 
+    def by_name(self, name: str) -> NamedClassService:
+        """Select the complete natural-key-addressed class surface."""
+        return NamedClassService(self._client, name)
+
 
 class ObjectsService(ResourceService[HubuumObject, ObjectCreate, ObjectUpdate]):
     def __init__(self, client: Client, class_id: ClassId) -> None:
@@ -228,6 +234,168 @@ class ObjectsService(ResourceService[HubuumObject, ObjectCreate, ObjectUpdate]):
 
     def delete_by_name(self, name: str) -> None:
         self.delete(self.get_by_name(name).id)
+
+    def patch_data(
+        self,
+        object_id: object,
+        operations: builtins.list[ObjectDataPatchInput],
+    ) -> HubuumObject:
+        """Atomically apply RFC 6902 operations relative to the object's data root."""
+        return self._client.request(
+            "PATCH",
+            f"/api/v1/classes/{_segment(self.class_id)}/{_segment(object_id)}/data",
+            json=_object_data_patch_payload(operations),
+            response_model=HubuumObject,
+            options=RequestOptions(headers={"Content-Type": "application/json-patch+json"}),
+        )
+
+
+class NamedObjectsService:
+    """Objects addressed through a globally unique class name."""
+
+    def __init__(self, client: Client, class_name: str) -> None:
+        if not class_name.strip():
+            raise ValueError("class name must not be empty")
+        self._client = client
+        self.class_name = class_name
+        base = f"/api/v1/classes/by-name/{_segment(class_name)}/objects"
+        self._service = ResourceService[HubuumObject, ObjectCreate, ObjectUpdate](
+            client,
+            collection_path=base,
+            item_path=f"{base}/by-name/{{id}}",
+            model=HubuumObject,
+        )
+
+    def page(self, query: Query | None = None) -> Page[HubuumObject]:
+        return self._service.page(query)
+
+    def list(self, query: Query | None = None) -> builtins.list[HubuumObject]:
+        return self._service.list(query)
+
+    def pages(
+        self,
+        query: Query | None = None,
+        *,
+        max_pages: int = 100,
+    ) -> Iterator[Page[HubuumObject]]:
+        return self._service.pages(query, max_pages=max_pages)
+
+    def all(
+        self,
+        query: Query | None = None,
+        *,
+        max_pages: int = 100,
+        max_items: int = 10_000,
+    ) -> builtins.list[HubuumObject]:
+        return self._service.all(query, max_pages=max_pages, max_items=max_items)
+
+    def one(self, query: Query) -> HubuumObject:
+        return self._service.one(query)
+
+    def get(self, object_name: str) -> HubuumObject:
+        return self._service.get(_required_name(object_name, "object"))
+
+    def create(self, payload: ObjectCreate) -> HubuumObject:
+        return self._service.create(payload)
+
+    def update(self, object_name: str, payload: ObjectUpdate) -> HubuumObject:
+        return self._service.update(_required_name(object_name, "object"), payload)
+
+    def delete(self, object_name: str) -> None:
+        self._service.delete(_required_name(object_name, "object"))
+
+    def patch_data(
+        self,
+        object_name: str,
+        operations: builtins.list[ObjectDataPatchInput],
+    ) -> HubuumObject:
+        """Atomically patch object data with class/object rename safety."""
+        path = (
+            f"/api/v1/classes/by-name/{_segment(self.class_name)}"
+            f"/objects/by-name/{_segment(_required_name(object_name, 'object'))}/data"
+        )
+        return self._client.request(
+            "PATCH",
+            path,
+            json=_object_data_patch_payload(operations),
+            response_model=HubuumObject,
+            options=RequestOptions(headers={"Content-Type": "application/json-patch+json"}),
+        )
+
+    def related_objects(
+        self,
+        object_name: str,
+        *,
+        params: Params = None,
+    ) -> builtins.list[dict[str, object]]:
+        path = self._related_path(object_name, "objects")
+        return _json_object_list(self._client, path, params=params)
+
+    def related_relations(
+        self,
+        object_name: str,
+        *,
+        params: Params = None,
+    ) -> builtins.list[dict[str, object]]:
+        path = self._related_path(object_name, "relations")
+        return _json_object_list(self._client, path, params=params)
+
+    def related_graph(
+        self,
+        object_name: str,
+        *,
+        params: Params = None,
+    ) -> dict[str, object]:
+        path = self._related_path(object_name, "graph")
+        return _json_object(self._client, path, params=params)
+
+    def _related_path(self, object_name: str, view: str) -> str:
+        return (
+            f"/api/v1/classes/by-name/{_segment(self.class_name)}"
+            f"/objects/by-name/{_segment(_required_name(object_name, 'object'))}"
+            f"/related/{view}"
+        )
+
+
+class NamedClassService:
+    """All v0.0.3 endpoints rooted at ``classes/by-name/{class_name}``."""
+
+    def __init__(self, client: Client, class_name: str) -> None:
+        self._client = client
+        self.class_name = _required_name(class_name, "class")
+        self._base = f"/api/v1/classes/by-name/{_segment(self.class_name)}"
+
+    @property
+    def objects(self) -> NamedObjectsService:
+        return NamedObjectsService(self._client, self.class_name)
+
+    def get(self) -> HubuumClass:
+        return self._client.request("GET", self._base, response_model=HubuumClass)
+
+    def update(self, payload: ClassUpdate) -> HubuumClass:
+        return self._client.request("PATCH", self._base, json=payload, response_model=HubuumClass)
+
+    def delete(self) -> None:
+        self._client.request("DELETE", self._base)
+
+    def permissions(self, *, params: Params = None) -> builtins.list[dict[str, object]]:
+        return _json_object_list(self._client, f"{self._base}/permissions", params=params)
+
+    def related_classes(self, *, params: Params = None) -> builtins.list[dict[str, object]]:
+        return _json_object_list(self._client, f"{self._base}/related/classes", params=params)
+
+    def related_relations(self, *, params: Params = None) -> builtins.list[dict[str, object]]:
+        return _json_object_list(self._client, f"{self._base}/related/relations", params=params)
+
+    def related_graph(self, *, params: Params = None) -> dict[str, object]:
+        return _json_object(self._client, f"{self._base}/related/graph", params=params)
+
+    def object_aggregates(self, *, params: Params) -> Page[dict[str, object]]:
+        return _json_object_page(
+            self._client,
+            f"{self._base}/object-aggregates",
+            params=params,
+        )
 
 
 class UsersService(ResourceService[User, UserCreate, UserUpdate]):
@@ -383,3 +551,64 @@ def _decode_model_list(response: httpx.Response, model: type[ModelT]) -> builtin
 def _model_list(client: Client, path: str, model: type[ModelT]) -> builtins.list[ModelT]:
     response = client._request_response("GET", path)
     return _decode_model_list(response, model)
+
+
+def _required_name(value: str, resource: str) -> str:
+    if not value.strip():
+        raise ValueError(f"{resource} name must not be empty")
+    return value
+
+
+def _json_object(
+    client: Client,
+    path: str,
+    *,
+    params: Params = None,
+) -> dict[str, object]:
+    value = client.request("GET", path, options=RequestOptions(params=params))
+    if not isinstance(value, dict):
+        raise TypeError("expected a JSON object")
+    return value
+
+
+def _json_object_list(
+    client: Client,
+    path: str,
+    *,
+    params: Params = None,
+) -> builtins.list[dict[str, object]]:
+    value = client.request("GET", path, options=RequestOptions(params=params))
+    if not isinstance(value, list) or not all(isinstance(item, dict) for item in value):
+        raise TypeError("expected a JSON array of objects")
+    return value
+
+
+def _json_object_page(
+    client: Client,
+    path: str,
+    *,
+    params: Params,
+) -> Page[dict[str, object]]:
+    response = client._request_response("GET", path, options=RequestOptions(params=params))
+    try:
+        value = response.json()
+    except ValueError as error:
+        raise DecodeError(
+            response.request.method,
+            safe_response_url(response),
+            response.status_code,
+            validation_error_reason(error, response),
+        ) from error
+    if not isinstance(value, list) or not all(isinstance(item, dict) for item in value):
+        raise DecodeError(
+            response.request.method,
+            safe_response_url(response),
+            response.status_code,
+            "expected a JSON array of objects",
+        )
+    return Page(
+        items=tuple(value),
+        next_cursor=response.headers.get("x-next-cursor"),
+        total_count=_header_int(response.headers.get("x-total-count")),
+        page_limit=_header_int(response.headers.get("x-page-limit")),
+    )

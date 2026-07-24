@@ -18,6 +18,30 @@
     options:
       members: true
 
+::: hubuum_client.OpenAPIOptions
+    options:
+      members: true
+
+::: hubuum_client.OperationSpec
+    options:
+      members: true
+
+::: hubuum_client.OpenAPIOperations
+    options:
+      members: true
+
+::: hubuum_client.AsyncOpenAPIOperations
+    options:
+      members: true
+
+::: hubuum_client.ResponseStream
+    options:
+      members: true
+
+::: hubuum_client.AsyncResponseStream
+    options:
+      members: true
+
 ## Queries
 
 ::: hubuum_client.Query
@@ -25,6 +49,14 @@
       members: true
 
 ::: hubuum_client.QueryFilter
+    options:
+      members: true
+
+::: hubuum_client.DataField
+    options:
+      members: true
+
+::: hubuum_client.FilterOperator
     options:
       members: true
 
@@ -39,6 +71,8 @@
 ::: hubuum_client.HubuumClass
 
 ::: hubuum_client.HubuumObject
+
+::: hubuum_client.ObjectDataPatchOperation
 
 ::: hubuum_client.User
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import sys
 import urllib.request
@@ -35,6 +36,7 @@ REQUIRED_OPERATIONS = {
     ("get", "/healthz"),
     ("get", "/readyz"),
 }
+CLIENT_MANIFEST = Path(__file__).parents[1] / "src" / "hubuum_client" / "_operations.py"
 
 
 def _read_source(source: str) -> bytes:
@@ -69,6 +71,57 @@ def _operations(document: dict[str, Any]) -> set[tuple[str, str]]:
     return result
 
 
+def _operation_manifest(
+    document: dict[str, Any],
+) -> dict[str, tuple[str, str, str | None, tuple[str, ...]]]:
+    result: dict[str, tuple[str, str, str | None, tuple[str, ...]]] = {}
+    for path, path_item in document.get("paths", {}).items():
+        if not isinstance(path_item, dict):
+            continue
+        for method, operation in path_item.items():
+            if method not in HTTP_METHODS or not isinstance(operation, dict):
+                continue
+            operation_id = operation.get("operationId")
+            if not isinstance(operation_id, str) or not operation_id:
+                raise ValueError(f"{method.upper()} {path} has no operationId")
+            content = operation.get("requestBody", {}).get("content", {})
+            media_types = sorted(content) if isinstance(content, dict) else []
+            if len(media_types) > 1:
+                raise ValueError(f"{operation_id} has multiple request media types")
+            response_media_types: set[str] = set()
+            for status, response in operation.get("responses", {}).items():
+                if not str(status).startswith("2") or not isinstance(response, dict):
+                    continue
+                response_content = response.get("content", {})
+                if isinstance(response_content, dict):
+                    response_media_types.update(response_content)
+            result[operation_id] = (
+                method.upper(),
+                path,
+                media_types[0] if media_types else None,
+                tuple(sorted(response_media_types)),
+            )
+    return result
+
+
+def _client_manifest() -> dict[str, tuple[str, str, str | None, tuple[str, ...]]]:
+    spec = importlib.util.spec_from_file_location("_hubuum_client_operations", CLIENT_MANIFEST)
+    if spec is None or spec.loader is None:
+        raise ValueError("could not load the client operation manifest")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return {
+        operation_id: (
+            item.method,
+            item.path,
+            item.request_media_type,
+            item.response_media_types,
+        )
+        for operation_id, item in module.OPERATIONS.items()
+    }
+
+
 def validate(source: str) -> None:
     payload = _read_source(source)
     digest = hashlib.sha256(payload).hexdigest()
@@ -90,6 +143,21 @@ def validate(source: str) -> None:
     if missing:
         formatted = ", ".join(f"{method.upper()} {path}" for method, path in sorted(missing))
         raise ValueError(f"OpenAPI is missing required client operations: {formatted}")
+
+    server_manifest = _operation_manifest(document)
+    client_manifest = _client_manifest()
+    if client_manifest != server_manifest:
+        missing_ids = sorted(server_manifest.keys() - client_manifest.keys())
+        extra_ids = sorted(client_manifest.keys() - server_manifest.keys())
+        changed_ids = sorted(
+            operation_id
+            for operation_id in server_manifest.keys() & client_manifest.keys()
+            if server_manifest[operation_id] != client_manifest[operation_id]
+        )
+        raise ValueError(
+            "client operation manifest mismatch: "
+            f"missing={missing_ids}, extra={extra_ids}, changed={changed_ids}"
+        )
 
 
 def main() -> int:

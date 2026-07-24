@@ -1,6 +1,7 @@
 """Typed synchronous and asynchronous clients for Hubuum."""
 
 from ._constants import TARGET_SERVER_IMAGE, TARGET_SERVER_VERSION, __version__
+from ._operations import OperationSpec
 from .async_client import AsyncClient
 from .client import Client
 from .errors import (
@@ -31,6 +32,7 @@ from .models import (
     HubuumClass,
     HubuumObject,
     ObjectCreate,
+    ObjectDataPatchOperation,
     ObjectRelation,
     ObjectRelationCreate,
     ObjectUpdate,
@@ -40,8 +42,10 @@ from .models import (
     UserCreate,
     UserUpdate,
 )
-from .options import ClientOptions, RequestOptions
-from .query import Page, Query, QueryFilter
+from .openapi import AsyncOpenAPIOperations, OpenAPIOperations
+from .options import ClientOptions, OpenAPIOptions, RequestOptions
+from .query import DataField, Page, Query, QueryFilter
+from .streaming import AsyncResponseStream, ResponseStream
 from .types import (
     AccessToken,
     ClassId,
@@ -64,6 +68,8 @@ __all__ = [
     "AccessToken",
     "ApiErrorResponse",
     "AsyncClient",
+    "AsyncOpenAPIOperations",
+    "AsyncResponseStream",
     "AuthenticationError",
     "ClassCreate",
     "ClassId",
@@ -80,6 +86,7 @@ __all__ = [
     "ConfigurationError",
     "ConflictError",
     "Credentials",
+    "DataField",
     "DecodeError",
     "FilterOperator",
     "Group",
@@ -91,11 +98,15 @@ __all__ = [
     "HubuumObject",
     "NotFoundError",
     "ObjectCreate",
+    "ObjectDataPatchOperation",
     "ObjectId",
     "ObjectRelation",
     "ObjectRelationCreate",
     "ObjectRelationId",
     "ObjectUpdate",
+    "OpenAPIOperations",
+    "OpenAPIOptions",
+    "OperationSpec",
     "Page",
     "PermissionDeniedError",
     "PrincipalId",
@@ -103,6 +114,7 @@ __all__ = [
     "QueryFilter",
     "RateLimitError",
     "RequestOptions",
+    "ResponseStream",
     "ResultCardinalityError",
     "Task",
     "TaskId",

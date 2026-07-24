@@ -1,18 +1,25 @@
 # Server compatibility
 
-## Declared target
+## Compatibility matrix
 
-| Python client | Hubuum server | Required integration image |
-| --- | --- | --- |
-| 0.0.1 | 0.0.3 | `ghcr.io/hubuum/hubuum-server@sha256:f1f57a991f69005ee81f24e77533e61f75b5586949d98cccf1c40fc4329eb186` |
+| Python client | Hubuum server tag | Status | End-to-end evidence |
+| --- | --- | --- | --- |
+| 0.0.1 | [`v0.0.3`](https://github.com/hubuum/hubuum/releases/tag/v0.0.3) | Verified | [Pinned e2e passed on 2026-07-24](https://github.com/hubuum/hubuum-client-python/actions/runs/30004920976) |
 
-The digest, not a floating tag, defines the release's compatibility evidence.
-The same value is stored in `src/hubuum_client/_constants.py`, the e2e wrapper,
-and CI.
+`Verified` means the complete Docker-backed suite passed for the exact
+client/server pair. The server release is selected by tag and locked to the
+immutable image used by that run:
 
-The initial 0.0.1 verification on 2026-07-21 passed the complete unit suite
-(including strict typing and sync/async parity) and all three Docker-backed
-workflows against this digest: core CRUD/natural keys, IAM/relations, and async
+```text
+ghcr.io/hubuum/hubuum-server:v0.0.3@sha256:f1f57a991f69005ee81f24e77533e61f75b5586949d98cccf1c40fc4329eb186
+```
+
+The tag identifies the supported server release; the digest prevents that tag
+from resolving to different content later. The same reference is stored in
+`src/hubuum_client/_constants.py`, the e2e wrapper, and CI.
+
+The linked run passed the complete unit and OpenAPI contract suites and all
+three Docker-backed workflows: core CRUD/natural keys, IAM/relations, and async
 consumption.
 
 ## Meaning of compatibility
@@ -23,15 +30,18 @@ For this project, targeting server v0.0.3 means:
   pinned server;
 - the typed collection, class, object, IAM, relation, query, and pagination
   workflows pass live-server tests;
-- arbitrary v0.0.3 relative routes remain accessible through the safe request
+- every one of the 196 v0.0.3 OpenAPI operations is present in the checked
+  operation manifest, including JSON Patch, rendered export media, and SSE;
+- arbitrary extension routes remain accessible through the safe request
   extension point;
 - request models follow the v0.0.3 wire schema, while response models tolerate
   additive fields.
 
-It does not promise that every one of the 196 OpenAPI operations has a dedicated
-Python convenience method in 0.0.1. Administrative features such as backups,
-restores, computed fields, event sinks, remote targets, and imports/exports can
-be called through `request()` while their high-level APIs mature.
+It does not promise that every operation has a domain-specific Pydantic model
+or convenience method in 0.0.1. Administrative features such as backups,
+restores, computed fields, event sinks, remote targets, and imports/exports use
+the complete `openapi.call()` interface while their higher-level resource
+models mature.
 
 ## Known v0.0.3 contract gap
 
@@ -52,4 +62,4 @@ forward-compatibility signal only. It does not replace the immutable v0.0.3 e2e
 run and does not change a released client's declared target.
 
 Breaking server changes require a new compatibility row, changelog entry, and
-successful e2e evidence for the new immutable image.
+successful e2e evidence for the new tag-and-digest image.

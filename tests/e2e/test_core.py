@@ -91,6 +91,119 @@ def test_public_config_authentication_and_core_crud(
         client.collections.delete(collection.id)
 
 
+def test_object_data_query_interface(
+    client: Client,
+    admin_group_id: GroupId,
+    unique_name: str,
+) -> None:
+    collection = client.collections.create(
+        CollectionCreate(
+            name=f"{unique_name}-data-query-collection",
+            description="Object data query e2e collection",
+            group_id=admin_group_id,
+        )
+    )
+    hubuum_class = None
+    objects = []
+    try:
+        hubuum_class = client.classes.create(
+            ClassCreate(
+                name=f"{unique_name}-data-query-class",
+                collection_id=collection.id,
+                description="Object data query e2e class",
+            )
+        )
+        fixtures = (
+            (
+                "active",
+                {
+                    "status": "active",
+                    "metrics": {"cpu_count": 8},
+                    "tags": ["web", "api"],
+                    "config": {"hostname": "web-01"},
+                    "network": {"address": "10.0.0.10"},
+                },
+            ),
+            (
+                "standby",
+                {
+                    "status": "standby",
+                    "metrics": {"cpu_count": 4},
+                    "tags": ["web"],
+                    "config": {},
+                    "network": {"address": "10.0.1.10"},
+                },
+            ),
+            (
+                "retired",
+                {
+                    "status": "retired",
+                    "metrics": {"cpu_count": 2},
+                    "tags": ["db"],
+                    "config": {"hostname": "db-01"},
+                    "network": {"address": "192.0.2.10"},
+                    "retired_at": "2026-07-01",
+                },
+            ),
+        )
+        for suffix, data in fixtures:
+            objects.append(
+                client.objects(hubuum_class.id).create(
+                    ObjectCreate(
+                        name=f"{unique_name}-data-{suffix}",
+                        collection_id=collection.id,
+                        hubuum_class_id=hubuum_class.id,
+                        description=f"Object data query fixture {suffix}",
+                        data=data,
+                    )
+                )
+            )
+
+        named_objects = client.objects_by_class_name(hubuum_class.name)
+        assert named_objects.get(objects[0].name).id == objects[0].id
+        patched = named_objects.patch_data(
+            objects[0].name,
+            [{"op": "add", "path": "/verified_by_name", "value": True}],
+        )
+        assert isinstance(patched.data, dict)
+        assert patched.data["verified_by_name"] is True
+
+        def selected_names(query: Query) -> set[str]:
+            return {item.name for item in client.objects(hubuum_class.id).all(query)}
+
+        names = {suffix: f"{unique_name}-data-{suffix}" for suffix, _ in fixtures}
+        assert selected_names(Query().data("status").equals("active")) == {names["active"]}
+        assert selected_names(Query().data("metrics", "cpu_count").gte(4)) == {
+            names["active"],
+            names["standby"],
+        }
+        assert selected_names(Query().data("status").one_of("active", "standby")) == {
+            names["active"],
+            names["standby"],
+        }
+        assert selected_names(Query().data("tags").contains_all("web", "api")) == {names["active"]}
+        assert selected_names(Query().data("config").has_key("hostname")) == {
+            names["active"],
+            names["retired"],
+        }
+        assert selected_names(Query().data("retired_at").is_null(negate=True)) == {names["retired"]}
+        assert {
+            item.name for item in named_objects.all(Query().data("verified_by_name").equals(True))
+        } == {names["active"]}
+        assert selected_names(Query().data("network", "address").within_network("10.0.0.0/24")) == {
+            names["active"]
+        }
+        assert selected_names(
+            Query().data("status").equals("active").data("tags").array_length(2)
+        ) == {names["active"]}
+    finally:
+        if hubuum_class is not None:
+            for hubuum_object in reversed(objects):
+                client.objects(hubuum_class.id).delete(hubuum_object.id)
+            client.classes.delete(hubuum_class.id)
+        client.collections.delete(collection.id)
+
+
 def test_iam_and_relations(client: Client, admin_group_id: GroupId, unique_name: str) -> None:
     user = client.users.create(
         UserCreate(

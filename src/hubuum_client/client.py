@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager
 from typing import Any, Self, TypeVar, overload
 
 import httpx
@@ -23,6 +24,7 @@ from ._transport import (
 from .errors import TransportError
 from .models import LoginResponse, ProbeResponse
 from .options import ClientOptions, RequestOptions
+from .streaming import ResponseStream
 from .types import AccessToken, ClassId, Credentials
 
 T = TypeVar("T", bound=BaseModel)
@@ -119,6 +121,10 @@ class Client:
     def objects(self, class_id: ClassId | int) -> ObjectsService:
         return ObjectsService(self, ClassId(class_id))
 
+    def objects_by_class_name(self, class_name: str) -> NamedObjectsService:
+        """Select objects through the server's exact class-name route."""
+        return NamedObjectsService(self, class_name)
+
     @property
     def users(self) -> UsersService:
         return UsersService(self)
@@ -138,6 +144,11 @@ class Client:
     @property
     def tasks(self) -> TasksService:
         return TasksService(self)
+
+    @property
+    def openapi(self) -> OpenAPIOperations:
+        """Complete operation-ID interface for all 196 v0.0.3 operations."""
+        return OpenAPIOperations(self)
 
     @overload
     def request(
@@ -182,6 +193,63 @@ class Client:
             else decode_json(response)
         )
 
+    @contextmanager
+    def stream(
+        self,
+        method: str,
+        path: str,
+        *,
+        json: BaseModel | Mapping[str, Any] | list[Any] | None = None,
+        options: RequestOptions | None = None,
+    ) -> Iterator[ResponseStream]:
+        """Stream one origin-locked response without exposing request secrets."""
+        response = self._request_stream_response(method, path, json=json, options=options)
+        try:
+            yield ResponseStream(response)
+        finally:
+            response.close()
+
+    def _build_request(
+        self,
+        method: str,
+        path: str,
+        *,
+        json: BaseModel | Mapping[str, Any] | list[Any] | None,
+        options: RequestOptions | None,
+    ) -> tuple[httpx.Request, Any]:
+        request_options = options or RequestOptions()
+        relative_path = validate_relative_path(path)
+        bearer_token = (
+            self._token.value if request_options.authenticated and self._token is not None else None
+        )
+        request_headers = prepare_request_headers(request_options.headers, bearer_token)
+        request_body = json_body(json)
+        request = self._http.build_request(
+            method.upper(),
+            relative_path,
+            params=request_options.params,
+            json=request_body,
+            headers=request_headers,
+        )
+        return request, request_body
+
+    def _send_request(
+        self,
+        request: httpx.Request,
+        request_body: Any,
+        *,
+        stream: bool,
+    ) -> httpx.Response:
+        try:
+            return self._http.send(request, stream=stream)
+        except httpx.HTTPError as error:
+            secrets = sensitive_request_values(request.headers, request_body)
+            raise TransportError(
+                request.method,
+                str(request.url.copy_with(query=None, fragment=None)),
+                redact_text(str(error), secrets),
+            ) from error
+
     def _request_response(
         self,
         method: str,
@@ -190,37 +258,47 @@ class Client:
         json: BaseModel | Mapping[str, Any] | list[Any] | None = None,
         options: RequestOptions | None = None,
     ) -> httpx.Response:
-        request_options = options or RequestOptions()
-        relative_path = validate_relative_path(path)
-        bearer_token = (
-            self._token.value if request_options.authenticated and self._token is not None else None
+        request, request_body = self._build_request(
+            method,
+            path,
+            json=json,
+            options=options,
         )
-        request_headers = prepare_request_headers(request_options.headers, bearer_token)
-        request_body = json_body(json)
-        try:
-            response = self._http.request(
-                method.upper(),
-                relative_path,
-                params=request_options.params,
-                json=request_body,
-                headers=request_headers,
-            )
-        except httpx.HTTPError as error:
-            secrets = sensitive_request_values(request_headers, request_body)
-            raise TransportError(
-                method.upper(),
-                f"{self._base_url}{relative_path}",
-                redact_text(str(error), secrets),
-            ) from error
+        response = self._send_request(request, request_body, stream=False)
         raise_api_error(response)
         return response
 
+    def _request_stream_response(
+        self,
+        method: str,
+        path: str,
+        *,
+        json: BaseModel | Mapping[str, Any] | list[Any] | None = None,
+        options: RequestOptions | None = None,
+    ) -> httpx.Response:
+        request, request_body = self._build_request(
+            method,
+            path,
+            json=json,
+            options=options,
+        )
+        response = self._send_request(request, request_body, stream=True)
+        if not response.is_success:
+            response.read()
+            try:
+                raise_api_error(response)
+            finally:
+                response.close()
+        return response
 
+
+from .openapi import OpenAPIOperations  # noqa: E402
 from .services import (  # noqa: E402  (imported after Client is defined)
     ClassesService,
     ClassRelationsService,
     CollectionsService,
     GroupsService,
+    NamedObjectsService,
     ObjectRelationsService,
     ObjectsService,
     TasksService,

@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import AsyncIterator, Mapping
+from contextlib import asynccontextmanager
 from typing import Any, Self, TypeVar, overload
 
 import httpx
@@ -23,6 +24,7 @@ from ._transport import (
 from .errors import TransportError
 from .models import LoginResponse, ProbeResponse
 from .options import ClientOptions, RequestOptions
+from .streaming import AsyncResponseStream
 from .types import AccessToken, ClassId, Credentials
 
 T = TypeVar("T", bound=BaseModel)
@@ -116,6 +118,10 @@ class AsyncClient:
     def objects(self, class_id: ClassId | int) -> AsyncObjectsService:
         return AsyncObjectsService(self, ClassId(class_id))
 
+    def objects_by_class_name(self, class_name: str) -> AsyncNamedObjectsService:
+        """Select objects through the server's exact class-name route."""
+        return AsyncNamedObjectsService(self, class_name)
+
     @property
     def users(self) -> AsyncUsersService:
         return AsyncUsersService(self)
@@ -135,6 +141,11 @@ class AsyncClient:
     @property
     def tasks(self) -> AsyncTasksService:
         return AsyncTasksService(self)
+
+    @property
+    def openapi(self) -> AsyncOpenAPIOperations:
+        """Complete operation-ID interface for all 196 v0.0.3 operations."""
+        return AsyncOpenAPIOperations(self)
 
     @overload
     async def request(
@@ -179,6 +190,63 @@ class AsyncClient:
             else decode_json(response)
         )
 
+    @asynccontextmanager
+    async def stream(
+        self,
+        method: str,
+        path: str,
+        *,
+        json: BaseModel | Mapping[str, Any] | list[Any] | None = None,
+        options: RequestOptions | None = None,
+    ) -> AsyncIterator[AsyncResponseStream]:
+        """Stream one origin-locked response without exposing request secrets."""
+        response = await self._request_stream_response(method, path, json=json, options=options)
+        try:
+            yield AsyncResponseStream(response)
+        finally:
+            await response.aclose()
+
+    def _build_request(
+        self,
+        method: str,
+        path: str,
+        *,
+        json: BaseModel | Mapping[str, Any] | list[Any] | None,
+        options: RequestOptions | None,
+    ) -> tuple[httpx.Request, Any]:
+        request_options = options or RequestOptions()
+        relative_path = validate_relative_path(path)
+        bearer_token = (
+            self._token.value if request_options.authenticated and self._token is not None else None
+        )
+        request_headers = prepare_request_headers(request_options.headers, bearer_token)
+        request_body = json_body(json)
+        request = self._http.build_request(
+            method.upper(),
+            relative_path,
+            params=request_options.params,
+            json=request_body,
+            headers=request_headers,
+        )
+        return request, request_body
+
+    async def _send_request(
+        self,
+        request: httpx.Request,
+        request_body: Any,
+        *,
+        stream: bool,
+    ) -> httpx.Response:
+        try:
+            return await self._http.send(request, stream=stream)
+        except httpx.HTTPError as error:
+            secrets = sensitive_request_values(request.headers, request_body)
+            raise TransportError(
+                request.method,
+                str(request.url.copy_with(query=None, fragment=None)),
+                redact_text(str(error), secrets),
+            ) from error
+
     async def _request_response(
         self,
         method: str,
@@ -187,29 +255,37 @@ class AsyncClient:
         json: BaseModel | Mapping[str, Any] | list[Any] | None = None,
         options: RequestOptions | None = None,
     ) -> httpx.Response:
-        request_options = options or RequestOptions()
-        relative_path = validate_relative_path(path)
-        bearer_token = (
-            self._token.value if request_options.authenticated and self._token is not None else None
+        request, request_body = self._build_request(
+            method,
+            path,
+            json=json,
+            options=options,
         )
-        request_headers = prepare_request_headers(request_options.headers, bearer_token)
-        request_body = json_body(json)
-        try:
-            response = await self._http.request(
-                method.upper(),
-                relative_path,
-                params=request_options.params,
-                json=request_body,
-                headers=request_headers,
-            )
-        except httpx.HTTPError as error:
-            secrets = sensitive_request_values(request_headers, request_body)
-            raise TransportError(
-                method.upper(),
-                f"{self._base_url}{relative_path}",
-                redact_text(str(error), secrets),
-            ) from error
+        response = await self._send_request(request, request_body, stream=False)
         raise_api_error(response)
+        return response
+
+    async def _request_stream_response(
+        self,
+        method: str,
+        path: str,
+        *,
+        json: BaseModel | Mapping[str, Any] | list[Any] | None = None,
+        options: RequestOptions | None = None,
+    ) -> httpx.Response:
+        request, request_body = self._build_request(
+            method,
+            path,
+            json=json,
+            options=options,
+        )
+        response = await self._send_request(request, request_body, stream=True)
+        if not response.is_success:
+            await response.aread()
+            try:
+                raise_api_error(response)
+            finally:
+                await response.aclose()
         return response
 
 
@@ -218,8 +294,10 @@ from .async_services import (  # noqa: E402
     AsyncClassRelationsService,
     AsyncCollectionsService,
     AsyncGroupsService,
+    AsyncNamedObjectsService,
     AsyncObjectRelationsService,
     AsyncObjectsService,
     AsyncTasksService,
     AsyncUsersService,
 )
+from .openapi import AsyncOpenAPIOperations  # noqa: E402

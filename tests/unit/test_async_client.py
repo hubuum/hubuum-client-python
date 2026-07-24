@@ -40,11 +40,12 @@ async def test_async_login_and_typed_service(class_json: dict[str, Any]) -> None
 
     async with _client(handler) as client:
         returned = await client.login(Credentials("admin", "secret"))
-        page = await client.classes.page(Query().limit(10))
+        page = await client.classes.page(Query().data("metrics", "cpu_count").gte(4).limit(10))
 
     assert returned is client
     assert page[0].id == ClassId(12)
     assert [request.method for request in requests] == ["POST", "GET"]
+    assert requests[1].url.params["json_data__gte"] == "metrics,cpu_count=4"
 
 
 async def test_async_cursor_pagination(class_json: dict[str, Any]) -> None:

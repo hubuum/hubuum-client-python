@@ -9,10 +9,12 @@
 [Hubuum](https://github.com/hubuum/hubuum) asset-management API. It provides
 matching synchronous and asynchronous clients, Pydantic v2 models, typed
 resource IDs, immutable queries, cursor pagination, structured errors, and a
-safe escape hatch for the complete REST surface.
+contract-checked interface for all 196 operations in the server's OpenAPI
+surface.
 
 Version 0.0.1 targets Hubuum server **v0.0.3**. Compatibility is tested against
-the immutable server image recorded in [the compatibility guide](docs/compatibility.md).
+the tag-and-digest server image recorded in the
+[compatibility matrix](docs/compatibility.md).
 
 ## Installation
 
@@ -27,7 +29,7 @@ Python 3.11 or newer is required. The runtime dependencies are only
 ## Quick start
 
 ```python
-from hubuum_client import ClassCreate, Client, Credentials, Query, RequestOptions
+from hubuum_client import ClassCreate, Client, Credentials, Query
 
 with Client("https://hubuum.example.com") as client:
     client.login(Credentials("alice", "correct-horse-battery-staple"))
@@ -75,24 +77,29 @@ should be limited to disposable development systems.
 The typed surface currently covers the most common Hubuum workflows:
 
 - collections, hierarchy traversal, and parent moves;
-- classes and class-scoped objects, including exact-name addressing;
+- classes and class-scoped objects, including exact-name addressing and nested
+  `data` filtering and atomic JSON Patch;
 - users, groups, memberships, and user anonymization;
 - class relations and object relations;
 - cursor pagination and task polling;
 - health, readiness, and public server configuration.
 
-Every authenticated v0.0.3 route remains available through `request()`:
+Every v0.0.3 OpenAPI operation is registered by its stable `operationId`:
 
 ```python
-result = client.request(
-    "GET",
-    "/api/v1/search",
-    options=RequestOptions(params={"q": "server", "limit_per_kind": 10}),
+from hubuum_client import OpenAPIOptions
+
+result = client.openapi.call(
+    "getApiV1Search",
+    options=OpenAPIOptions(params={"q": "server", "limit_per_kind": 10}),
 )
 ```
 
-The raw path is constrained to the configured server origin and rejects URL
-origins, embedded query strings, and traversal segments.
+The checked-in manifest covers all 196 methods, paths, path variables, body
+media types, public/authenticated policies, JSON responses, rendered text
+exports, and the search event stream. `request()` remains available for
+server extensions outside the pinned specification. Both interfaces are
+constrained to the configured origin.
 
 ## Querying and pagination
 
@@ -104,11 +111,21 @@ from hubuum_client import FilterOperator, Query
 base = Query().where("name", "server", FilterOperator.ICONTAINS)
 first_page = client.classes.page(base.limit(25).include_total())
 all_matches = client.classes.all(base, max_items=5_000)
+
+active_web_servers = client.objects(class_id).all(
+    Query()
+    .data("status")
+    .equals("active")
+    .data("tags")
+    .contains_all("web", "api")
+)
 ```
 
 `Page` exposes `items`, `next_cursor`, `total_count`, and the effective
 `page_limit`. Automatic pagination detects repeated cursors and enforces page
-and item limits.
+and item limits. The fluent `data()` selector supports nested paths, typed
+comparisons, arrays, nulls, object keys, and IP/network operators; see
+[Queries and pagination](docs/querying.md).
 
 ## Documentation
 

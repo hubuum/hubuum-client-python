@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal, TypeAlias
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, model_validator
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError, model_validator
 
 from .types import (
     ClassId,
@@ -132,6 +133,59 @@ class ObjectUpdate(RequestModel):
     description: str | None = None
     collection_id: CollectionId | None = None
     hubuum_class_id: ClassId | None = None
+
+
+class ObjectDataPatchOperation(RequestModel):
+    """One validated RFC 6902 operation relative to an object's ``data`` root."""
+
+    op: Literal["add", "remove", "replace", "move", "copy", "test"]
+    path: str
+    from_path: str | None = Field(default=None, alias="from")
+    value: JsonValue | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def validate_operation_members(cls, value: Any) -> Any:
+        if not isinstance(value, Mapping):
+            return value
+        operation = value.get("op")
+        has_from = "from" in value or "from_path" in value
+        has_value = "value" in value
+        if operation in {"add", "replace", "test"} and not has_value:
+            raise ValueError("add, replace, and test operations require value")
+        if operation in {"move", "copy"} and not has_from:
+            raise ValueError("move and copy operations require from")
+        if operation not in {"move", "copy"} and has_from:
+            raise ValueError("from is only valid for move and copy operations")
+        if operation not in {"add", "replace", "test"} and has_value:
+            raise ValueError("value is only valid for add, replace, and test operations")
+        return value
+
+    def payload(self) -> dict[str, Any]:
+        """Keep explicit JSON-null values while omitting unused operation members."""
+        return self.model_dump(mode="json", by_alias=True, exclude_unset=True)
+
+
+ObjectDataPatchInput: TypeAlias = ObjectDataPatchOperation | Mapping[str, Any]
+_MAX_OBJECT_DATA_PATCH_OPERATIONS = 1_000
+
+
+def _object_data_patch_payload(
+    operations: Sequence[ObjectDataPatchInput],
+) -> list[dict[str, Any]]:
+    if len(operations) > _MAX_OBJECT_DATA_PATCH_OPERATIONS:
+        raise ValueError("object data patch must not contain more than 1000 operations")
+    result: list[dict[str, Any]] = []
+    for index, operation in enumerate(operations):
+        try:
+            parsed = ObjectDataPatchOperation.model_validate(operation)
+        except ValidationError as error:
+            details = error.errors(include_input=False, include_url=False)
+            raise ValueError(
+                f"invalid object data patch operation at index {index}: {details}"
+            ) from None
+        result.append(parsed.payload())
+    return result
 
 
 class User(HubuumModel):

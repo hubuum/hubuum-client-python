@@ -29,6 +29,7 @@ from .models import (
     HubuumClass,
     HubuumObject,
     ObjectCreate,
+    ObjectDataPatchInput,
     ObjectRelation,
     ObjectRelationCreate,
     ObjectUpdate,
@@ -36,8 +37,9 @@ from .models import (
     User,
     UserCreate,
     UserUpdate,
+    _object_data_patch_payload,
 )
-from .options import RequestOptions
+from .options import Params, RequestOptions
 from .query import Page, Query
 from .types import ClassId, CollectionId, GroupId, PrincipalId, TaskId, UserId
 
@@ -216,6 +218,10 @@ class AsyncClassesService(AsyncResourceService[HubuumClass, ClassCreate, ClassUp
     async def delete_by_name(self, name: str) -> None:
         await self._client.request("DELETE", f"/api/v1/classes/by-name/{_segment(name)}")
 
+    def by_name(self, name: str) -> AsyncNamedClassService:
+        """Select the complete natural-key-addressed class surface."""
+        return AsyncNamedClassService(self._client, name)
+
 
 class AsyncObjectsService(AsyncResourceService[HubuumObject, ObjectCreate, ObjectUpdate]):
     def __init__(self, client: AsyncClient, class_id: ClassId) -> None:
@@ -236,6 +242,182 @@ class AsyncObjectsService(AsyncResourceService[HubuumObject, ObjectCreate, Objec
 
     async def delete_by_name(self, name: str) -> None:
         await self.delete((await self.get_by_name(name)).id)
+
+    async def patch_data(
+        self,
+        object_id: object,
+        operations: builtins.list[ObjectDataPatchInput],
+    ) -> HubuumObject:
+        """Atomically apply RFC 6902 operations relative to the object's data root."""
+        return await self._client.request(
+            "PATCH",
+            f"/api/v1/classes/{_segment(self.class_id)}/{_segment(object_id)}/data",
+            json=_object_data_patch_payload(operations),
+            response_model=HubuumObject,
+            options=RequestOptions(headers={"Content-Type": "application/json-patch+json"}),
+        )
+
+
+class AsyncNamedObjectsService:
+    """Async objects addressed through a globally unique class name."""
+
+    def __init__(self, client: AsyncClient, class_name: str) -> None:
+        if not class_name.strip():
+            raise ValueError("class name must not be empty")
+        self._client = client
+        self.class_name = class_name
+        base = f"/api/v1/classes/by-name/{_segment(class_name)}/objects"
+        self._service = AsyncResourceService[HubuumObject, ObjectCreate, ObjectUpdate](
+            client,
+            collection_path=base,
+            item_path=f"{base}/by-name/{{id}}",
+            model=HubuumObject,
+        )
+
+    async def page(self, query: Query | None = None) -> Page[HubuumObject]:
+        return await self._service.page(query)
+
+    async def list(self, query: Query | None = None) -> builtins.list[HubuumObject]:
+        return await self._service.list(query)
+
+    async def pages(
+        self,
+        query: Query | None = None,
+        *,
+        max_pages: int = 100,
+    ) -> AsyncIterator[Page[HubuumObject]]:
+        async for page in self._service.pages(query, max_pages=max_pages):
+            yield page
+
+    async def all(
+        self,
+        query: Query | None = None,
+        *,
+        max_pages: int = 100,
+        max_items: int = 10_000,
+    ) -> builtins.list[HubuumObject]:
+        return await self._service.all(query, max_pages=max_pages, max_items=max_items)
+
+    async def one(self, query: Query) -> HubuumObject:
+        return await self._service.one(query)
+
+    async def get(self, object_name: str) -> HubuumObject:
+        return await self._service.get(_required_name(object_name, "object"))
+
+    async def create(self, payload: ObjectCreate) -> HubuumObject:
+        return await self._service.create(payload)
+
+    async def update(self, object_name: str, payload: ObjectUpdate) -> HubuumObject:
+        return await self._service.update(_required_name(object_name, "object"), payload)
+
+    async def delete(self, object_name: str) -> None:
+        await self._service.delete(_required_name(object_name, "object"))
+
+    async def patch_data(
+        self,
+        object_name: str,
+        operations: builtins.list[ObjectDataPatchInput],
+    ) -> HubuumObject:
+        """Atomically patch object data with class/object rename safety."""
+        path = (
+            f"/api/v1/classes/by-name/{_segment(self.class_name)}"
+            f"/objects/by-name/{_segment(_required_name(object_name, 'object'))}/data"
+        )
+        return await self._client.request(
+            "PATCH",
+            path,
+            json=_object_data_patch_payload(operations),
+            response_model=HubuumObject,
+            options=RequestOptions(headers={"Content-Type": "application/json-patch+json"}),
+        )
+
+    async def related_objects(
+        self,
+        object_name: str,
+        *,
+        params: Params = None,
+    ) -> builtins.list[dict[str, object]]:
+        return await _json_object_list(
+            self._client,
+            self._related_path(object_name, "objects"),
+            params=params,
+        )
+
+    async def related_relations(
+        self,
+        object_name: str,
+        *,
+        params: Params = None,
+    ) -> builtins.list[dict[str, object]]:
+        return await _json_object_list(
+            self._client,
+            self._related_path(object_name, "relations"),
+            params=params,
+        )
+
+    async def related_graph(
+        self,
+        object_name: str,
+        *,
+        params: Params = None,
+    ) -> dict[str, object]:
+        return await _json_object(
+            self._client,
+            self._related_path(object_name, "graph"),
+            params=params,
+        )
+
+    def _related_path(self, object_name: str, view: str) -> str:
+        return (
+            f"/api/v1/classes/by-name/{_segment(self.class_name)}"
+            f"/objects/by-name/{_segment(_required_name(object_name, 'object'))}"
+            f"/related/{view}"
+        )
+
+
+class AsyncNamedClassService:
+    """Async v0.0.3 endpoints rooted at ``classes/by-name/{class_name}``."""
+
+    def __init__(self, client: AsyncClient, class_name: str) -> None:
+        self._client = client
+        self.class_name = _required_name(class_name, "class")
+        self._base = f"/api/v1/classes/by-name/{_segment(self.class_name)}"
+
+    @property
+    def objects(self) -> AsyncNamedObjectsService:
+        return AsyncNamedObjectsService(self._client, self.class_name)
+
+    async def get(self) -> HubuumClass:
+        return await self._client.request("GET", self._base, response_model=HubuumClass)
+
+    async def update(self, payload: ClassUpdate) -> HubuumClass:
+        return await self._client.request(
+            "PATCH", self._base, json=payload, response_model=HubuumClass
+        )
+
+    async def delete(self) -> None:
+        await self._client.request("DELETE", self._base)
+
+    async def permissions(self, *, params: Params = None) -> builtins.list[dict[str, object]]:
+        return await _json_object_list(self._client, f"{self._base}/permissions", params=params)
+
+    async def related_classes(self, *, params: Params = None) -> builtins.list[dict[str, object]]:
+        return await _json_object_list(self._client, f"{self._base}/related/classes", params=params)
+
+    async def related_relations(self, *, params: Params = None) -> builtins.list[dict[str, object]]:
+        return await _json_object_list(
+            self._client, f"{self._base}/related/relations", params=params
+        )
+
+    async def related_graph(self, *, params: Params = None) -> dict[str, object]:
+        return await _json_object(self._client, f"{self._base}/related/graph", params=params)
+
+    async def object_aggregates(self, *, params: Params) -> Page[dict[str, object]]:
+        return await _json_object_page(
+            self._client,
+            f"{self._base}/object-aggregates",
+            params=params,
+        )
 
 
 class AsyncUsersService(AsyncResourceService[User, UserCreate, UserUpdate]):
@@ -392,3 +574,64 @@ def _decode_model_list(response: httpx.Response, model: type[ModelT]) -> builtin
             response.status_code,
             validation_error_reason(error, response),
         ) from error
+
+
+def _required_name(value: str, resource: str) -> str:
+    if not value.strip():
+        raise ValueError(f"{resource} name must not be empty")
+    return value
+
+
+async def _json_object(
+    client: AsyncClient,
+    path: str,
+    *,
+    params: Params = None,
+) -> dict[str, object]:
+    value = await client.request("GET", path, options=RequestOptions(params=params))
+    if not isinstance(value, dict):
+        raise TypeError("expected a JSON object")
+    return value
+
+
+async def _json_object_list(
+    client: AsyncClient,
+    path: str,
+    *,
+    params: Params = None,
+) -> builtins.list[dict[str, object]]:
+    value = await client.request("GET", path, options=RequestOptions(params=params))
+    if not isinstance(value, list) or not all(isinstance(item, dict) for item in value):
+        raise TypeError("expected a JSON array of objects")
+    return value
+
+
+async def _json_object_page(
+    client: AsyncClient,
+    path: str,
+    *,
+    params: Params,
+) -> Page[dict[str, object]]:
+    response = await client._request_response("GET", path, options=RequestOptions(params=params))
+    try:
+        value = response.json()
+    except ValueError as error:
+        raise DecodeError(
+            response.request.method,
+            safe_response_url(response),
+            response.status_code,
+            validation_error_reason(error, response),
+        ) from error
+    if not isinstance(value, list) or not all(isinstance(item, dict) for item in value):
+        raise DecodeError(
+            response.request.method,
+            safe_response_url(response),
+            response.status_code,
+            "expected a JSON array of objects",
+        )
+    return Page(
+        items=tuple(value),
+        next_cursor=response.headers.get("x-next-cursor"),
+        total_count=_header_int(response.headers.get("x-total-count")),
+        page_limit=_header_int(response.headers.get("x-page-limit")),
+    )

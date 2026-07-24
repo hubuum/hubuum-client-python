@@ -88,6 +88,7 @@ def test_secret_values_are_redacted_but_can_produce_wire_values() -> None:
     assert "token-secret" not in repr(token)
     assert "token-secret" not in str(token)
     assert token.value == "token-secret"
+    assert AccessToken("  token-secret\n").value == "token-secret"
     with pytest.raises(ValueError, match="must not be empty"):
         AccessToken(" ")
 
