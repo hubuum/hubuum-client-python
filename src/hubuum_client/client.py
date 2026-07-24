@@ -25,7 +25,7 @@ from .errors import TransportError
 from .models import LoginResponse, ProbeResponse
 from .options import ClientOptions, RequestOptions
 from .streaming import ResponseStream
-from .types import AccessToken, ClassId, Credentials
+from .types import AccessToken, Credentials
 
 T = TypeVar("T", bound=BaseModel)
 _PUBLIC_REQUEST = RequestOptions(authenticated=False)
@@ -117,13 +117,6 @@ class Client:
     @property
     def classes(self) -> ClassesService:
         return ClassesService(self)
-
-    def objects(self, class_id: ClassId | int) -> ObjectsService:
-        return ObjectsService(self, ClassId(class_id))
-
-    def objects_by_class_name(self, class_name: str) -> NamedObjectsService:
-        """Select objects through the server's exact class-name route."""
-        return NamedObjectsService(self, class_name)
 
     @property
     def users(self) -> UsersService:
@@ -298,9 +291,7 @@ from .services import (  # noqa: E402  (imported after Client is defined)
     ClassRelationsService,
     CollectionsService,
     GroupsService,
-    NamedObjectsService,
     ObjectRelationsService,
-    ObjectsService,
     TasksService,
     UsersService,
 )

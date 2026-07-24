@@ -63,7 +63,7 @@ def test_public_config_authentication_and_core_crud(
         )
         assert client.classes.get_by_name(numeric_name).id == hubuum_class.id
 
-        hubuum_object = client.objects(hubuum_class.id).create(
+        hubuum_object = client.classes.by_id(hubuum_class.id).objects.create(
             ObjectCreate(
                 name=f"{unique_name}-object",
                 collection_id=collection.id,
@@ -72,16 +72,17 @@ def test_public_config_authentication_and_core_crud(
                 data={"source": "hubuum-client-python"},
             )
         )
-        updated = client.objects(hubuum_class.id).update(
+        updated = client.classes.by_id(hubuum_class.id).objects.update(
             hubuum_object.id,
             ObjectUpdate(description="Updated from Python", data={"updated": True}),
         )
         assert updated.data == {"updated": True}
         assert (
-            client.objects(hubuum_class.id).get_by_name(hubuum_object.name).id == hubuum_object.id
+            client.classes.by_id(hubuum_class.id).objects.get_by_name(hubuum_object.name).id
+            == hubuum_object.id
         )
 
-        page = client.objects(hubuum_class.id).page(
+        page = client.classes.by_id(hubuum_class.id).objects.page(
             Query().where("name", hubuum_object.name).limit(5).include_total()
         )
         assert any(item.id == hubuum_object.id for item in page)
@@ -92,7 +93,7 @@ def test_public_config_authentication_and_core_crud(
         assert renamed.description == "Updated Python e2e class"
     finally:
         if hubuum_object is not None and hubuum_class is not None:
-            client.objects(hubuum_class.id).delete(hubuum_object.id)
+            client.classes.by_id(hubuum_class.id).objects.delete(hubuum_object.id)
         if hubuum_class is not None:
             client.classes.delete(hubuum_class.id)
         client.collections.delete(collection.id)
@@ -155,7 +156,7 @@ def test_object_data_query_interface(
         )
         for suffix, data in fixtures:
             objects.append(
-                client.objects(hubuum_class.id).create(
+                client.classes.by_id(hubuum_class.id).objects.create(
                     ObjectCreate(
                         name=f"{unique_name}-data-{suffix}",
                         collection_id=collection.id,
@@ -166,7 +167,7 @@ def test_object_data_query_interface(
                 )
             )
 
-        named_objects = client.objects_by_class_name(hubuum_class.name)
+        named_objects = client.classes.by_name(hubuum_class.name).objects
         assert named_objects.get(objects[0].name).id == objects[0].id
         patched = named_objects.patch_data(
             objects[0].name,
@@ -176,7 +177,7 @@ def test_object_data_query_interface(
         assert patched.data["verified_by_name"] is True
 
         def selected_names(query: Query) -> set[str]:
-            return {item.name for item in client.objects(hubuum_class.id).all(query)}
+            return {item.name for item in client.classes.by_id(hubuum_class.id).objects.all(query)}
 
         names = {suffix: f"{unique_name}-data-{suffix}" for suffix, _ in fixtures}
         assert selected_names(Query().data("status").equals("active")) == {names["active"]}
@@ -206,7 +207,7 @@ def test_object_data_query_interface(
     finally:
         if hubuum_class is not None:
             for hubuum_object in reversed(objects):
-                client.objects(hubuum_class.id).delete(hubuum_object.id)
+                client.classes.by_id(hubuum_class.id).objects.delete(hubuum_object.id)
             client.classes.delete(hubuum_class.id)
         client.collections.delete(collection.id)
 
@@ -233,7 +234,7 @@ def test_cursor_pagination_traverses_all_pages(
                 description="Cursor pagination e2e class",
             )
         )
-        object_service = client.objects(hubuum_class.id)
+        object_service = client.classes.by_id(hubuum_class.id).objects
         objects.extend(
             object_service.create(
                 ObjectCreate(
@@ -260,7 +261,7 @@ def test_cursor_pagination_traverses_all_pages(
     finally:
         if hubuum_class is not None:
             for hubuum_object in reversed(objects):
-                client.objects(hubuum_class.id).delete(hubuum_object.id)
+                client.classes.by_id(hubuum_class.id).objects.delete(hubuum_object.id)
             client.classes.delete(hubuum_class.id)
         client.collections.delete(collection.id)
 
@@ -304,7 +305,7 @@ def test_iam_and_relations(client: Client, admin_group_id: GroupId, unique_name:
             )
             classes.append(hubuum_class)
             objects.append(
-                client.objects(hubuum_class.id).create(
+                client.classes.by_id(hubuum_class.id).objects.create(
                     ObjectCreate(
                         name=f"{unique_name}-{suffix}-object",
                         collection_id=collection.id,
@@ -335,7 +336,7 @@ def test_iam_and_relations(client: Client, admin_group_id: GroupId, unique_name:
         if class_relation is not None:
             client.class_relations.delete(class_relation.id)
         for hubuum_class, hubuum_object in zip(classes, objects, strict=True):
-            client.objects(hubuum_class.id).delete(hubuum_object.id)
+            client.classes.by_id(hubuum_class.id).objects.delete(hubuum_object.id)
         for hubuum_class in classes:
             client.classes.delete(hubuum_class.id)
         for collection in collections:
@@ -456,7 +457,7 @@ async def test_async_client_full_resource_lifecycle(
                     description="Async Python e2e class",
                 )
             )
-            object_service = async_client.objects(hubuum_class.id)
+            object_service = async_client.classes.by_id(hubuum_class.id).objects
             hubuum_object = await object_service.create(
                 ObjectCreate(
                     name=f"{unique_name}-async-object",
@@ -479,7 +480,7 @@ async def test_async_client_full_resource_lifecycle(
             )
             assert updated.data == {"phase": "updated"}
 
-            named_objects = async_client.objects_by_class_name(hubuum_class.name)
+            named_objects = async_client.classes.by_name(hubuum_class.name).objects
             patched = await named_objects.patch_data(
                 hubuum_object.name,
                 [{"op": "replace", "path": "/phase", "value": "patched"}],
@@ -493,7 +494,7 @@ async def test_async_client_full_resource_lifecycle(
                 await object_service.get(object_id)
         finally:
             if hubuum_object is not None and hubuum_class is not None:
-                await async_client.objects(hubuum_class.id).delete(hubuum_object.id)
+                await async_client.classes.by_id(hubuum_class.id).objects.delete(hubuum_object.id)
             if hubuum_class is not None:
                 await async_client.classes.delete_by_name(hubuum_class.name)
             await async_client.collections.delete(collection.id)

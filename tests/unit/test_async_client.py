@@ -11,6 +11,7 @@ from hubuum_client import (
     APIError,
     AsyncClient,
     ClassId,
+    ClassUpdate,
     ClientOptions,
     CollectionId,
     ConfigurationError,
@@ -78,6 +79,47 @@ async def test_async_exact_name_and_public_config(class_json: dict[str, Any]) ->
 
     assert config["pagination"]["default_page_limit"] == 100
     assert model.collection_id == CollectionId(11)
+
+
+async def test_async_classes_by_id_selects_class_and_nested_objects(
+    class_json: dict[str, Any],
+    object_json: dict[str, Any],
+) -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if request.method == "DELETE":
+            return httpx.Response(204)
+        if request.url.path.endswith("/12/"):
+            return httpx.Response(
+                200,
+                json=[object_json],
+                headers={"X-Total-Count": "1"},
+            )
+        return httpx.Response(200, json=class_json)
+
+    async with _client(handler, token="token") as client:
+        assert not hasattr(client, "objects")
+        assert not hasattr(client, "objects_by_class_name")
+        selected = client.classes.by_id(ClassId(12))
+        assert selected.class_id == ClassId(12)
+        assert selected.objects.class_id == ClassId(12)
+        assert (await selected.get()).id == ClassId(12)
+        assert (await selected.update(ClassUpdate(description="updated"))).id == ClassId(12)
+        page = await selected.objects.page(Query().where("name", "web-01").include_total())
+        await selected.delete()
+
+    assert page[0].id == object_json["id"]
+    assert page.total_count == 1
+    assert [(request.method, request.url.path) for request in requests] == [
+        ("GET", "/api/v1/classes/12"),
+        ("PATCH", "/api/v1/classes/12"),
+        ("GET", "/api/v1/classes/12/"),
+        ("DELETE", "/api/v1/classes/12"),
+    ]
+    assert requests[2].url.params["name__equals"] == "web-01"
+    assert requests[2].url.params["include_total"] == "true"
 
 
 async def test_async_logout_clears_token_on_server_error() -> None:

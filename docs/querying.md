@@ -44,7 +44,7 @@ query = (
     .contains_all("web", "api")
 )
 
-objects = client.objects(class_id).all(query)
+objects = client.classes.by_id(class_id).objects.all(query)
 ```
 
 The path is passed as one key per argument. For example,
@@ -114,12 +114,16 @@ Resource services expose four common terminals:
   `ResultCardinalityError` otherwise.
 
 ```python
-page = client.objects(class_id).page(Query().limit(50).include_total())
+page = client.classes.by_id(class_id).objects.page(
+    Query().limit(50).include_total()
+)
 
 print(page.total_count)
 print(page.page_limit)
 if page.has_next:
-    next_page = client.objects(class_id).page(Query().cursor(page.next_cursor))
+    next_page = client.classes.by_id(class_id).objects.page(
+        Query().cursor(page.next_cursor)
+    )
 ```
 
 `total_count` is `None` when `include_total=False` or the server omits the
@@ -147,15 +151,17 @@ Use the complete name-addressed service when class and object names are already
 known:
 
 ```python
-named_class = client.classes.by_name("12345")
-hubuum_class = named_class.get()
-hubuum_object = named_class.objects.get("67890")
+selected_class = client.classes.by_name("12345")
+hubuum_class = selected_class.get()
+hubuum_object = selected_class.objects.get("67890")
+all_objects = selected_class.objects.all()
 
-all_objects = client.objects_by_class_name("12345").all()
+id_selected_class = client.classes.by_id(class_id)
+same_class = id_selected_class.get()
+id_scoped_objects = id_selected_class.objects.all()
 ```
 
 Both names are encoded as opaque path segments after explicit `by-name`
 markers, so spaces, slashes, and numeric-looking values remain unambiguous.
-The older `client.objects(class_id).get_by_name(name)` convenience remains
-available when only the numeric class ID is known; it performs exact filtering
-on that ID-scoped collection.
+The nested selectors make the resource hierarchy and ID-versus-name choice
+explicit.

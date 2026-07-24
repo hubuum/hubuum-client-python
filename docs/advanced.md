@@ -98,7 +98,7 @@ All class/object `by-name` aliases have first-class service paths:
 ```python
 from hubuum_client import ObjectDataPatchOperation, Query
 
-hosts = client.objects_by_class_name("Hosts")
+hosts = client.classes.by_name("Hosts").objects
 active = hosts.all(Query().data("status").equals("active"))
 current = hosts.get("workstation.example")
 
@@ -114,11 +114,13 @@ updated = hosts.patch_data(
 )
 ```
 
-`client.classes.by_name(name)` additionally exposes class permissions,
-relations, graphs, aggregates, and its name-addressed object service. JSON
-Patch paths are relative to the raw `data` root. Operations are validated for
-their RFC 6902 member shape, explicit JSON null values are preserved, and the
-server applies the complete patch atomically with rename safety.
+`client.classes.by_id(id).objects` provides the corresponding numeric-ID
+interface. `client.classes.by_name(name)` additionally exposes class
+permissions, relations, graphs, aggregates, and its name-addressed object
+service. JSON Patch paths are relative to the raw `data` root. Operations are
+validated for their RFC 6902 member shape, explicit JSON null values are
+preserved, and the server applies the complete patch atomically with rename
+safety.
 
 ## Custom extension routes
 

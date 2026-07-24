@@ -9,8 +9,8 @@ from hubuum_client import Client, Credentials, Query
 
 with Client("https://hubuum.example.com") as client:
     client.login(Credentials("alice", "secret"))
-    page = client.classes.page(
-        Query().where("name", "server").limit(25).include_total()
+    page = client.classes.by_name("Servers").objects.page(
+        Query().where("name", "web-01").limit(25).include_total()
     )
     for item in page:
         print(item.id, item.name)

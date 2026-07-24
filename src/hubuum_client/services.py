@@ -210,9 +210,40 @@ class ClassesService(ResourceService[HubuumClass, ClassCreate, ClassUpdate]):
     def delete_by_name(self, name: str) -> None:
         self._client.request("DELETE", f"/api/v1/classes/by-name/{_segment(name)}")
 
+    def by_id(self, class_id: ClassId | int) -> ClassService:
+        """Select a class and its nested resources by numeric ID."""
+        return ClassService(self._client, ClassId(class_id))
+
     def by_name(self, name: str) -> NamedClassService:
         """Select the complete natural-key-addressed class surface."""
         return NamedClassService(self._client, name)
+
+
+class ClassService:
+    """A class and its nested resources addressed by numeric ID."""
+
+    def __init__(self, client: Client, class_id: ClassId) -> None:
+        self._client = client
+        self.class_id = class_id
+        self._base = f"/api/v1/classes/{_segment(class_id)}"
+
+    @property
+    def objects(self) -> ObjectsService:
+        return ObjectsService(self._client, self.class_id)
+
+    def get(self) -> HubuumClass:
+        return self._client.request("GET", self._base, response_model=HubuumClass)
+
+    def update(self, payload: ClassUpdate) -> HubuumClass:
+        return self._client.request(
+            "PATCH",
+            self._base,
+            json=payload,
+            response_model=HubuumClass,
+        )
+
+    def delete(self) -> None:
+        self._client.request("DELETE", self._base)
 
 
 class ObjectsService(ResourceService[HubuumObject, ObjectCreate, ObjectUpdate]):

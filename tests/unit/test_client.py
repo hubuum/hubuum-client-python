@@ -13,6 +13,7 @@ from hubuum_client import (
     AuthenticationError,
     ClassCreate,
     ClassId,
+    ClassUpdate,
     Client,
     ClientOptions,
     CollectionCreate,
@@ -128,14 +129,56 @@ def test_objects_use_class_scoped_routes(object_json: dict[str, Any]) -> None:
         return httpx.Response(200, json=body)
 
     with _client(handler, token="token") as client:
-        by_id = client.objects(12).get(13)
-        by_name = client.objects(ClassId(12)).get_by_name("web-01")
+        objects = client.classes.by_id(12).objects
+        by_id = objects.get(13)
+        by_name = objects.get_by_name("web-01")
 
     assert by_id.id == by_name.id
     assert paths == [
         "/api/v1/classes/12/13",
         "/api/v1/classes/12/",
     ]
+
+
+def test_classes_by_id_selects_class_and_nested_objects(
+    class_json: dict[str, Any],
+    object_json: dict[str, Any],
+) -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if request.method == "DELETE":
+            return httpx.Response(204)
+        if request.url.path.endswith("/12/"):
+            return httpx.Response(
+                200,
+                json=[object_json],
+                headers={"X-Total-Count": "1"},
+            )
+        return httpx.Response(200, json=class_json)
+
+    with _client(handler, token="token") as client:
+        assert not hasattr(client, "objects")
+        assert not hasattr(client, "objects_by_class_name")
+        selected = client.classes.by_id(ClassId(12))
+        assert selected.class_id == ClassId(12)
+        assert selected.objects.class_id == ClassId(12)
+        assert selected.get().id == ClassId(12)
+        assert selected.update(ClassUpdate(description="updated")).id == ClassId(12)
+        page = selected.objects.page(Query().where("name", "web-01").include_total())
+        selected.delete()
+
+    assert page[0].id == object_json["id"]
+    assert page.total_count == 1
+    assert [(request.method, request.url.path) for request in requests] == [
+        ("GET", "/api/v1/classes/12"),
+        ("PATCH", "/api/v1/classes/12"),
+        ("GET", "/api/v1/classes/12/"),
+        ("DELETE", "/api/v1/classes/12"),
+    ]
+    assert requests[2].url.params["name__equals"] == "web-01"
+    assert requests[2].url.params["include_total"] == "true"
 
 
 def test_automatic_pagination_follows_cursor(class_json: dict[str, Any]) -> None:

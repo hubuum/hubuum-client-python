@@ -218,9 +218,40 @@ class AsyncClassesService(AsyncResourceService[HubuumClass, ClassCreate, ClassUp
     async def delete_by_name(self, name: str) -> None:
         await self._client.request("DELETE", f"/api/v1/classes/by-name/{_segment(name)}")
 
+    def by_id(self, class_id: ClassId | int) -> AsyncClassService:
+        """Select a class and its nested resources by numeric ID."""
+        return AsyncClassService(self._client, ClassId(class_id))
+
     def by_name(self, name: str) -> AsyncNamedClassService:
         """Select the complete natural-key-addressed class surface."""
         return AsyncNamedClassService(self._client, name)
+
+
+class AsyncClassService:
+    """An async class and its nested resources addressed by numeric ID."""
+
+    def __init__(self, client: AsyncClient, class_id: ClassId) -> None:
+        self._client = client
+        self.class_id = class_id
+        self._base = f"/api/v1/classes/{_segment(class_id)}"
+
+    @property
+    def objects(self) -> AsyncObjectsService:
+        return AsyncObjectsService(self._client, self.class_id)
+
+    async def get(self) -> HubuumClass:
+        return await self._client.request("GET", self._base, response_model=HubuumClass)
+
+    async def update(self, payload: ClassUpdate) -> HubuumClass:
+        return await self._client.request(
+            "PATCH",
+            self._base,
+            json=payload,
+            response_model=HubuumClass,
+        )
+
+    async def delete(self) -> None:
+        await self._client.request("DELETE", self._base)
 
 
 class AsyncObjectsService(AsyncResourceService[HubuumObject, ObjectCreate, ObjectUpdate]):

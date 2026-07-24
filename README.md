@@ -59,7 +59,7 @@ from hubuum_client import AsyncClient, Credentials, Query
 async def main() -> None:
     async with AsyncClient("https://hubuum.example.com") as client:
         await client.login(Credentials("alice", "secret"))
-        page = await client.objects(42).page(
+        page = await client.classes.by_name("Servers").objects.page(
             Query().where("name", "web-01").include_total()
         )
         print(page.total_count, page.items)
@@ -67,6 +67,24 @@ async def main() -> None:
 
 asyncio.run(main())
 ```
+
+Context-managed clients remain open for the entire block and reuse their HTTP
+connection pools. Applications that manage startup and shutdown explicitly can
+keep the same client for their full lifetime:
+
+```python
+client = Client("https://hubuum.example.com")
+try:
+    client.login(Credentials("alice", "secret"))
+    run_application(client)
+finally:
+    client.close()
+```
+
+The async equivalent uses `await client.close()`. Reuse a client instead of
+constructing one per request so eligible TCP/TLS connections can be reused; see
+[Client setup](docs/client.md) for synchronous and asynchronous lifetime
+examples.
 
 Credentials and bearer tokens have redacted representations. TLS certificate
 validation is enabled by default; disabling it is an explicit client option and
@@ -112,7 +130,7 @@ base = Query().where("name", "server", FilterOperator.ICONTAINS)
 first_page = client.classes.page(base.limit(25).include_total())
 all_matches = client.classes.all(base, max_items=5_000)
 
-active_web_servers = client.objects(class_id).all(
+active_web_servers = client.classes.by_name("Servers").objects.all(
     Query()
     .data("status")
     .equals("active")

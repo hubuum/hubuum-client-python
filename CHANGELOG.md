@@ -28,6 +28,9 @@ All notable changes to this project are documented here. The format follows
 - Added the complete class/object `by-name` surface and validated atomic RFC
   6902 object-data patch operations, covering the API workflows used by
   `hubuum-import-miami`.
+- Added `classes.by_id(id)` as the numeric counterpart to `classes.by_name(name)`,
+  with synchronous and asynchronous class operations and nested `.objects`
+  access.
 
 ### Changed
 
@@ -56,6 +59,8 @@ All notable changes to this project are documented here. The format follows
 - Replaced long client and raw-request parameter lists with shared typed
   `ClientOptions` and `RequestOptions` values and re-enabled Ruff's argument
   count rule.
+- Updated examples to prefer explicit nested class selectors and documented
+  application-lifetime client reuse, HTTP connection pooling, and shutdown.
 
 ### Security
 
