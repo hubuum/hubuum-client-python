@@ -4,7 +4,7 @@
 
 | Python client | Hubuum server tag | Status | End-to-end evidence |
 | --- | --- | --- | --- |
-| 0.0.1 | [`v0.0.3`](https://github.com/hubuum/hubuum/releases/tag/v0.0.3) | Verified | [Pinned e2e passed on 2026-07-24](https://github.com/hubuum/hubuum-client-python/actions/runs/30004920976) |
+| 0.0.1 | [`v0.0.3`](https://github.com/hubuum/hubuum/releases/tag/v0.0.3) | Verified | [Pinned e2e passed on 2026-07-24](https://github.com/hubuum/hubuum-client-python/actions/runs/30126233605) |
 
 `Verified` means the complete Docker-backed suite passed for the exact
 client/server pair. The server release is selected by tag and locked to the
@@ -18,9 +18,9 @@ The tag identifies the supported server release; the digest prevents that tag
 from resolving to different content later. The same reference is stored in
 `src/hubuum_client/_constants.py`, the e2e wrapper, and CI.
 
-The linked run passed the complete unit and OpenAPI contract suites and all
-three Docker-backed workflows: core CRUD/natural keys, IAM/relations, and async
-consumption.
+The linked run passed the complete unit and OpenAPI contract suites and the
+pinned live-server suite, including core CRUD/natural keys, nested object-data
+queries and JSON Patch, IAM/relations, and async consumption.
 
 ## Meaning of compatibility
 
