@@ -63,6 +63,8 @@ All notable changes to this project are documented here. The format follows
   application-lifetime client reuse, HTTP connection pooling, and shutdown.
 - Returned group memberships as contract-validated `PrincipalMember` values
   and added cursor-aware membership page and collection helpers.
+- Parsed both standard `Retry-After` forms into safe, non-negative rate-limit
+  delays and ignored malformed or non-finite values.
 
 ### Security
 

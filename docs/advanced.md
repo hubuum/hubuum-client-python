@@ -31,6 +31,10 @@ and request ID where available. Bearer tokens, secret-bearing request headers
 and bodies, and values under sensitive query parameter names are redacted from
 their diagnostics.
 
+`RateLimitError.retry_after` exposes a valid `Retry-After` delay as
+non-negative seconds. Both integer delay values and HTTP dates are supported;
+the attribute is `None` when the header is absent or malformed.
+
 ## Complete OpenAPI operation surface
 
 The Hubuum v0.0.3 OpenAPI contract contains 196 operations. Every operation is
