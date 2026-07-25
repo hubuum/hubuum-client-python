@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from collections.abc import Callable
 from typing import Any
+from urllib.parse import quote_plus
 
 import httpx
 import pytest
@@ -203,3 +204,38 @@ async def test_async_metadata_config_fallback_and_raw_decode_error() -> None:
         assert await client.config() == {}
         with pytest.raises(DecodeError):
             await client.request("GET", "/api/v1/custom-invalid-json")
+
+
+async def test_async_query_secrets_are_redacted() -> None:
+    query_secret = "async /+% café secret"
+    encoded_query_secret = quote_plus(query_secret, safe="")
+
+    def rejected(request: httpx.Request) -> httpx.Response:
+        assert request.url.params["token"] == query_secret
+        return httpx.Response(400, text=f"rejected {query_secret}")
+
+    async with _client(rejected) as client:
+        with pytest.raises(APIError) as raised:
+            await client.request(
+                "GET",
+                "/api/v1/custom",
+                options=RequestOptions(params={"token": query_secret}),
+            )
+
+    assert query_secret not in str(raised.value)
+    assert query_secret not in repr(raised.value)
+
+    def offline(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError(f"failed while sending {request.url}", request=request)
+
+    async with _client(offline) as client:
+        with pytest.raises(TransportError) as raised_transport:
+            await client.request(
+                "GET",
+                "/api/v1/custom",
+                options=RequestOptions(params={"access-token": query_secret}),
+            )
+
+    assert query_secret not in str(raised_transport.value)
+    assert encoded_query_secret not in str(raised_transport.value)
+    assert query_secret not in repr(raised_transport.value)

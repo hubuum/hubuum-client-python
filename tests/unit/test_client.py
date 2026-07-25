@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from collections.abc import Callable
 from typing import Any
+from urllib.parse import quote_plus
 
 import httpx
 import pytest
@@ -292,6 +293,43 @@ def test_error_responses_and_transport_failures_redact_request_secrets() -> None
 
     assert "bearer-secret" not in str(raised_transport.value)
     assert "bearer-secret" not in repr(raised_transport.value)
+
+
+def test_query_secrets_are_redacted_from_api_and_transport_errors() -> None:
+    query_secret = "query /+% café secret"
+    encoded_query_secret = quote_plus(query_secret, safe="")
+
+    def rejected(request: httpx.Request) -> httpx.Response:
+        assert request.url.params["api_key"] == query_secret
+        return httpx.Response(
+            400,
+            json={"error": "InvalidApiKey", "message": f"rejected {query_secret}"},
+        )
+
+    with _client(rejected) as client, pytest.raises(APIError) as raised:
+        client.request(
+            "GET",
+            "/api/v1/custom",
+            options=RequestOptions(params={"api_key": query_secret}),
+        )
+
+    assert query_secret not in str(raised.value)
+    assert query_secret not in repr(raised.value)
+    assert query_secret not in str(raised.value.response_body)
+
+    def offline(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError(f"failed while sending {request.url}", request=request)
+
+    with _client(offline) as client, pytest.raises(TransportError) as raised_transport:
+        client.request(
+            "GET",
+            "/api/v1/custom",
+            options=RequestOptions(params={"api-key": query_secret}),
+        )
+
+    assert query_secret not in str(raised_transport.value)
+    assert encoded_query_secret not in str(raised_transport.value)
+    assert query_secret not in repr(raised_transport.value)
 
 
 def test_configured_auth_replaces_header_case_insensitively_and_host_is_locked() -> None:

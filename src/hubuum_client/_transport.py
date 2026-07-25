@@ -6,7 +6,7 @@ import json
 from collections.abc import Mapping
 from contextlib import suppress
 from typing import Any, TypeVar
-from urllib.parse import unquote, urlsplit
+from urllib.parse import quote_plus, unquote, urlsplit
 
 import httpx
 from pydantic import BaseModel, ValidationError
@@ -21,6 +21,7 @@ from .errors import (
     PermissionDeniedError,
     RateLimitError,
 )
+from .options import Params
 
 T = TypeVar("T", bound=BaseModel)
 _REDACTED = "<redacted>"
@@ -138,7 +139,11 @@ def _collect_sensitive_values(value: Any, result: set[str], *, sensitive: bool =
         result.add(value)
 
 
-def sensitive_request_values(headers: httpx.Headers, body: Any) -> set[str]:
+def sensitive_request_values(
+    headers: httpx.Headers,
+    body: Any,
+    params: Params = None,
+) -> set[str]:
     """Return exact secret strings that must never survive into an exception."""
     result: set[str] = set()
     for name, value in headers.multi_items():
@@ -147,6 +152,10 @@ def sensitive_request_values(headers: httpx.Headers, body: Any) -> set[str]:
             scheme, separator, credential = value.partition(" ")
             if separator and scheme.casefold() in {"basic", "bearer"} and credential:
                 result.add(credential)
+    for name, value in httpx.QueryParams(params).multi_items():
+        if _sensitive_key(name) and value:
+            result.add(value)
+            result.add(quote_plus(value, safe=""))
     _collect_sensitive_values(body, result)
     return result
 
@@ -178,7 +187,7 @@ def _response_request_secrets(response: httpx.Response) -> set[str]:
     body: Any = None
     with suppress(UnicodeDecodeError, ValueError):
         body = json.loads(request.content) if request.content else None
-    return sensitive_request_values(request.headers, body)
+    return sensitive_request_values(request.headers, body, request.url.params)
 
 
 def validation_error_reason(error: TypeError | ValueError, response: httpx.Response) -> str:

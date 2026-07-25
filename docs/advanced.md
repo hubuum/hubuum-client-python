@@ -27,8 +27,9 @@ except NotFoundError as error:
 ```
 
 Exceptions retain the method, query-free URL, status, API error code, message,
-and request ID where available. They never retain the bearer token or outgoing
-request body.
+and request ID where available. Bearer tokens, secret-bearing request headers
+and bodies, and values under sensitive query parameter names are redacted from
+their diagnostics.
 
 ## Complete OpenAPI operation surface
 

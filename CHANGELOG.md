@@ -68,6 +68,8 @@ All notable changes to this project are documented here. The format follows
   characters, and caller-supplied `Host` headers.
 - Made bearer-header replacement case-insensitive and redact request secrets
   from transport, API, and decoding exception details.
+- Redacted values under sensitive query parameter names from API and transport
+  error diagnostics.
 - Redacted login tokens from model representations.
 
 [Unreleased]: https://github.com/hubuum/hubuum-client-python/commits/main
