@@ -43,6 +43,33 @@ def _client(
     return Client("https://hubuum.test", token=token, transport=httpx.MockTransport(handler))
 
 
+def test_resource_services_are_lazily_cached_per_client() -> None:
+    names = (
+        "collections",
+        "classes",
+        "users",
+        "groups",
+        "class_relations",
+        "object_relations",
+        "tasks",
+    )
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={})
+
+    with _client(handler) as client, _client(handler) as other_client:
+        for name in names:
+            assert name not in vars(client)
+            service = getattr(client, name)
+            assert service is getattr(client, name)
+            assert vars(client)[name] is service
+
+        assert client.classes is not other_client.classes
+        assert client.classes.by_id(1) is not client.classes.by_id(1)
+        selected = client.classes.by_id(1)
+        assert selected.objects is not selected.objects
+
+
 def test_login_authentication_and_logout_are_redacted() -> None:
     requests: list[httpx.Request] = []
 
