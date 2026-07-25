@@ -144,6 +144,15 @@ The default bounds are intentionally conservative. Increase them explicitly for
 a known large result set, or consume pages individually when streaming work is
 more appropriate.
 
+Group members are returned as typed `PrincipalMember` values. Membership
+pagination follows the same bounds and cursor rules through `members_page()`,
+`member_pages()`, and `all_members()`:
+
+```python
+page = client.groups.members_page(group_id, Query().limit(50).include_total())
+members = client.groups.all_members(group_id, max_pages=20, max_items=5_000)
+```
+
 ## Exact-name routes
 
 Hubuum v0.0.3 supports explicit natural-key aliases for classes and objects.

@@ -33,6 +33,7 @@ from .models import (
     ObjectRelation,
     ObjectRelationCreate,
     ObjectUpdate,
+    PrincipalMember,
     Task,
     User,
     UserCreate,
@@ -479,11 +480,50 @@ class AsyncGroupsService(AsyncResourceService[Group, GroupCreate, GroupUpdate]):
     async def get_by_name(self, name: str) -> Group:
         return await self.one(Query().where("groupname", name))
 
-    async def members(self, group_id: GroupId | int) -> list[dict[str, object]]:
-        value = await self._client.request(
-            "GET", f"/api/v1/iam/groups/{_segment(group_id)}/members"
+    def _members_service(
+        self, group_id: GroupId | int
+    ) -> AsyncResourceService[PrincipalMember, BaseModel, BaseModel]:
+        path = f"/api/v1/iam/groups/{_segment(group_id)}/members"
+        return AsyncResourceService(
+            self._client,
+            collection_path=path,
+            item_path=f"{path}/{{id}}",
+            model=PrincipalMember,
         )
-        return value if isinstance(value, list) else []
+
+    async def members_page(
+        self, group_id: GroupId | int, query: Query | None = None
+    ) -> Page[PrincipalMember]:
+        return await self._members_service(group_id).page(query)
+
+    async def members(
+        self, group_id: GroupId | int, query: Query | None = None
+    ) -> builtins.list[PrincipalMember]:
+        return await self._members_service(group_id).list(query)
+
+    async def member_pages(
+        self,
+        group_id: GroupId | int,
+        query: Query | None = None,
+        *,
+        max_pages: int = 100,
+    ) -> AsyncIterator[Page[PrincipalMember]]:
+        async for page in self._members_service(group_id).pages(query, max_pages=max_pages):
+            yield page
+
+    async def all_members(
+        self,
+        group_id: GroupId | int,
+        query: Query | None = None,
+        *,
+        max_pages: int = 100,
+        max_items: int = 10_000,
+    ) -> builtins.list[PrincipalMember]:
+        return await self._members_service(group_id).all(
+            query,
+            max_pages=max_pages,
+            max_items=max_items,
+        )
 
     async def add_member(self, group_id: GroupId | int, principal_id: PrincipalId | int) -> None:
         await self._client.request(

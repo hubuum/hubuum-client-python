@@ -27,6 +27,7 @@ from hubuum_client import (
     ObjectRelationId,
     ObjectUpdate,
     PrincipalId,
+    PrincipalMember,
     Query,
     RequestOptions,
     ResultCardinalityError,
@@ -83,6 +84,17 @@ def _user_json() -> dict[str, Any]:
         "name": "alice",
         "email": "alice@example.com",
         "proper_name": "Alice",
+        "created_at": "2026-07-21T10:00:00Z",
+        "updated_at": "2026-07-21T10:00:00Z",
+    }
+
+
+def _principal_member_json() -> dict[str, Any]:
+    return {
+        "principal_id": 21,
+        "identity_scope": "local",
+        "kind": "user",
+        "name": "alice",
         "created_at": "2026-07-21T10:00:00Z",
         "updated_at": "2026-07-21T10:00:00Z",
     }
@@ -208,7 +220,11 @@ def test_sync_object_user_and_group_methods(object_json: dict[str, Any]) -> None
                 return httpx.Response(200, json=[_user_json()])
             return httpx.Response(200, json=_user_json())
         if path.endswith("/members"):
-            return httpx.Response(200, json=[{"principal_id": 21, "name": "alice"}])
+            return httpx.Response(
+                200,
+                headers={"x-total-count": "1", "x-page-limit": "25"},
+                json=[_principal_member_json()],
+            )
         if "/members/" in path:
             return httpx.Response(204)
         if request.method == "GET" and path == "/api/v1/iam/groups":
@@ -245,13 +261,29 @@ def test_sync_object_user_and_group_methods(object_json: dict[str, Any]) -> None
         assert client.groups.get(20).groupname == "ops"
         assert client.groups.get_by_name("ops").id == GroupId(20)
         assert client.groups.update(20, GroupUpdate(groupname="platform")).id == GroupId(20)
-        assert client.groups.members(20)[0]["principal_id"] == 21
+        member: PrincipalMember = client.groups.members(20)[0]
+        assert member.principal_id == PrincipalId(21)
+        page = client.groups.members_page(20, Query().limit(25).include_total())
+        assert page.items == (member,)
+        assert page.total_count == 1
+        assert page.page_limit == 25
+        assert [item for page in client.groups.member_pages(20) for item in page] == [member]
+        assert client.groups.all_members(20) == [member]
         client.groups.add_member(20, PrincipalId(21))
         client.groups.remove_member(20, PrincipalId(21))
         client.groups.delete(20)
 
     assert ("PATCH", "/api/v1/classes/12/13") in seen
     assert ("POST", "/api/v1/iam/groups/20/members/21") in seen
+
+
+def test_sync_group_members_reject_non_array_response() -> None:
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, json={}))
+    with (
+        Client("https://hubuum.test", token="token", transport=transport) as client,
+        pytest.raises(DecodeError, match="expected a JSON array"),
+    ):
+        client.groups.members(20)
 
 
 def test_sync_relations_tasks_probes_and_service_properties() -> None:
@@ -477,7 +509,11 @@ async def test_async_user_group_methods() -> None:
                 return httpx.Response(200, json=[_user_json()])
             return httpx.Response(200, json=_user_json())
         if path.endswith("/members"):
-            return httpx.Response(200, json=[])
+            return httpx.Response(
+                200,
+                headers={"x-total-count": "1", "x-page-limit": "25"},
+                json=[_principal_member_json()],
+            )
         if "/members/" in path:
             return httpx.Response(204)
         if request.method == "GET" and path == "/api/v1/iam/groups":
@@ -502,10 +538,25 @@ async def test_async_user_group_methods() -> None:
         assert (await client.groups.get(20)).id == 20
         assert (await client.groups.get_by_name("ops")).id == 20
         assert (await client.groups.update(20, GroupUpdate(groupname="platform"))).id == 20
-        assert await client.groups.members(20) == []
+        member: PrincipalMember = (await client.groups.members(20))[0]
+        assert member.principal_id == PrincipalId(21)
+        page = await client.groups.members_page(20, Query().limit(25).include_total())
+        assert page.items == (member,)
+        assert page.total_count == 1
+        assert page.page_limit == 25
+        pages = [page async for page in client.groups.member_pages(20)]
+        assert [item for page in pages for item in page] == [member]
+        assert await client.groups.all_members(20) == [member]
         await client.groups.add_member(20, PrincipalId(21))
         await client.groups.remove_member(20, PrincipalId(21))
         await client.groups.delete(20)
+
+
+async def test_async_group_members_reject_non_array_response() -> None:
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, json={}))
+    async with AsyncClient("https://hubuum.test", token="token", transport=transport) as client:
+        with pytest.raises(DecodeError, match="expected a JSON array"):
+            await client.groups.members(20)
 
 
 async def test_async_timeout_and_transport_error() -> None:

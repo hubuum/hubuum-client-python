@@ -274,10 +274,13 @@ class ObjectRelationCreate(RequestModel):
     class_relation_id: ClassRelationId
 
 
-class Principal(HubuumModel):
+class PrincipalMember(HubuumModel):
     principal_id: PrincipalId
+    identity_scope: str
+    kind: str
     name: str
-    kind: str | None = None
+    created_at: datetime
+    updated_at: datetime
 
 
 class TaskStatus(StrEnum):

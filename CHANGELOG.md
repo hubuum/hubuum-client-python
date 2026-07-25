@@ -61,6 +61,8 @@ All notable changes to this project are documented here. The format follows
   count rule.
 - Updated examples to prefer explicit nested class selectors and documented
   application-lifetime client reuse, HTTP connection pooling, and shutdown.
+- Returned group memberships as contract-validated `PrincipalMember` values
+  and added cursor-aware membership page and collection helpers.
 
 ### Security
 
