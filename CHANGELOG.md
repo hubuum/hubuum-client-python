@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.0.1] - 2026-07-25
+
 ### Added
 
 - Initial typed Python client targeting Hubuum server v0.0.3.
@@ -78,4 +80,5 @@ All notable changes to this project are documented here. The format follows
   error diagnostics.
 - Redacted login tokens from model representations.
 
-[Unreleased]: https://github.com/hubuum/hubuum-client-python/commits/main
+[Unreleased]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.1...HEAD
+[0.0.1]: https://github.com/hubuum/hubuum-client-python/releases/tag/v0.0.1
