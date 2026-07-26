@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
+from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import quote_plus
 
@@ -66,7 +67,13 @@ async def test_async_login_and_typed_service(class_json: dict[str, Any]) -> None
         requests.append(request)
         if request.url.path.endswith("/login"):
             assert json.loads(request.content)["password"] == "secret"
-            return httpx.Response(200, json={"token": "async-token"})
+            return httpx.Response(
+                200,
+                json={
+                    "token": "async-token",
+                    "expires_at": "2026-07-27T12:00:00Z",
+                },
+            )
         assert request.headers["authorization"] == "Bearer async-token"
         return httpx.Response(200, json=[class_json])
 
@@ -75,6 +82,8 @@ async def test_async_login_and_typed_service(class_json: dict[str, Any]) -> None
         page = await client.classes.page(Query().data("metrics", "cpu_count").gte(4).limit(10))
 
     assert returned is client
+    assert returned.token is not None
+    assert returned.token.expires_at == datetime(2026, 7, 27, 12, tzinfo=UTC)
     assert page[0].id == ClassId(12)
     assert [request.method for request in requests] == ["POST", "GET"]
     assert requests[1].url.params["json_data__gte"] == "metrics,cpu_count=4"
@@ -100,14 +109,21 @@ async def test_async_exact_name_and_public_config(class_json: dict[str, Any]) ->
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path == "/api/v1/config":
             assert "authorization" not in request.headers
-            return httpx.Response(200, json={"pagination": {"default_page_limit": 100}})
+            return httpx.Response(
+                200,
+                json={
+                    "authentication": {"default_token_lifetime_hours": 48},
+                    "pagination": {"default_page_limit": 100, "max_page_limit": 250},
+                },
+            )
         return httpx.Response(200, json=class_json)
 
     async with _client(handler, token="token") as client:
         config = await client.config()
         model = await client.classes.get_by_name("server")
 
-    assert config["pagination"]["default_page_limit"] == 100
+    assert config.authentication.default_token_lifetime_hours == 48
+    assert config.pagination.default_page_limit == 100
     assert model.collection_id == CollectionId(11)
 
 
@@ -233,7 +249,7 @@ async def test_async_headers_and_exceptions_are_secret_safe() -> None:
     assert "transport-secret" not in str(raised_transport.value)
 
 
-async def test_async_v004_idempotency_key_limit_is_checked_before_io() -> None:
+async def test_async_v005_idempotency_key_limit_is_checked_before_io() -> None:
     async with _client(lambda request: pytest.fail(f"unexpected request: {request.url}")) as client:
         with pytest.raises(ConfigurationError, match="between 1 and 255 bytes"):
             await client.request(
@@ -243,10 +259,16 @@ async def test_async_v004_idempotency_key_limit_is_checked_before_io() -> None:
             )
 
 
-async def test_async_metadata_config_fallback_and_raw_decode_error() -> None:
+async def test_async_metadata_typed_config_and_raw_decode_error() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path == "/api/v1/config":
-            return httpx.Response(200, json=[])
+            return httpx.Response(
+                200,
+                json={
+                    "authentication": {"default_token_lifetime_hours": 72},
+                    "pagination": {"default_page_limit": 50, "max_page_limit": 200},
+                },
+            )
         return httpx.Response(
             200,
             content=b"{",
@@ -256,7 +278,9 @@ async def test_async_metadata_config_fallback_and_raw_decode_error() -> None:
     async with _client(handler, token="token") as client:
         assert client.base_url == "https://hubuum.test/"
         assert client.token is not None
-        assert await client.config() == {}
+        config = await client.config()
+        assert config.authentication.default_token_lifetime_hours == 72
+        assert config.pagination.max_page_limit == 200
         with pytest.raises(DecodeError):
             await client.request("GET", "/api/v1/custom-invalid-json")
 

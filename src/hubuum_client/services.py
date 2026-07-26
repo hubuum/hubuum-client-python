@@ -603,7 +603,7 @@ class PrincipalTokensService:
             json=payload,
             response_model=LoginResponse,
         )
-        return AccessToken(response.token)
+        return AccessToken(response.token, expires_at=response.expires_at)
 
     def revoke(self, token_id: TokenId | int) -> None:
         self._client.request(

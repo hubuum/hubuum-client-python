@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
@@ -188,7 +189,7 @@ def test_sync_and_async_services_keep_public_method_parity() -> None:
         assert sync_methods == async_methods
 
 
-def test_sync_v004_token_service_uses_nested_scope_and_redacts_created_token() -> None:
+def test_sync_v005_token_service_uses_nested_scope_and_returns_authoritative_expiry() -> None:
     requests: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -208,7 +209,13 @@ def test_sync_v004_token_service_uses_nested_scope_and_redacts_created_token() -
             )
         if request.url.path.endswith("/revoke"):
             return httpx.Response(204)
-        return httpx.Response(201, json={"token": "minted-token-secret"})
+        return httpx.Response(
+            201,
+            json={
+                "token": "minted-token-secret",
+                "expires_at": "2026-07-27T12:00:00Z",
+            },
+        )
 
     payload = NewTokenRequest(
         name="inventory-reader",
@@ -237,6 +244,7 @@ def test_sync_v004_token_service_uses_nested_scope_and_redacts_created_token() -
         principal.revoke(TokenId(50))
 
     assert created.value == "minted-token-secret"
+    assert created.expires_at == datetime(2026, 7, 27, 12, tzinfo=UTC)
     assert "minted-token-secret" not in repr(created)
     create_request = next(
         request
@@ -253,7 +261,7 @@ def test_sync_v004_token_service_uses_nested_scope_and_redacts_created_token() -
     assert requests[-1].url.path == "/api/v1/iam/principals/21/tokens/50/revoke"
 
 
-async def test_async_v004_token_service_matches_sync_behavior() -> None:
+async def test_async_v005_token_service_matches_sync_behavior() -> None:
     requests: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -269,7 +277,13 @@ async def test_async_v004_token_service_matches_sync_behavior() -> None:
             return httpx.Response(200, json=[_token_metadata_json()])
         if request.url.path.endswith("/revoke"):
             return httpx.Response(204)
-        return httpx.Response(201, json={"token": "async-minted-secret"})
+        return httpx.Response(
+            201,
+            json={
+                "token": "async-minted-secret",
+                "expires_at": "2026-07-27T13:00:00Z",
+            },
+        )
 
     payload = NewTokenRequest(scope=TokenScope(permissions=(Permission.READ_OBJECT,)))
     async with AsyncClient(
@@ -291,6 +305,7 @@ async def test_async_v004_token_service_matches_sync_behavior() -> None:
         await principal.revoke(50)
 
     assert created.value == "async-minted-secret"
+    assert created.expires_at == datetime(2026, 7, 27, 13, tzinfo=UTC)
     assert json.loads(requests[-2].content) == {
         "scope": {"permissions": ["ReadObject"]},
     }
@@ -427,7 +442,13 @@ def test_sync_relations_tasks_probes_and_service_properties() -> None:
         if path in {"/healthz", "/readyz"}:
             return httpx.Response(200, json={"status": "ok"})
         if path == "/api/v1/config":
-            return httpx.Response(200, json=[])
+            return httpx.Response(
+                200,
+                json={
+                    "authentication": {"default_token_lifetime_hours": 48},
+                    "pagination": {"default_page_limit": 100, "max_page_limit": 250},
+                },
+            )
         if "/relations/classes" in path:
             if request.method == "DELETE":
                 return httpx.Response(204)
@@ -455,7 +476,7 @@ def test_sync_relations_tasks_probes_and_service_properties() -> None:
     ) as client:
         assert client.healthz().status == "ok"
         assert client.readyz().status == "ok"
-        assert client.config() == {}
+        assert client.config().authentication.default_token_lifetime_hours == 48
 
         assert client.class_relations.list()[0].id == ClassRelationId(30)
         assert client.class_relations.one(Query().where("id", 30)).id == ClassRelationId(30)

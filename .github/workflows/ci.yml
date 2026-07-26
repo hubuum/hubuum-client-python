@@ -12,8 +12,8 @@ permissions:
 
 env:
   UV_FROZEN: "1"
-  HUBUUM_TARGET_SERVER_VERSION: "0.0.4"
-  HUBUUM_TARGET_SERVER_IMAGE: ghcr.io/hubuum/hubuum-server:v0.0.4@sha256:60142d605f423b1dc58d9dfe709164b0d5ec93befd2d702f9bdca7ee0654a583
+  HUBUUM_TARGET_SERVER_VERSION: "0.0.5"
+  HUBUUM_TARGET_SERVER_IMAGE: ghcr.io/hubuum/hubuum-server:v0.0.5@sha256:6f3e0f0debd418acd5cbc2b1399db9859a85ca1fa397525a5ef0e2f493a77c9b
 
 jobs:
   quality:
@@ -59,7 +59,7 @@ jobs:
       - run: uv run pytest --cov=hubuum_client
 
   server-contract:
-    name: Hubuum v0.0.4 OpenAPI contract
+    name: Hubuum v0.0.5 OpenAPI contract
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -71,7 +71,7 @@ jobs:
       - run: python scripts/check-openapi-contract.py
 
   e2e:
-    name: Pinned Hubuum v0.0.4 e2e
+    name: Pinned Hubuum v0.0.5 e2e
     runs-on: ubuntu-latest
     needs: [quality, test, server-contract]
     steps:

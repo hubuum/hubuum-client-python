@@ -102,6 +102,14 @@
 
 ::: hubuum_client.MeResponse
 
+::: hubuum_client.ClientConfig
+
+::: hubuum_client.ClientAuthenticationConfig
+
+::: hubuum_client.ClientPaginationConfig
+
+::: hubuum_client.AccessToken
+
 ## Errors
 
 ::: hubuum_client.APIError

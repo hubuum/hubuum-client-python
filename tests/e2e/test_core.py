@@ -47,7 +47,10 @@ def test_public_config_authentication_and_core_crud(
     try:
         assert public.healthz().status
         config = public.config()
-        assert config["pagination"]["default_page_limit"] > 0
+        assert config.authentication.default_token_lifetime_hours > 0
+        assert config.pagination.default_page_limit > 0
+        assert client.token is not None
+        assert client.token.expires_at is not None
     finally:
         public.close()
 
@@ -386,6 +389,7 @@ def test_sync_scoped_token_full_lifecycle(
                 ),
             )
         )
+        assert token.expires_at is not None
         metadata = next(item for item in principal_tokens.list() if item.name == token_name)
         assert metadata.scope is not None
         assert metadata.scope.permissions == (Permission.READ_COLLECTION,)
@@ -542,6 +546,7 @@ async def test_async_scoped_token_full_lifecycle(
                     ),
                 )
             )
+            assert token.expires_at is not None
             metadata = next(
                 item for item in await principal_tokens.list() if item.name == token_name
             )

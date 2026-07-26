@@ -6,6 +6,24 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.0.3] - 2026-07-26
+
+### Added
+
+- Added typed public client configuration models exposing Hubuum v0.0.5's
+  `authentication.default_token_lifetime_hours` alongside the effective
+  pagination settings, with matching synchronous and asynchronous access.
+- Access tokens returned by login and token-mint services now retain the
+  server's authoritative `expires_at` value without weakening secret
+  redaction.
+
+### Changed
+
+- Updated the declared server target, immutable OpenAPI contract, complete
+  operation manifest, CI, and Docker-backed suite to Hubuum v0.0.5 at release
+  commit `31fa25feaf366fb3077d5c4fd0c154275ee4bf16` and the pinned multi-platform
+  image digest.
+
 ## [0.0.2] - 2026-07-26
 
 ### Added
@@ -109,6 +127,7 @@ All notable changes to this project are documented here. The format follows
   error diagnostics.
 - Redacted login tokens from model representations.
 
-[Unreleased]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.2...HEAD
+[Unreleased]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.3...HEAD
+[0.0.3]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/hubuum/hubuum-client-python/releases/tag/v0.0.1

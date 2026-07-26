@@ -1,4 +1,4 @@
-"""Immutable Hubuum v0.0.4 OpenAPI operation manifest."""
+"""Immutable Hubuum v0.0.5 OpenAPI operation manifest."""
 
 from __future__ import annotations
 
