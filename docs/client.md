@@ -13,6 +13,9 @@ with Client("https://hubuum.example.com") as client:
 ```
 
 `login()` authenticates the current client and returns it for optional chaining.
+The resulting `client.token.expires_at` contains the authoritative expiry
+persisted by Hubuum v0.0.5. A token supplied directly at construction has no
+known expiry unless its `AccessToken` value includes one.
 An existing bearer token can be supplied at construction:
 
 ```python
@@ -152,5 +155,12 @@ readiness = client.readyz()
 config = client.config()
 ```
 
-The client configuration contains the server's effective pagination defaults
-and limit, which are useful when sizing queries.
+The typed client configuration contains the server's effective pagination
+defaults and the default token lifetime applied when login or token minting
+omits an explicit expiry:
+
+```python
+default_hours = config.authentication.default_token_lifetime_hours
+default_page_size = config.pagination.default_page_limit
+maximum_page_size = config.pagination.max_page_limit
+```

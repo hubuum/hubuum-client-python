@@ -1,11 +1,11 @@
 """Package and server compatibility constants."""
 
-__version__ = "0.0.2"
-TARGET_SERVER_VERSION = "0.0.4"
+__version__ = "0.0.3"
+TARGET_SERVER_VERSION = "0.0.5"
 TARGET_SERVER_IMAGE = (
-    "ghcr.io/hubuum/hubuum-server:v0.0.4@"
-    "sha256:60142d605f423b1dc58d9dfe709164b0d5ec93befd2d702f9bdca7ee0654a583"
+    "ghcr.io/hubuum/hubuum-server:v0.0.5@"
+    "sha256:6f3e0f0debd418acd5cbc2b1399db9859a85ca1fa397525a5ef0e2f493a77c9b"
 )
-OPENAPI_SERVER_VERSION = "0.0.4"
-OPENAPI_SERVER_REVISION = "81ca7b575ce888415c97dd19c83bfddaca272b6e"
-OPENAPI_SERVER_SHA256 = "4c1f6e06d39bafa76d17f3238724abdd60ff9b51eb6e35cf95e4b1d93c9957fb"
+OPENAPI_SERVER_VERSION = "0.0.5"
+OPENAPI_SERVER_REVISION = "31fa25feaf366fb3077d5c4fd0c154275ee4bf16"
+OPENAPI_SERVER_SHA256 = "32842d04cd2719b3082a66186d9bd0449c31dc6f7cd23e9e7cb950432fcfed5b"

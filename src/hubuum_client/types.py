@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from enum import StrEnum
 from typing import NewType
 
@@ -41,9 +42,10 @@ class Credentials:
 
 @dataclass(frozen=True, slots=True, repr=False)
 class AccessToken:
-    """Bearer token that cannot be exposed through ``repr`` or ``str``."""
+    """Bearer token and optional authoritative expiry with a redacted representation."""
 
     value: str
+    expires_at: datetime | None = None
 
     def __post_init__(self) -> None:
         normalized = self.value.strip()

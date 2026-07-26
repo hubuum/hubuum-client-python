@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 cd "${REPO_ROOT}"
 
-SERVER_IMAGE="${HUBUUM_E2E_SERVER_IMAGE:-ghcr.io/hubuum/hubuum-server:v0.0.4@sha256:60142d605f423b1dc58d9dfe709164b0d5ec93befd2d702f9bdca7ee0654a583}"
+SERVER_IMAGE="${HUBUUM_E2E_SERVER_IMAGE:-ghcr.io/hubuum/hubuum-server:v0.0.5@sha256:6f3e0f0debd418acd5cbc2b1399db9859a85ca1fa397525a5ef0e2f493a77c9b}"
 POSTGRES_IMAGE="${HUBUUM_E2E_POSTGRES_IMAGE:-postgres:18}"
 CONTAINER_RUNTIME="${HUBUUM_E2E_CONTAINER_RUNTIME:-}"
 STARTUP_TIMEOUT="${HUBUUM_E2E_TIMEOUT:-300}"
@@ -176,5 +176,5 @@ fi
 export HUBUUM_E2E_BASE_URL="${base_url}"
 export HUBUUM_E2E_ADMIN_PASSWORD="${admin_password}"
 
-echo "Running Python e2e tests against Hubuum v0.0.4 at ${base_url}"
+echo "Running Python e2e tests against Hubuum v0.0.5 at ${base_url}"
 run_e2e_tests

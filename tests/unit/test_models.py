@@ -100,7 +100,8 @@ def test_class_normalizes_live_embedded_collection() -> None:
 
 def test_secret_values_are_redacted_but_can_produce_wire_values() -> None:
     credentials = Credentials("alice", "super-secret", "local")
-    token = AccessToken("token-secret")
+    expiry = datetime(2026, 7, 27, 12, tzinfo=UTC)
+    token = AccessToken("token-secret", expires_at=expiry)
 
     assert "super-secret" not in repr(credentials)
     assert credentials.as_payload() == {
@@ -111,16 +112,21 @@ def test_secret_values_are_redacted_but_can_produce_wire_values() -> None:
     assert "token-secret" not in repr(token)
     assert "token-secret" not in str(token)
     assert token.value == "token-secret"
+    assert token.expires_at == expiry
     assert AccessToken("  token-secret\n").value == "token-secret"
     with pytest.raises(ValueError, match="must not be empty"):
         AccessToken(" ")
 
-    login_response = LoginResponse(token="login-token-secret")
+    login_response = LoginResponse(
+        token="login-token-secret",
+        expires_at="2026-07-27T12:00:00Z",
+    )
     assert "login-token-secret" not in repr(login_response)
     assert login_response.token == "login-token-secret"
+    assert login_response.expires_at == expiry
 
 
-def test_v004_token_scope_uses_nested_strict_wire_shape() -> None:
+def test_v005_token_scope_uses_nested_strict_wire_shape() -> None:
     request = NewTokenRequest(
         name="read-inventory",
         scope=TokenScope(
@@ -153,7 +159,7 @@ def test_v004_token_scope_uses_nested_strict_wire_shape() -> None:
         )
 
 
-def test_v004_token_metadata_and_aggregate_measures_are_typed() -> None:
+def test_v005_token_metadata_and_aggregate_measures_are_typed() -> None:
     metadata = PrincipalTokenMetadata.model_validate(
         {
             "id": 7,

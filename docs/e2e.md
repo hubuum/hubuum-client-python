@@ -2,7 +2,7 @@
 
 The e2e suite builds the project wheel, installs that artifact into an isolated
 virtual environment, and exercises the installed distribution against a real
-Hubuum v0.0.4 server and PostgreSQL database. It covers public probes, login,
+Hubuum v0.0.5 server and PostgreSQL database. It covers public probes, login,
 public configuration, typed CRUD, natural-key addressing, forced multi-page
 cursor traversal and metadata, typed nested object-data filters (including
 scalar, numeric, array, structure, null, combined, and network cases),
@@ -52,7 +52,7 @@ wheel, but it does not create or remove containers.
 
 | Variable | Purpose | Default |
 | --- | --- | --- |
-| `HUBUUM_E2E_SERVER_IMAGE` | Override the server image | Immutable v0.0.4 tag and digest |
+| `HUBUUM_E2E_SERVER_IMAGE` | Override the server image | Immutable v0.0.5 tag and digest |
 | `HUBUUM_E2E_POSTGRES_IMAGE` | Override PostgreSQL | `postgres:18` |
 | `HUBUUM_E2E_CONTAINER_RUNTIME` | Select `docker` or `podman` | Auto-detected |
 | `HUBUUM_E2E_PYTHON` | Interpreter used for the isolated wheel environment | `python3` |

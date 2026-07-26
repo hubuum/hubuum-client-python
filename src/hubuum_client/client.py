@@ -23,7 +23,7 @@ from ._transport import (
     validate_relative_path,
 )
 from .errors import TransportError
-from .models import LoginResponse, MeResponse, ProbeResponse
+from .models import ClientConfig, LoginResponse, MeResponse, ProbeResponse
 from .options import ClientOptions, RequestOptions
 from .streaming import ResponseStream
 from .types import AccessToken, Credentials
@@ -90,7 +90,7 @@ class Client:
             response_model=LoginResponse,
             options=_PUBLIC_REQUEST,
         )
-        self._token = AccessToken(response.token)
+        self._token = AccessToken(response.token, expires_at=response.expires_at)
         return self
 
     def logout(self) -> None:
@@ -107,9 +107,13 @@ class Client:
     def readyz(self) -> ProbeResponse:
         return self.request("GET", "/readyz", response_model=ProbeResponse, options=_PUBLIC_REQUEST)
 
-    def config(self) -> dict[str, Any]:
-        value = self.request("GET", "/api/v1/config", options=_PUBLIC_REQUEST)
-        return value if isinstance(value, dict) else {}
+    def config(self) -> ClientConfig:
+        return self.request(
+            "GET",
+            "/api/v1/config",
+            response_model=ClientConfig,
+            options=_PUBLIC_REQUEST,
+        )
 
     def me(self) -> MeResponse:
         return self.request("GET", "/api/v1/iam/me", response_model=MeResponse)
@@ -148,7 +152,7 @@ class Client:
 
     @property
     def openapi(self) -> OpenAPIOperations:
-        """Complete operation-ID interface for all 196 v0.0.4 operations."""
+        """Complete operation-ID interface for all 196 v0.0.5 operations."""
         return OpenAPIOperations(self)
 
     @overload

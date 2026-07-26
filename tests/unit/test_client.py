@@ -79,7 +79,13 @@ def test_login_authentication_and_logout_are_redacted() -> None:
         if request.url.path.endswith("/login"):
             assert "authorization" not in request.headers
             assert json.loads(request.content) == {"name": "admin", "password": "secret"}
-            return httpx.Response(200, json={"token": "bearer-secret"})
+            return httpx.Response(
+                200,
+                json={
+                    "token": "bearer-secret",
+                    "expires_at": "2026-07-27T12:00:00Z",
+                },
+            )
         if request.url.path.endswith("/logout"):
             assert request.headers["authorization"] == "Bearer bearer-secret"
             return httpx.Response(204)
@@ -89,6 +95,7 @@ def test_login_authentication_and_logout_are_redacted() -> None:
         returned = client.login(Credentials("admin", "secret"))
         assert returned is client
         assert client.token is not None
+        assert client.token.expires_at == datetime(2026, 7, 27, 12, tzinfo=UTC)
         assert "bearer-secret" not in repr(client.token)
         client.logout()
         assert not client.is_authenticated
@@ -466,7 +473,7 @@ def test_configured_auth_replaces_header_case_insensitively_and_host_is_locked()
 
 
 @pytest.mark.parametrize("key", ["", "x" * 256, "é" * 128])
-def test_v004_idempotency_keys_are_bounded_by_encoded_bytes(key: str) -> None:
+def test_v005_idempotency_keys_are_bounded_by_encoded_bytes(key: str) -> None:
     with (
         _client(lambda request: pytest.fail(f"unexpected request: {request.url}")) as client,
         pytest.raises(ConfigurationError, match="between 1 and 255 bytes"),
@@ -562,20 +569,28 @@ def test_class_create_serializes_typed_request(class_json: dict[str, Any]) -> No
     assert created.id == ClassId(12)
 
 
-def test_plain_basemodel_config_fallback_and_client_metadata() -> None:
+def test_plain_basemodel_typed_config_and_client_metadata() -> None:
     class PlainPayload(BaseModel):
         enabled: bool
         omitted: str | None = None
 
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path == "/api/v1/config":
-            return httpx.Response(200, json=[])
+            return httpx.Response(
+                200,
+                json={
+                    "authentication": {"default_token_lifetime_hours": 48},
+                    "pagination": {"default_page_limit": 100, "max_page_limit": 250},
+                },
+            )
         assert json.loads(request.content) == {"enabled": True}
         return httpx.Response(204)
 
     with _client(handler, token="token") as client:
         assert client.base_url == "https://hubuum.test/"
-        assert client.config() == {}
+        config = client.config()
+        assert config.authentication.default_token_lifetime_hours == 48
+        assert config.pagination.max_page_limit == 250
         assert client.request("POST", "/api/v1/custom", json=PlainPayload(enabled=True)) is None
 
 

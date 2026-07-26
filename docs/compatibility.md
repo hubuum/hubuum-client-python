@@ -4,6 +4,7 @@
 
 | Python client | Hubuum server contract | Status | End-to-end evidence |
 | --- | --- | --- | --- |
+| 0.0.3 | [`v0.0.5`](https://github.com/hubuum/hubuum/tree/v0.0.5) | Verified | Pinned e2e passed locally on 2026-07-26 |
 | 0.0.2 | [`v0.0.4`](https://github.com/hubuum/hubuum/tree/v0.0.4) | Verified | Pinned e2e passed locally on 2026-07-25 |
 | 0.0.1 | [`v0.0.3`](https://github.com/hubuum/hubuum/releases/tag/v0.0.3) | Verified | [Pinned e2e passed on 2026-07-24](https://github.com/hubuum/hubuum-client-python/actions/runs/30128172912) |
 
@@ -12,35 +13,38 @@ client/server pair. The server release is selected by tag and locked to the
 immutable image used by that run:
 
 ```text
-ghcr.io/hubuum/hubuum-server:v0.0.4@sha256:60142d605f423b1dc58d9dfe709164b0d5ec93befd2d702f9bdca7ee0654a583
+ghcr.io/hubuum/hubuum-server:v0.0.5@sha256:6f3e0f0debd418acd5cbc2b1399db9859a85ca1fa397525a5ef0e2f493a77c9b
 ```
 
 The tag identifies the supported server release; the digest prevents that tag
 from resolving to different content later. The same reference is stored in
 `src/hubuum_client/_constants.py`, the e2e wrapper, and CI.
 
-The v0.0.4 run passed the complete pinned live-server suite, including core
+The v0.0.5 run passed the complete pinned live-server suite, including core
 CRUD/natural keys, nested object-data queries and JSON Patch, IAM/relations,
 forced cursor traversal, non-administrator authorization and live error
 mapping, a complete async resource lifecycle, and synchronous and asynchronous
 scoped-token lifecycles. Each token lifecycle mints a nested permission and
 resource scope, verifies exact metadata and allowed/denied operations, revokes
-the token, and confirms that it can no longer authenticate. The suite imports
-the wheel built from the tested source in a clean environment.
+the token, and confirms that it can no longer authenticate. The v0.0.5 suite
+also checks the public default token lifetime and the authoritative expiry
+returned by login and token minting. The suite imports the wheel built from the
+tested source in a clean environment.
 
-## v0.0.4 target
+## v0.0.5 target
 
 The client pins the released OpenAPI document at commit
-`81ca7b575ce888415c97dd19c83bfddaca272b6e`, with SHA-256
-`4c1f6e06d39bafa76d17f3238724abdd60ff9b51eb6e35cf95e4b1d93c9957fb`.
+`31fa25feaf366fb3077d5c4fd0c154275ee4bf16`, with SHA-256
+`32842d04cd2719b3082a66186d9bd0449c31dc6f7cd23e9e7cb950432fcfed5b`.
 It still contains 196 operations, so the complete operation-ID manifest remains
-stable. The schema changes are covered by nested token-scope request and
-metadata models, resource-scoped token services, typed aggregate measures, and
-bounded idempotency keys.
+stable. The additive schema changes are covered by typed public configuration
+models and by retaining the authoritative token expiry from login and
+token-mint responses. Existing nested token scopes, typed aggregate measures,
+and bounded idempotency keys remain covered.
 
 ## Meaning of compatibility
 
-For this project, targeting server v0.0.4 means:
+For this project, targeting server v0.0.5 means:
 
 - authentication, public probes, and client configuration work against the
   pinned server;
@@ -48,11 +52,11 @@ For this project, targeting server v0.0.4 means:
   pagination, and sync/async mutation workflows pass live-server tests;
 - the live server confirms non-administrator read grants and denied writes,
   plus client mappings for `400`, `401`, `403`, `404`, and `409` responses;
-- every one of the 196 v0.0.4 OpenAPI operations is present in the checked
+- every one of the 196 v0.0.5 OpenAPI operations is present in the checked
   operation manifest, including JSON Patch, rendered export media, and SSE;
 - arbitrary extension routes remain accessible through the safe request
   extension point;
-- request models follow the v0.0.4 wire schema, while response models tolerate
+- request models follow the v0.0.5 wire schema, while response models tolerate
   additive fields.
 
 It does not promise that every operation has a domain-specific Pydantic model
@@ -68,7 +72,7 @@ workflows and does not invoke all 196 operations.
 
 ## Known contract accommodations
 
-The committed v0.0.4 OpenAPI `Group` schema declares `identity_scope_id`. The
+The committed v0.0.5 OpenAPI `Group` schema declares `identity_scope_id`. The
 Python response model also accepts the scope name as `identity_scope` for
 compatibility with server responses that use that representation. Requests
 continue to use the documented scope name.
@@ -82,7 +86,7 @@ boolean. `HubuumClass` retains the embedded collection, derives its stable
 
 Running against Hubuum `main` or a future release-candidate revision can
 identify drift early, but such a run is a forward-compatibility signal only. It
-does not replace the immutable v0.0.4 e2e run and does not change a released
+does not replace the immutable v0.0.5 e2e run and does not change a released
 client's declared target.
 
 Breaking server changes require a new compatibility row, changelog entry, and

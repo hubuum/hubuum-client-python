@@ -43,8 +43,29 @@ class ProbeResponse(HubuumModel):
     message: str | None = None
 
 
+class ClientAuthenticationConfig(HubuumModel):
+    """Public authentication settings needed by API consumers."""
+
+    default_token_lifetime_hours: int = Field(ge=1)
+
+
+class ClientPaginationConfig(HubuumModel):
+    """Effective pagination settings exposed by the server."""
+
+    default_page_limit: int = Field(ge=1)
+    max_page_limit: int = Field(ge=1)
+
+
+class ClientConfig(HubuumModel):
+    """Public client-safe server configuration."""
+
+    authentication: ClientAuthenticationConfig
+    pagination: ClientPaginationConfig
+
+
 class LoginResponse(HubuumModel):
     token: str = Field(repr=False)
+    expires_at: datetime
 
 
 class Collection(HubuumModel):
@@ -379,7 +400,7 @@ class TokenScope(RequestModel):
 
 
 class NewTokenRequest(RequestModel):
-    """Hubuum v0.0.4 token-mint request using the nested ``scope`` wire field."""
+    """Hubuum v0.0.5 token-mint request using the nested ``scope`` wire field."""
 
     description: str | None = None
     expires_at: datetime | None = None

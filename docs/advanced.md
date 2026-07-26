@@ -37,7 +37,7 @@ the attribute is `None` when the header is absent or malformed.
 
 ## Complete OpenAPI operation surface
 
-The Hubuum v0.0.4 OpenAPI contract contains 196 operations. Every operation is
+The Hubuum v0.0.5 OpenAPI contract contains 196 operations. Every operation is
 registered by its exact `operationId`, HTTP method, path template, request
 media type, and authentication policy:
 
@@ -67,7 +67,7 @@ status = client.openapi.call(
 ```
 
 `Idempotency-Key` values are validated before I/O and must contain between 1
-and 255 bytes, matching v0.0.4 task-submission endpoints.
+and 255 bytes, matching v0.0.5 task-submission endpoints.
 
 `call()` returns a JSON value for JSON responses, `str` for a negotiated text
 response, `bytes` for any other media type, and `None` for an empty success.
@@ -101,7 +101,7 @@ match exactly.
 
 ## Scoped tokens
 
-Hubuum v0.0.4 nests token boundaries under one `scope` field. Omit `scope` for
+Hubuum v0.0.5 nests token boundaries under one `scope` field. Omit `scope` for
 an unscoped token; within a scope, permissions and collection/class/object
 resources are independent dimensions:
 
@@ -130,7 +130,10 @@ token = client.tokens.for_principal(principal_id).create(
 )
 ```
 
-The returned `AccessToken` has a redacted string representation. Token metadata
+The returned `AccessToken` has a redacted string representation and exposes the
+authoritative expiry as `token.expires_at`. When `NewTokenRequest.expires_at`
+is omitted, the server uses
+`client.config().authentication.default_token_lifetime_hours`. Token metadata
 from `client.me().token` and token-list services uses `scope is None` to
 identify an unscoped token; the removed v0.0.3 flat `scopes`,
 `resource_scopes`, and `scoped` fields are not sent.
@@ -191,7 +194,7 @@ safety.
 ## Custom extension routes
 
 `request()` remains the lower-level escape hatch for a server extension that is
-not part of the pinned v0.0.4 OpenAPI document:
+not part of the pinned v0.0.5 OpenAPI document:
 
 ```python
 from hubuum_client import RequestOptions

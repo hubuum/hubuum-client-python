@@ -23,7 +23,7 @@ from ._transport import (
     validate_relative_path,
 )
 from .errors import TransportError
-from .models import LoginResponse, MeResponse, ProbeResponse
+from .models import ClientConfig, LoginResponse, MeResponse, ProbeResponse
 from .options import ClientOptions, RequestOptions
 from .streaming import AsyncResponseStream
 from .types import AccessToken, Credentials
@@ -85,7 +85,7 @@ class AsyncClient:
             response_model=LoginResponse,
             options=_PUBLIC_REQUEST,
         )
-        self._token = AccessToken(response.token)
+        self._token = AccessToken(response.token, expires_at=response.expires_at)
         return self
 
     async def logout(self) -> None:
@@ -104,9 +104,13 @@ class AsyncClient:
             "GET", "/readyz", response_model=ProbeResponse, options=_PUBLIC_REQUEST
         )
 
-    async def config(self) -> dict[str, Any]:
-        value = await self.request("GET", "/api/v1/config", options=_PUBLIC_REQUEST)
-        return value if isinstance(value, dict) else {}
+    async def config(self) -> ClientConfig:
+        return await self.request(
+            "GET",
+            "/api/v1/config",
+            response_model=ClientConfig,
+            options=_PUBLIC_REQUEST,
+        )
 
     async def me(self) -> MeResponse:
         return await self.request("GET", "/api/v1/iam/me", response_model=MeResponse)
@@ -145,7 +149,7 @@ class AsyncClient:
 
     @property
     def openapi(self) -> AsyncOpenAPIOperations:
-        """Complete operation-ID interface for all 196 v0.0.4 operations."""
+        """Complete operation-ID interface for all 196 v0.0.5 operations."""
         return AsyncOpenAPIOperations(self)
 
     @overload
