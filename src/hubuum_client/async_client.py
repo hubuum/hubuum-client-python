@@ -23,7 +23,7 @@ from ._transport import (
     validate_relative_path,
 )
 from .errors import TransportError
-from .models import LoginResponse, ProbeResponse
+from .models import LoginResponse, MeResponse, ProbeResponse
 from .options import ClientOptions, RequestOptions
 from .streaming import AsyncResponseStream
 from .types import AccessToken, Credentials
@@ -108,6 +108,9 @@ class AsyncClient:
         value = await self.request("GET", "/api/v1/config", options=_PUBLIC_REQUEST)
         return value if isinstance(value, dict) else {}
 
+    async def me(self) -> MeResponse:
+        return await self.request("GET", "/api/v1/iam/me", response_model=MeResponse)
+
     @cached_property
     def collections(self) -> AsyncCollectionsService:
         return AsyncCollectionsService(self)
@@ -125,6 +128,10 @@ class AsyncClient:
         return AsyncGroupsService(self)
 
     @cached_property
+    def tokens(self) -> AsyncTokensService:
+        return AsyncTokensService(self)
+
+    @cached_property
     def class_relations(self) -> AsyncClassRelationsService:
         return AsyncClassRelationsService(self)
 
@@ -138,7 +145,7 @@ class AsyncClient:
 
     @property
     def openapi(self) -> AsyncOpenAPIOperations:
-        """Complete operation-ID interface for all 196 v0.0.3 operations."""
+        """Complete operation-ID interface for all 196 v0.0.4 operations."""
         return AsyncOpenAPIOperations(self)
 
     @overload
@@ -294,6 +301,7 @@ from .async_services import (  # noqa: E402
     AsyncGroupsService,
     AsyncObjectRelationsService,
     AsyncTasksService,
+    AsyncTokensService,
     AsyncUsersService,
 )
 from .openapi import AsyncOpenAPIOperations  # noqa: E402

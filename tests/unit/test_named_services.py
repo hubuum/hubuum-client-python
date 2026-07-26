@@ -12,6 +12,7 @@ from hubuum_client import (
     ClassUpdate,
     Client,
     DecodeError,
+    ObjectAggregateMeasureOperation,
     ObjectCreate,
     ObjectUpdate,
     Query,
@@ -30,7 +31,22 @@ def _response_for_named_route(
     if path.endswith("/object-aggregates"):
         return httpx.Response(
             200,
-            json=[{"dimensions": [], "object_count": 1}],
+            json=[
+                {
+                    "dimensions": [],
+                    "object_count": 1,
+                    "measures": [
+                        {
+                            "field": "json_data.metrics,cpu",
+                            "operation": "average",
+                            "state": "value",
+                            "value": 4.5,
+                            "value_count": 1,
+                            "skipped_count": 0,
+                        }
+                    ],
+                }
+            ],
             headers={"X-Total-Count": "1", "X-Page-Limit": "10"},
         )
     if path.endswith("/permissions"):
@@ -90,7 +106,14 @@ def test_complete_by_name_surface_and_miami_workflow(
         assert selected.related_classes()[0]["id"] == 12
         assert selected.related_relations()[0]["id"] == 30
         assert selected.related_graph()["objects"] == []
-        assert selected.object_aggregates(params=[("group_by", "description")]).total_count == 1
+        aggregates = selected.object_aggregates(
+            params=[
+                ("group_by", "description"),
+                ("aggregate", "average:json_data.metrics,cpu"),
+            ]
+        )
+        assert aggregates.total_count == 1
+        assert aggregates[0].measures[0].operation is ObjectAggregateMeasureOperation.AVERAGE
 
         objects = selected.objects
         query = Query().data("status").equals("active").sort("id.asc").include_total(False)
@@ -181,9 +204,14 @@ async def test_async_complete_by_name_surface(
         assert (await selected.related_classes())[0]["id"] == 12
         assert (await selected.related_relations())[0]["id"] == 30
         assert (await selected.related_graph())["objects"] == []
-        assert (
-            await selected.object_aggregates(params=[("group_by", "description")])
-        ).total_count == 1
+        aggregates = await selected.object_aggregates(
+            params=[
+                ("group_by", "description"),
+                ("aggregate", "average:json_data.metrics,cpu"),
+            ]
+        )
+        assert aggregates.total_count == 1
+        assert aggregates[0].measures[0].operation is ObjectAggregateMeasureOperation.AVERAGE
 
         objects = selected.objects
         assert (await objects.page())[0].id == 13
@@ -260,7 +288,7 @@ def test_named_services_reject_unexpected_json_shapes() -> None:
 
     with (
         _client(lambda request: httpx.Response(200, json={})) as client,
-        pytest.raises(DecodeError, match="array of objects"),
+        pytest.raises(DecodeError, match="JSON array"),
     ):
         client.classes.by_name("Hosts").object_aggregates(params={"group_by": "name"})
 
@@ -285,5 +313,5 @@ async def test_async_named_services_reject_unexpected_json_shapes() -> None:
             await client.classes.by_name("Hosts").object_aggregates(params={"group_by": "name"})
 
     async with _async_client(lambda request: httpx.Response(200, json={})) as client:
-        with pytest.raises(DecodeError, match="array of objects"):
+        with pytest.raises(DecodeError, match="JSON array"):
             await client.classes.by_name("Hosts").object_aggregates(params={"group_by": "name"})

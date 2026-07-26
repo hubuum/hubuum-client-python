@@ -49,6 +49,7 @@ def test_resource_services_are_lazily_cached_per_client() -> None:
         "classes",
         "users",
         "groups",
+        "tokens",
         "class_relations",
         "object_relations",
         "tasks",
@@ -462,6 +463,19 @@ def test_configured_auth_replaces_header_case_insensitively_and_host_is_locked()
         ),
     ) as client:
         assert client.request("GET", "/healthz", options=RequestOptions(authenticated=False)) == {}
+
+
+@pytest.mark.parametrize("key", ["", "x" * 256, "é" * 128])
+def test_v004_idempotency_keys_are_bounded_by_encoded_bytes(key: str) -> None:
+    with (
+        _client(lambda request: pytest.fail(f"unexpected request: {request.url}")) as client,
+        pytest.raises(ConfigurationError, match="between 1 and 255 bytes"),
+    ):
+        client.request(
+            "POST",
+            "/api/v1/imports",
+            options=RequestOptions(headers={"Idempotency-Key": key}),
+        )
 
 
 @pytest.mark.parametrize(

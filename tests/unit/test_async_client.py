@@ -37,6 +37,7 @@ async def test_async_resource_services_are_lazily_cached_per_client() -> None:
         "classes",
         "users",
         "groups",
+        "tokens",
         "class_relations",
         "object_relations",
         "tasks",
@@ -230,6 +231,16 @@ async def test_async_headers_and_exceptions_are_secret_safe() -> None:
             await client.request("GET", "/api/v1/custom")
 
     assert "transport-secret" not in str(raised_transport.value)
+
+
+async def test_async_v004_idempotency_key_limit_is_checked_before_io() -> None:
+    async with _client(lambda request: pytest.fail(f"unexpected request: {request.url}")) as client:
+        with pytest.raises(ConfigurationError, match="between 1 and 255 bytes"):
+            await client.request(
+                "POST",
+                "/api/v1/imports",
+                options=RequestOptions(headers={"idempotency-key": "x" * 256}),
+            )
 
 
 async def test_async_metadata_config_fallback_and_raw_decode_error() -> None:

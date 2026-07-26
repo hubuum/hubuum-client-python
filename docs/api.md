@@ -74,6 +74,12 @@
 
 ::: hubuum_client.ObjectDataPatchOperation
 
+::: hubuum_client.ObjectAggregateRow
+
+::: hubuum_client.ObjectAggregateDimensionValue
+
+::: hubuum_client.ObjectAggregateMeasureValue
+
 ::: hubuum_client.User
 
 ::: hubuum_client.Group
@@ -83,6 +89,18 @@
 ::: hubuum_client.ObjectRelation
 
 ::: hubuum_client.Task
+
+::: hubuum_client.NewTokenRequest
+
+::: hubuum_client.TokenScope
+
+::: hubuum_client.TokenResourceScope
+
+::: hubuum_client.PrincipalTokenMetadata
+
+::: hubuum_client.CurrentTokenMetadata
+
+::: hubuum_client.MeResponse
 
 ## Errors
 

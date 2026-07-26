@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from contextlib import suppress
+
 import pytest
 
 from hubuum_client import (
@@ -16,14 +18,20 @@ from hubuum_client import (
     Credentials,
     GroupCreate,
     GroupId,
+    HubuumObject,
+    NewTokenRequest,
     NotFoundError,
     ObjectCreate,
     ObjectRelationCreate,
     ObjectUpdate,
     OpenAPIOptions,
+    Permission,
     PermissionDeniedError,
     PrincipalId,
     Query,
+    TokenResourceKind,
+    TokenResourceScope,
+    TokenScope,
     UserCreate,
 )
 
@@ -112,7 +120,7 @@ def test_object_data_query_interface(
         )
     )
     hubuum_class = None
-    objects = []
+    objects: list[HubuumObject] = []
     try:
         hubuum_class = client.classes.create(
             ClassCreate(
@@ -225,7 +233,7 @@ def test_cursor_pagination_traverses_all_pages(
         )
     )
     hubuum_class = None
-    objects = []
+    objects: list[HubuumObject] = []
     try:
         hubuum_class = client.classes.create(
             ClassCreate(
@@ -279,12 +287,15 @@ def test_iam_and_relations(client: Client, admin_group_id: GroupId, unique_name:
     )
     collections = []
     classes = []
-    objects = []
+    objects: list[HubuumObject] = []
     class_relation = None
     object_relation = None
     try:
         client.groups.add_member(group.id, PrincipalId(user.id))
-        assert any(member.principal_id == user.id for member in client.groups.members(group.id))
+        assert any(
+            member.principal_id == PrincipalId(user.id)
+            for member in client.groups.members(group.id)
+        )
         client.groups.remove_member(group.id, PrincipalId(user.id))
 
         for suffix in ("from", "to"):
@@ -343,6 +354,72 @@ def test_iam_and_relations(client: Client, admin_group_id: GroupId, unique_name:
             client.collections.delete(collection.id)
         client.groups.delete(group.id)
         client.users.delete(user.id)
+
+
+def test_sync_scoped_token_full_lifecycle(
+    client: Client,
+    admin_group_id: GroupId,
+    unique_name: str,
+) -> None:
+    collection = client.collections.create(
+        CollectionCreate(
+            name=f"{unique_name}-token-collection",
+            description="Scoped token lifecycle e2e collection",
+            group_id=admin_group_id,
+        )
+    )
+    token_name = f"{unique_name}-sync-token"
+    principal_tokens = client.tokens.for_principal(client.me().principal.principal_id)
+    revoked = False
+    try:
+        token = principal_tokens.create(
+            NewTokenRequest(
+                name=token_name,
+                scope=TokenScope(
+                    permissions=(Permission.READ_COLLECTION,),
+                    resources=(
+                        TokenResourceScope(
+                            kind=TokenResourceKind.COLLECTION,
+                            id=collection.id,
+                        ),
+                    ),
+                ),
+            )
+        )
+        metadata = next(item for item in principal_tokens.list() if item.name == token_name)
+        assert metadata.scope is not None
+        assert metadata.scope.permissions == (Permission.READ_COLLECTION,)
+        assert metadata.scope.resources is not None
+        assert [(item.kind, item.id) for item in metadata.scope.resources] == [
+            (TokenResourceKind.COLLECTION, collection.id)
+        ]
+
+        with Client(client.base_url, token=token) as scoped:
+            current_scope = scoped.me().token.scope
+            assert current_scope is not None
+            assert current_scope.permissions == (Permission.READ_COLLECTION,)
+            assert {item.id for item in scoped.collections.list()} == {collection.id}
+            assert scoped.collections.get(collection.id).id == collection.id
+            with pytest.raises(PermissionDeniedError):
+                scoped.collections.update(
+                    collection.id,
+                    CollectionUpdate(description="A read-scoped token must not update"),
+                )
+
+        principal_tokens.revoke(metadata.id)
+        revoked = True
+        with (
+            Client(client.base_url, token=token) as revoked_client,
+            pytest.raises(AuthenticationError),
+        ):
+            revoked_client.collections.get(collection.id)
+    finally:
+        if not revoked:
+            for metadata in principal_tokens.list():
+                if metadata.name == token_name:
+                    with suppress(APIError):
+                        principal_tokens.revoke(metadata.id)
+        client.collections.delete(collection.id)
 
 
 def test_non_admin_permissions_and_live_error_mapping(
@@ -430,6 +507,75 @@ def test_non_admin_permissions_and_live_error_mapping(
         if group is not None:
             client.groups.delete(group.id)
         client.users.delete(user.id)
+
+
+async def test_async_scoped_token_full_lifecycle(
+    base_url: str,
+    admin_password: str,
+    unique_name: str,
+) -> None:
+    async with AsyncClient(base_url) as admin:
+        await admin.login(Credentials("admin", admin_password))
+        admin_group_id = (await admin.groups.get_by_name("admin")).id
+        collection = await admin.collections.create(
+            CollectionCreate(
+                name=f"{unique_name}-async-token-collection",
+                description="Async scoped token lifecycle e2e collection",
+                group_id=admin_group_id,
+            )
+        )
+        token_name = f"{unique_name}-async-token"
+        principal_tokens = admin.tokens.for_principal((await admin.me()).principal.principal_id)
+        revoked = False
+        try:
+            token = await principal_tokens.create(
+                NewTokenRequest(
+                    name=token_name,
+                    scope=TokenScope(
+                        permissions=(Permission.READ_COLLECTION,),
+                        resources=(
+                            TokenResourceScope(
+                                kind=TokenResourceKind.COLLECTION,
+                                id=collection.id,
+                            ),
+                        ),
+                    ),
+                )
+            )
+            metadata = next(
+                item for item in await principal_tokens.list() if item.name == token_name
+            )
+            assert metadata.scope is not None
+            assert metadata.scope.permissions == (Permission.READ_COLLECTION,)
+            assert metadata.scope.resources is not None
+            assert [(item.kind, item.id) for item in metadata.scope.resources] == [
+                (TokenResourceKind.COLLECTION, collection.id)
+            ]
+
+            async with AsyncClient(base_url, token=token) as scoped:
+                current_scope = (await scoped.me()).token.scope
+                assert current_scope is not None
+                assert current_scope.permissions == (Permission.READ_COLLECTION,)
+                assert {item.id for item in await scoped.collections.list()} == {collection.id}
+                assert (await scoped.collections.get(collection.id)).id == collection.id
+                with pytest.raises(PermissionDeniedError):
+                    await scoped.collections.update(
+                        collection.id,
+                        CollectionUpdate(description="A read-scoped token must not update"),
+                    )
+
+            await principal_tokens.revoke(metadata.id)
+            revoked = True
+            async with AsyncClient(base_url, token=token) as revoked_client:
+                with pytest.raises(AuthenticationError):
+                    await revoked_client.collections.get(collection.id)
+        finally:
+            if not revoked:
+                for metadata in await principal_tokens.list():
+                    if metadata.name == token_name:
+                        with suppress(APIError):
+                            await principal_tokens.revoke(metadata.id)
+            await admin.collections.delete(collection.id)
 
 
 async def test_async_client_full_resource_lifecycle(

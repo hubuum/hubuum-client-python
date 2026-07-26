@@ -28,12 +28,16 @@ from .models import (
     GroupUpdate,
     HubuumClass,
     HubuumObject,
+    LoginResponse,
+    NewTokenRequest,
+    ObjectAggregateRow,
     ObjectCreate,
     ObjectDataPatchInput,
     ObjectRelation,
     ObjectRelationCreate,
     ObjectUpdate,
     PrincipalMember,
+    PrincipalTokenMetadata,
     Task,
     User,
     UserCreate,
@@ -42,7 +46,7 @@ from .models import (
 )
 from .options import Params, RequestOptions
 from .query import Page, Query
-from .types import ClassId, CollectionId, GroupId, PrincipalId, TaskId, UserId
+from .types import AccessToken, ClassId, CollectionId, GroupId, PrincipalId, TaskId, TokenId, UserId
 
 if TYPE_CHECKING:
     from .async_client import AsyncClient
@@ -408,7 +412,7 @@ class AsyncNamedObjectsService:
 
 
 class AsyncNamedClassService:
-    """Async v0.0.3 endpoints rooted at ``classes/by-name/{class_name}``."""
+    """Async class endpoints rooted at ``classes/by-name/{class_name}``."""
 
     def __init__(self, client: AsyncClient, class_name: str) -> None:
         self._client = client
@@ -444,10 +448,11 @@ class AsyncNamedClassService:
     async def related_graph(self, *, params: Params = None) -> dict[str, object]:
         return await _json_object(self._client, f"{self._base}/related/graph", params=params)
 
-    async def object_aggregates(self, *, params: Params) -> Page[dict[str, object]]:
-        return await _json_object_page(
+    async def object_aggregates(self, *, params: Params) -> Page[ObjectAggregateRow]:
+        return await _model_page(
             self._client,
             f"{self._base}/object-aggregates",
+            ObjectAggregateRow,
             params=params,
         )
 
@@ -535,6 +540,100 @@ class AsyncGroupsService(AsyncResourceService[Group, GroupCreate, GroupUpdate]):
         await self._client.request(
             "DELETE",
             f"/api/v1/iam/groups/{_segment(group_id)}/members/{_segment(principal_id)}",
+        )
+
+
+class AsyncTokensService:
+    """Async token metadata visible to the current human user."""
+
+    def __init__(self, client: AsyncClient) -> None:
+        self._service = AsyncResourceService[PrincipalTokenMetadata, BaseModel, BaseModel](
+            client,
+            collection_path="/api/v1/iam/me/tokens",
+            item_path="/api/v1/iam/me/tokens/{id}",
+            model=PrincipalTokenMetadata,
+        )
+        self._client = client
+
+    async def page(self, query: Query | None = None) -> Page[PrincipalTokenMetadata]:
+        return await self._service.page(query)
+
+    async def list(self, query: Query | None = None) -> builtins.list[PrincipalTokenMetadata]:
+        return await self._service.list(query)
+
+    async def pages(
+        self,
+        query: Query | None = None,
+        *,
+        max_pages: int = 100,
+    ) -> AsyncIterator[Page[PrincipalTokenMetadata]]:
+        async for page in self._service.pages(query, max_pages=max_pages):
+            yield page
+
+    async def all(
+        self,
+        query: Query | None = None,
+        *,
+        max_pages: int = 100,
+        max_items: int = 10_000,
+    ) -> builtins.list[PrincipalTokenMetadata]:
+        return await self._service.all(query, max_pages=max_pages, max_items=max_items)
+
+    def for_principal(self, principal_id: PrincipalId | int) -> AsyncPrincipalTokensService:
+        return AsyncPrincipalTokensService(self._client, PrincipalId(principal_id))
+
+
+class AsyncPrincipalTokensService:
+    """Async list, mint, and revoke operations for one principal."""
+
+    def __init__(self, client: AsyncClient, principal_id: PrincipalId) -> None:
+        self._client = client
+        self.principal_id = principal_id
+        self._base = f"/api/v1/iam/principals/{_segment(principal_id)}/tokens"
+        self._service = AsyncResourceService[PrincipalTokenMetadata, NewTokenRequest, BaseModel](
+            client,
+            collection_path=self._base,
+            item_path=f"{self._base}/{{id}}",
+            model=PrincipalTokenMetadata,
+        )
+
+    async def page(self, query: Query | None = None) -> Page[PrincipalTokenMetadata]:
+        return await self._service.page(query)
+
+    async def list(self, query: Query | None = None) -> builtins.list[PrincipalTokenMetadata]:
+        return await self._service.list(query)
+
+    async def pages(
+        self,
+        query: Query | None = None,
+        *,
+        max_pages: int = 100,
+    ) -> AsyncIterator[Page[PrincipalTokenMetadata]]:
+        async for page in self._service.pages(query, max_pages=max_pages):
+            yield page
+
+    async def all(
+        self,
+        query: Query | None = None,
+        *,
+        max_pages: int = 100,
+        max_items: int = 10_000,
+    ) -> builtins.list[PrincipalTokenMetadata]:
+        return await self._service.all(query, max_pages=max_pages, max_items=max_items)
+
+    async def create(self, payload: NewTokenRequest) -> AccessToken:
+        response = await self._client.request(
+            "POST",
+            self._base,
+            json=payload,
+            response_model=LoginResponse,
+        )
+        return AccessToken(response.token)
+
+    async def revoke(self, token_id: TokenId | int) -> None:
+        await self._client.request(
+            "POST",
+            f"{self._base}/{_segment(token_id)}/revoke",
         )
 
 
@@ -677,29 +776,15 @@ async def _json_object_list(
     return value
 
 
-async def _json_object_page(
+async def _model_page(
     client: AsyncClient,
     path: str,
+    model: type[ModelT],
     *,
     params: Params,
-) -> Page[dict[str, object]]:
+) -> Page[ModelT]:
     response = await client._request_response("GET", path, options=RequestOptions(params=params))
-    try:
-        value = response.json()
-    except ValueError as error:
-        raise DecodeError(
-            response.request.method,
-            safe_response_url(response),
-            response.status_code,
-            validation_error_reason(error, response),
-        ) from error
-    if not isinstance(value, list) or not all(isinstance(item, dict) for item in value):
-        raise DecodeError(
-            response.request.method,
-            safe_response_url(response),
-            response.status_code,
-            "expected a JSON array of objects",
-        )
+    value = _decode_model_list(response, model)
     return Page(
         items=tuple(value),
         next_cursor=response.headers.get("x-next-cursor"),

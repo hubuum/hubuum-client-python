@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the immutable Hubuum v0.0.3 OpenAPI source used by this client."""
+"""Validate the immutable Hubuum v0.0.4 OpenAPI source."""
 
 from __future__ import annotations
 
@@ -13,9 +13,10 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
-TARGET_URL = "https://raw.githubusercontent.com/hubuum/hubuum/v0.0.3/docs/openapi.json"
-TARGET_SHA256 = "3f072aa40ed8a2cb94987a5e35c91b64236fdbbd770100baeaa6057990ef6a10"
-TARGET_VERSION = "0.0.3"
+TARGET_REVISION = "81ca7b575ce888415c97dd19c83bfddaca272b6e"
+TARGET_URL = f"https://raw.githubusercontent.com/hubuum/hubuum/{TARGET_REVISION}/docs/openapi.json"
+TARGET_SHA256 = "4c1f6e06d39bafa76d17f3238724abdd60ff9b51eb6e35cf95e4b1d93c9957fb"
+TARGET_VERSION = "0.0.4"
 TARGET_OPERATION_COUNT = 196
 MAX_SOURCE_BYTES = 10 * 1024 * 1024
 HTTP_METHODS = {"get", "put", "post", "delete", "patch", "head", "options", "trace"}
@@ -166,7 +167,7 @@ def main() -> int:
         "source",
         nargs="?",
         default=TARGET_URL,
-        help="OpenAPI file or URL; defaults to the authoritative v0.0.3 tag",
+        help="OpenAPI file or URL; defaults to the immutable v0.0.4 release commit",
     )
     args = parser.parse_args()
     try:

@@ -39,6 +39,7 @@ _SENSITIVE_KEY_PARTS = (
     "token",
 )
 _MAX_PATH_DECODING_PASSES = 8
+_MAX_IDEMPOTENCY_KEY_BYTES = 255
 _ASCII_CONTROL_END = 32
 _ASCII_DELETE = 127
 _MAX_PORT = 65_535
@@ -145,6 +146,12 @@ def prepare_request_headers(
     headers: Mapping[str, str] | None, bearer_token: str | None
 ) -> httpx.Headers:
     """Build case-insensitive headers without allowing origin authority changes."""
+    for name, value in (headers or {}).items():
+        if (
+            name.casefold() == "idempotency-key"
+            and not 1 <= len(value.encode()) <= _MAX_IDEMPOTENCY_KEY_BYTES
+        ):
+            raise ConfigurationError("Idempotency-Key must contain between 1 and 255 bytes")
     prepared = httpx.Headers(headers)
     if "host" in prepared:
         raise ConfigurationError(

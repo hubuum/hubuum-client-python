@@ -27,12 +27,16 @@ from .models import (
     GroupUpdate,
     HubuumClass,
     HubuumObject,
+    LoginResponse,
+    NewTokenRequest,
+    ObjectAggregateRow,
     ObjectCreate,
     ObjectDataPatchInput,
     ObjectRelation,
     ObjectRelationCreate,
     ObjectUpdate,
     PrincipalMember,
+    PrincipalTokenMetadata,
     Task,
     User,
     UserCreate,
@@ -41,7 +45,7 @@ from .models import (
 )
 from .options import Params, RequestOptions
 from .query import Page, Query
-from .types import ClassId, CollectionId, GroupId, PrincipalId, TaskId, UserId
+from .types import AccessToken, ClassId, CollectionId, GroupId, PrincipalId, TaskId, TokenId, UserId
 
 if TYPE_CHECKING:
     from .client import Client
@@ -390,7 +394,7 @@ class NamedObjectsService:
 
 
 class NamedClassService:
-    """All v0.0.3 endpoints rooted at ``classes/by-name/{class_name}``."""
+    """Class endpoints rooted at ``classes/by-name/{class_name}``."""
 
     def __init__(self, client: Client, class_name: str) -> None:
         self._client = client
@@ -422,10 +426,11 @@ class NamedClassService:
     def related_graph(self, *, params: Params = None) -> dict[str, object]:
         return _json_object(self._client, f"{self._base}/related/graph", params=params)
 
-    def object_aggregates(self, *, params: Params) -> Page[dict[str, object]]:
-        return _json_object_page(
+    def object_aggregates(self, *, params: Params) -> Page[ObjectAggregateRow]:
+        return _model_page(
             self._client,
             f"{self._base}/object-aggregates",
+            ObjectAggregateRow,
             params=params,
         )
 
@@ -512,6 +517,98 @@ class GroupsService(ResourceService[Group, GroupCreate, GroupUpdate]):
         self._client.request(
             "DELETE",
             f"/api/v1/iam/groups/{_segment(group_id)}/members/{_segment(principal_id)}",
+        )
+
+
+class TokensService:
+    """Token metadata visible to the current human user."""
+
+    def __init__(self, client: Client) -> None:
+        self._service = ResourceService[PrincipalTokenMetadata, BaseModel, BaseModel](
+            client,
+            collection_path="/api/v1/iam/me/tokens",
+            item_path="/api/v1/iam/me/tokens/{id}",
+            model=PrincipalTokenMetadata,
+        )
+        self._client = client
+
+    def page(self, query: Query | None = None) -> Page[PrincipalTokenMetadata]:
+        return self._service.page(query)
+
+    def list(self, query: Query | None = None) -> builtins.list[PrincipalTokenMetadata]:
+        return self._service.list(query)
+
+    def pages(
+        self,
+        query: Query | None = None,
+        *,
+        max_pages: int = 100,
+    ) -> Iterator[Page[PrincipalTokenMetadata]]:
+        return self._service.pages(query, max_pages=max_pages)
+
+    def all(
+        self,
+        query: Query | None = None,
+        *,
+        max_pages: int = 100,
+        max_items: int = 10_000,
+    ) -> builtins.list[PrincipalTokenMetadata]:
+        return self._service.all(query, max_pages=max_pages, max_items=max_items)
+
+    def for_principal(self, principal_id: PrincipalId | int) -> PrincipalTokensService:
+        return PrincipalTokensService(self._client, PrincipalId(principal_id))
+
+
+class PrincipalTokensService:
+    """List, mint, and revoke tokens for one principal."""
+
+    def __init__(self, client: Client, principal_id: PrincipalId) -> None:
+        self._client = client
+        self.principal_id = principal_id
+        self._base = f"/api/v1/iam/principals/{_segment(principal_id)}/tokens"
+        self._service = ResourceService[PrincipalTokenMetadata, NewTokenRequest, BaseModel](
+            client,
+            collection_path=self._base,
+            item_path=f"{self._base}/{{id}}",
+            model=PrincipalTokenMetadata,
+        )
+
+    def page(self, query: Query | None = None) -> Page[PrincipalTokenMetadata]:
+        return self._service.page(query)
+
+    def list(self, query: Query | None = None) -> builtins.list[PrincipalTokenMetadata]:
+        return self._service.list(query)
+
+    def pages(
+        self,
+        query: Query | None = None,
+        *,
+        max_pages: int = 100,
+    ) -> Iterator[Page[PrincipalTokenMetadata]]:
+        return self._service.pages(query, max_pages=max_pages)
+
+    def all(
+        self,
+        query: Query | None = None,
+        *,
+        max_pages: int = 100,
+        max_items: int = 10_000,
+    ) -> builtins.list[PrincipalTokenMetadata]:
+        return self._service.all(query, max_pages=max_pages, max_items=max_items)
+
+    def create(self, payload: NewTokenRequest) -> AccessToken:
+        response = self._client.request(
+            "POST",
+            self._base,
+            json=payload,
+            response_model=LoginResponse,
+        )
+        return AccessToken(response.token)
+
+    def revoke(self, token_id: TokenId | int) -> None:
+        self._client.request(
+            "POST",
+            f"{self._base}/{_segment(token_id)}/revoke",
         )
 
 
@@ -655,29 +752,15 @@ def _json_object_list(
     return value
 
 
-def _json_object_page(
+def _model_page(
     client: Client,
     path: str,
+    model: type[ModelT],
     *,
     params: Params,
-) -> Page[dict[str, object]]:
+) -> Page[ModelT]:
     response = client._request_response("GET", path, options=RequestOptions(params=params))
-    try:
-        value = response.json()
-    except ValueError as error:
-        raise DecodeError(
-            response.request.method,
-            safe_response_url(response),
-            response.status_code,
-            validation_error_reason(error, response),
-        ) from error
-    if not isinstance(value, list) or not all(isinstance(item, dict) for item in value):
-        raise DecodeError(
-            response.request.method,
-            safe_response_url(response),
-            response.status_code,
-            "expected a JSON array of objects",
-        )
+    value = _decode_model_list(response, model)
     return Page(
         items=tuple(value),
         next_cursor=response.headers.get("x-next-cursor"),

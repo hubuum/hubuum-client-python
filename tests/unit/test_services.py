@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from typing import Any
 
 import httpx
@@ -21,17 +22,23 @@ from hubuum_client import (
     GroupCreate,
     GroupId,
     GroupUpdate,
+    NewTokenRequest,
     ObjectCreate,
     ObjectId,
     ObjectRelationCreate,
     ObjectRelationId,
     ObjectUpdate,
+    Permission,
     PrincipalId,
     PrincipalMember,
     Query,
     RequestOptions,
     ResultCardinalityError,
     TaskId,
+    TokenId,
+    TokenResourceKind,
+    TokenResourceScope,
+    TokenScope,
     UserCreate,
     UserId,
     UserUpdate,
@@ -44,8 +51,10 @@ from hubuum_client.async_services import (
     AsyncGroupsService,
     AsyncObjectRelationsService,
     AsyncObjectsService,
+    AsyncPrincipalTokensService,
     AsyncResourceService,
     AsyncTasksService,
+    AsyncTokensService,
     AsyncUsersService,
 )
 from hubuum_client.models import Group, User
@@ -57,8 +66,10 @@ from hubuum_client.services import (
     GroupsService,
     ObjectRelationsService,
     ObjectsService,
+    PrincipalTokensService,
     ResourceService,
     TasksService,
+    TokensService,
     UsersService,
 )
 
@@ -134,6 +145,19 @@ def _task_json(status: str = "succeeded") -> dict[str, Any]:
     }
 
 
+def _token_metadata_json() -> dict[str, Any]:
+    return {
+        "id": 50,
+        "principal_id": 21,
+        "issued": "2026-07-25T10:00:00Z",
+        "name": "inventory-reader",
+        "scope": {
+            "permissions": ["ReadCollection"],
+            "resources": [{"kind": "collection", "id": 11}],
+        },
+    }
+
+
 def test_sync_and_async_services_keep_public_method_parity() -> None:
     pairs = [
         (ResourceService, AsyncResourceService),
@@ -143,6 +167,8 @@ def test_sync_and_async_services_keep_public_method_parity() -> None:
         (ObjectsService, AsyncObjectsService),
         (UsersService, AsyncUsersService),
         (GroupsService, AsyncGroupsService),
+        (TokensService, AsyncTokensService),
+        (PrincipalTokensService, AsyncPrincipalTokensService),
         (ClassRelationsService, AsyncClassRelationsService),
         (ObjectRelationsService, AsyncObjectRelationsService),
         (TasksService, AsyncTasksService),
@@ -160,6 +186,115 @@ def test_sync_and_async_services_keep_public_method_parity() -> None:
             if not name.startswith("_") and callable(value)
         }
         assert sync_methods == async_methods
+
+
+def test_sync_v004_token_service_uses_nested_scope_and_redacts_created_token() -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if request.url.path == "/api/v1/iam/me":
+            token = _token_metadata_json()
+            token.pop("principal_id")
+            return httpx.Response(
+                200,
+                json={"principal": _principal_member_json(), "token": token},
+            )
+        if request.method == "GET":
+            return httpx.Response(
+                200,
+                json=[_token_metadata_json()],
+                headers={"X-Total-Count": "1", "X-Page-Limit": "25"},
+            )
+        if request.url.path.endswith("/revoke"):
+            return httpx.Response(204)
+        return httpx.Response(201, json={"token": "minted-token-secret"})
+
+    payload = NewTokenRequest(
+        name="inventory-reader",
+        scope=TokenScope(
+            permissions=(Permission.READ_COLLECTION,),
+            resources=(TokenResourceScope(kind=TokenResourceKind.COLLECTION, id=11),),
+        ),
+    )
+    with Client(
+        "https://hubuum.test", token="token", transport=httpx.MockTransport(handler)
+    ) as client:
+        assert client.me().token.scope is not None
+        current = client.tokens
+        assert current.page(Query().limit(25)).items[0].id == TokenId(50)
+        assert current.list()[0].scope is not None
+        assert len(list(current.pages())) == 1
+        assert current.all()[0].principal_id == PrincipalId(21)
+
+        principal = current.for_principal(PrincipalId(21))
+        assert principal.principal_id == PrincipalId(21)
+        assert principal.page().total_count == 1
+        assert principal.list()[0].id == TokenId(50)
+        assert len(list(principal.pages())) == 1
+        assert principal.all()[0].name == "inventory-reader"
+        created = principal.create(payload)
+        principal.revoke(TokenId(50))
+
+    assert created.value == "minted-token-secret"
+    assert "minted-token-secret" not in repr(created)
+    create_request = next(
+        request
+        for request in requests
+        if request.method == "POST" and not request.url.path.endswith("/revoke")
+    )
+    assert json.loads(create_request.content) == {
+        "name": "inventory-reader",
+        "scope": {
+            "permissions": ["ReadCollection"],
+            "resources": [{"kind": "collection", "id": 11}],
+        },
+    }
+    assert requests[-1].url.path == "/api/v1/iam/principals/21/tokens/50/revoke"
+
+
+async def test_async_v004_token_service_matches_sync_behavior() -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if request.url.path == "/api/v1/iam/me":
+            token = _token_metadata_json()
+            token.pop("principal_id")
+            return httpx.Response(
+                200,
+                json={"principal": _principal_member_json(), "token": token},
+            )
+        if request.method == "GET":
+            return httpx.Response(200, json=[_token_metadata_json()])
+        if request.url.path.endswith("/revoke"):
+            return httpx.Response(204)
+        return httpx.Response(201, json={"token": "async-minted-secret"})
+
+    payload = NewTokenRequest(scope=TokenScope(permissions=(Permission.READ_OBJECT,)))
+    async with AsyncClient(
+        "https://hubuum.test", token="token", transport=httpx.MockTransport(handler)
+    ) as client:
+        assert (await client.me()).token.scope is not None
+        current = client.tokens
+        assert (await current.page()).items[0].id == TokenId(50)
+        assert (await current.list())[0].principal_id == PrincipalId(21)
+        assert len([page async for page in current.pages()]) == 1
+        assert (await current.all())[0].scope is not None
+
+        principal = current.for_principal(21)
+        assert (await principal.page()).items[0].id == TokenId(50)
+        assert (await principal.list())[0].name == "inventory-reader"
+        assert len([page async for page in principal.pages()]) == 1
+        assert (await principal.all())[0].scope is not None
+        created = await principal.create(payload)
+        await principal.revoke(50)
+
+    assert created.value == "async-minted-secret"
+    assert json.loads(requests[-2].content) == {
+        "scope": {"permissions": ["ReadObject"]},
+    }
+    assert requests[-1].url.path == "/api/v1/iam/principals/21/tokens/50/revoke"
 
 
 def test_sync_collection_and_class_specific_methods(

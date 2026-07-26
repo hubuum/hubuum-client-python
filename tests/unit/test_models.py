@@ -12,7 +12,18 @@ from hubuum_client import (
     CollectionId,
     Credentials,
     HubuumClass,
+    NewTokenRequest,
+    ObjectAggregateMeasureOperation,
+    ObjectAggregateMeasureState,
+    ObjectAggregateRow,
+    Permission,
+    PrincipalId,
+    PrincipalTokenMetadata,
     TaskStatus,
+    TokenId,
+    TokenResourceKind,
+    TokenResourceScope,
+    TokenScope,
 )
 from hubuum_client.models import LoginResponse
 
@@ -107,6 +118,78 @@ def test_secret_values_are_redacted_but_can_produce_wire_values() -> None:
     login_response = LoginResponse(token="login-token-secret")
     assert "login-token-secret" not in repr(login_response)
     assert login_response.token == "login-token-secret"
+
+
+def test_v004_token_scope_uses_nested_strict_wire_shape() -> None:
+    request = NewTokenRequest(
+        name="read-inventory",
+        scope=TokenScope(
+            permissions=(Permission.READ_COLLECTION, Permission.READ_CLASS),
+            resources=(
+                TokenResourceScope(kind=TokenResourceKind.COLLECTION, id=11),
+                TokenResourceScope(kind=TokenResourceKind.CLASS, id=12),
+            ),
+        ),
+    )
+
+    assert request.payload() == {
+        "name": "read-inventory",
+        "scope": {
+            "permissions": ["ReadCollection", "ReadClass"],
+            "resources": [
+                {"kind": "collection", "id": 11},
+                {"kind": "class", "id": 12},
+            ],
+        },
+    }
+    with pytest.raises(ValidationError, match="Extra inputs"):
+        NewTokenRequest.model_validate({"scopes": ["ReadCollection"]})
+    with pytest.raises(ValidationError, match="at most 1000"):
+        TokenScope(
+            resources=tuple(
+                TokenResourceScope(kind=TokenResourceKind.OBJECT, id=value)
+                for value in range(1_001)
+            )
+        )
+
+
+def test_v004_token_metadata_and_aggregate_measures_are_typed() -> None:
+    metadata = PrincipalTokenMetadata.model_validate(
+        {
+            "id": 7,
+            "principal_id": 21,
+            "issued": "2026-07-25T10:00:00Z",
+            "scope": {
+                "permissions": ["ReadObject"],
+                "resources": [{"kind": "object", "id": 13}],
+                "future_dimension": True,
+            },
+        }
+    )
+    aggregate = ObjectAggregateRow.model_validate(
+        {
+            "dimensions": [],
+            "object_count": 3,
+            "measures": [
+                {
+                    "field": "json_data.metrics,cpu",
+                    "operation": "average",
+                    "state": "value",
+                    "value": 4.5,
+                    "value_count": 2,
+                    "skipped_count": 1,
+                }
+            ],
+        }
+    )
+
+    assert metadata.id == TokenId(7)
+    assert metadata.principal_id == PrincipalId(21)
+    assert metadata.scope is not None
+    assert metadata.scope.model_extra == {"future_dimension": True}
+    assert aggregate.measures[0].operation is ObjectAggregateMeasureOperation.AVERAGE
+    assert aggregate.measures[0].state is ObjectAggregateMeasureState.VALUE
+    assert aggregate.measures[0].value == 4.5
 
 
 @pytest.mark.parametrize(

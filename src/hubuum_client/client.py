@@ -23,7 +23,7 @@ from ._transport import (
     validate_relative_path,
 )
 from .errors import TransportError
-from .models import LoginResponse, ProbeResponse
+from .models import LoginResponse, MeResponse, ProbeResponse
 from .options import ClientOptions, RequestOptions
 from .streaming import ResponseStream
 from .types import AccessToken, Credentials
@@ -33,7 +33,7 @@ _PUBLIC_REQUEST = RequestOptions(authenticated=False)
 
 
 class Client:
-    """Blocking client for Hubuum server v0.0.3.
+    """Blocking client for the Hubuum server API.
 
     Use the client as a context manager so its connection pool is closed
     deterministically. ``request`` is the safe extension point for routes that
@@ -111,6 +111,9 @@ class Client:
         value = self.request("GET", "/api/v1/config", options=_PUBLIC_REQUEST)
         return value if isinstance(value, dict) else {}
 
+    def me(self) -> MeResponse:
+        return self.request("GET", "/api/v1/iam/me", response_model=MeResponse)
+
     @cached_property
     def collections(self) -> CollectionsService:
         return CollectionsService(self)
@@ -128,6 +131,10 @@ class Client:
         return GroupsService(self)
 
     @cached_property
+    def tokens(self) -> TokensService:
+        return TokensService(self)
+
+    @cached_property
     def class_relations(self) -> ClassRelationsService:
         return ClassRelationsService(self)
 
@@ -141,7 +148,7 @@ class Client:
 
     @property
     def openapi(self) -> OpenAPIOperations:
-        """Complete operation-ID interface for all 196 v0.0.3 operations."""
+        """Complete operation-ID interface for all 196 v0.0.4 operations."""
         return OpenAPIOperations(self)
 
     @overload
@@ -298,5 +305,6 @@ from .services import (  # noqa: E402  (imported after Client is defined)
     GroupsService,
     ObjectRelationsService,
     TasksService,
+    TokensService,
     UsersService,
 )

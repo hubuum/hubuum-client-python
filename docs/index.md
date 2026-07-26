@@ -1,8 +1,9 @@
 # Hubuum client for Python
 
-`hubuum-client` is a small, modern interface to the Hubuum REST API. The first
-release targets Hubuum server v0.0.3 and gives synchronous and asynchronous
-applications the same typed resource model.
+`hubuum-client` is a small, modern interface to the Hubuum REST API. Version
+0.0.2 targets Hubuum server v0.0.4 and gives synchronous and asynchronous
+applications the same typed resource model. Client version 0.0.1 remains the
+v0.0.3-compatible baseline.
 
 ```python
 from hubuum_client import Client, Credentials, Query
@@ -43,11 +44,12 @@ Python 3.11 and later are supported.
 The strongly modeled service surface includes collections, hierarchy
 operations, classes, class-scoped objects, natural-key class/object routes,
 atomic object-data JSON Patch, users, groups, group membership, class and
-object relations, and tasks. Health, readiness, and public configuration are
-available before authentication.
+object relations, nested token scopes, typed object aggregate measures, and
+tasks. Health, readiness, and public configuration are available before
+authentication.
 
 The `openapi` service deliberately registers every operation in the immutable
-v0.0.3 specification. Administrative and task-backed domains that do not yet
+v0.0.4 specification. Administrative and task-backed domains that do not yet
 have dedicated Pydantic resources are invoked by `operationId` and return
 standard typed JSON, text, or byte values. CI compares that manifest with the
 authoritative server contract so an endpoint cannot silently fall out of

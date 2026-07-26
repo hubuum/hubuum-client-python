@@ -37,7 +37,7 @@ the attribute is `None` when the header is absent or malformed.
 
 ## Complete OpenAPI operation surface
 
-The Hubuum v0.0.3 OpenAPI contract contains 196 operations. Every operation is
+The Hubuum v0.0.4 OpenAPI contract contains 196 operations. Every operation is
 registered by its exact `operationId`, HTTP method, path template, request
 media type, and authentication policy:
 
@@ -65,6 +65,9 @@ status = client.openapi.call(
     options=OpenAPIOptions(path_params={"task_id": task_id}),
 )
 ```
+
+`Idempotency-Key` values are validated before I/O and must contain between 1
+and 255 bytes, matching v0.0.4 task-submission endpoints.
 
 `call()` returns a JSON value for JSON responses, `str` for a negotiated text
 response, `bytes` for any other media type, and `None` for an empty success.
@@ -95,6 +98,64 @@ Use `async with` and `async for` for the asynchronous client. The operation
 manifest is compared with the immutable server OpenAPI document in CI,
 including request and successful-response media types; all 196 operations must
 match exactly.
+
+## Scoped tokens
+
+Hubuum v0.0.4 nests token boundaries under one `scope` field. Omit `scope` for
+an unscoped token; within a scope, permissions and collection/class/object
+resources are independent dimensions:
+
+```python
+from hubuum_client import (
+    NewTokenRequest,
+    Permission,
+    TokenResourceKind,
+    TokenResourceScope,
+    TokenScope,
+)
+
+token = client.tokens.for_principal(principal_id).create(
+    NewTokenRequest(
+        name="inventory-reader",
+        scope=TokenScope(
+            permissions=(Permission.READ_COLLECTION, Permission.READ_CLASS),
+            resources=(
+                TokenResourceScope(
+                    kind=TokenResourceKind.COLLECTION,
+                    id=collection_id,
+                ),
+            ),
+        ),
+    )
+)
+```
+
+The returned `AccessToken` has a redacted string representation. Token metadata
+from `client.me().token` and token-list services uses `scope is None` to
+identify an unscoped token; the removed v0.0.3 flat `scopes`,
+`resource_scopes`, and `scoped` fields are not sent.
+
+## Object aggregate measures
+
+Aggregate endpoints accept up to three repeated `group_by` dimensions and four
+repeated `aggregate` measures. Each measure uses `operation:field` syntax:
+
+```python
+rows = client.classes.by_name("Servers").object_aggregates(
+    params=[
+        ("group_by", "json_data.location,country"),
+        ("aggregate", "sum:json_data.metrics,cpu"),
+        ("aggregate", "average:json_data.metrics,memory_gib"),
+    ]
+)
+
+for row in rows:
+    for measure in row.measures:
+        print(measure.operation, measure.value, measure.value_count, measure.skipped_count)
+```
+
+Global aggregation is available by sending one or more `aggregate` parameters
+without `group_by`.
 
 ## Natural-key objects and JSON Patch
 
@@ -130,7 +191,7 @@ safety.
 ## Custom extension routes
 
 `request()` remains the lower-level escape hatch for a server extension that is
-not part of the pinned v0.0.3 OpenAPI document:
+not part of the pinned v0.0.4 OpenAPI document:
 
 ```python
 from hubuum_client import RequestOptions

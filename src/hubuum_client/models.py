@@ -1,4 +1,4 @@
-"""Typed Hubuum v0.0.3 request and response models."""
+"""Typed Hubuum request and response models."""
 
 from __future__ import annotations
 
@@ -18,6 +18,7 @@ from .types import (
     ObjectRelationId,
     PrincipalId,
     TaskId,
+    TokenId,
     UserId,
 )
 
@@ -81,7 +82,7 @@ class HubuumClass(HubuumModel):
     @model_validator(mode="before")
     @classmethod
     def normalize_runtime_collection(cls, value: Any) -> Any:
-        """Normalize the live v0.0.3 embedded collection representation."""
+        """Normalize the server's embedded collection representation."""
         if not isinstance(value, dict) or "collection_id" in value:
             return value
         collection = value.get("collection")
@@ -117,6 +118,46 @@ class HubuumObject(HubuumModel):
     description: str
     created_at: datetime
     updated_at: datetime
+
+
+class ObjectAggregateValueState(StrEnum):
+    VALUE = "value"
+    NULL = "null"
+    MISSING = "missing"
+    UNAVAILABLE = "unavailable"
+
+
+class ObjectAggregateMeasureOperation(StrEnum):
+    SUM = "sum"
+    AVERAGE = "average"
+    MIN = "min"
+    MAX = "max"
+
+
+class ObjectAggregateMeasureState(StrEnum):
+    VALUE = "value"
+    EMPTY = "empty"
+
+
+class ObjectAggregateDimensionValue(HubuumModel):
+    field: str
+    state: ObjectAggregateValueState
+    value: JsonValue | None = None
+
+
+class ObjectAggregateMeasureValue(HubuumModel):
+    field: str
+    operation: ObjectAggregateMeasureOperation
+    state: ObjectAggregateMeasureState
+    value_count: int
+    skipped_count: int
+    value: JsonValue | None = None
+
+
+class ObjectAggregateRow(HubuumModel):
+    dimensions: tuple[ObjectAggregateDimensionValue, ...]
+    object_count: int
+    measures: tuple[ObjectAggregateMeasureValue, ...] = ()
 
 
 class ObjectCreate(RequestModel):
@@ -220,8 +261,8 @@ class Group(HubuumModel):
     id: GroupId
     groupname: str
     description: str
-    # The v0.0.3 runtime returns the scope name while its OpenAPI Group schema
-    # declares identity_scope_id. Accept both until the server contract converges.
+    # The runtime can return the scope name while OpenAPI declares
+    # identity_scope_id. Accept both until the server contract converges.
     identity_scope: str | None = None
     identity_scope_id: int | None = None
     managed_by: str
@@ -281,6 +322,103 @@ class PrincipalMember(HubuumModel):
     name: str
     created_at: datetime
     updated_at: datetime
+
+
+class Permission(StrEnum):
+    READ_COLLECTION = "ReadCollection"
+    UPDATE_COLLECTION = "UpdateCollection"
+    DELETE_COLLECTION = "DeleteCollection"
+    DELEGATE_COLLECTION = "DelegateCollection"
+    CREATE_CLASS = "CreateClass"
+    READ_CLASS = "ReadClass"
+    UPDATE_CLASS = "UpdateClass"
+    DELETE_CLASS = "DeleteClass"
+    CREATE_OBJECT = "CreateObject"
+    READ_OBJECT = "ReadObject"
+    UPDATE_OBJECT = "UpdateObject"
+    DELETE_OBJECT = "DeleteObject"
+    CREATE_CLASS_RELATION = "CreateClassRelation"
+    READ_CLASS_RELATION = "ReadClassRelation"
+    UPDATE_CLASS_RELATION = "UpdateClassRelation"
+    DELETE_CLASS_RELATION = "DeleteClassRelation"
+    CREATE_OBJECT_RELATION = "CreateObjectRelation"
+    READ_OBJECT_RELATION = "ReadObjectRelation"
+    UPDATE_OBJECT_RELATION = "UpdateObjectRelation"
+    DELETE_OBJECT_RELATION = "DeleteObjectRelation"
+    READ_TEMPLATE = "ReadTemplate"
+    CREATE_TEMPLATE = "CreateTemplate"
+    UPDATE_TEMPLATE = "UpdateTemplate"
+    DELETE_TEMPLATE = "DeleteTemplate"
+    READ_REMOTE_TARGET = "ReadRemoteTarget"
+    CREATE_REMOTE_TARGET = "CreateRemoteTarget"
+    UPDATE_REMOTE_TARGET = "UpdateRemoteTarget"
+    DELETE_REMOTE_TARGET = "DeleteRemoteTarget"
+    EXECUTE_REMOTE_TARGET = "ExecuteRemoteTarget"
+    READ_AUDIT = "ReadAudit"
+    MANAGE_EVENT_SUBSCRIPTION = "ManageEventSubscription"
+
+
+class TokenResourceKind(StrEnum):
+    COLLECTION = "collection"
+    CLASS = "class"
+    OBJECT = "object"
+
+
+class TokenResourceScope(RequestModel):
+    """One collection, class, or object included in a token boundary."""
+
+    kind: TokenResourceKind
+    id: int
+
+
+class TokenScope(RequestModel):
+    """Independent permission and resource boundaries for a newly minted token."""
+
+    permissions: tuple[Permission, ...] | None = None
+    resources: tuple[TokenResourceScope, ...] | None = Field(default=None, max_length=1_000)
+
+
+class NewTokenRequest(RequestModel):
+    """Hubuum v0.0.4 token-mint request using the nested ``scope`` wire field."""
+
+    description: str | None = None
+    expires_at: datetime | None = None
+    name: str | None = None
+    scope: TokenScope | None = None
+
+
+class TokenResourceScopeDetails(HubuumModel):
+    """One resource returned in token scope metadata."""
+
+    kind: TokenResourceKind
+    id: int
+
+
+class TokenScopeDetails(HubuumModel):
+    """Exact permission and resource dimensions returned for a scoped token."""
+
+    permissions: tuple[Permission, ...] | None = None
+    resources: tuple[TokenResourceScopeDetails, ...] | None = None
+
+
+class CurrentTokenMetadata(HubuumModel):
+    id: TokenId
+    issued: datetime
+    description: str | None = None
+    expires_at: datetime | None = None
+    last_used_at: datetime | None = None
+    name: str | None = None
+    revoked_at: datetime | None = None
+    scope: TokenScopeDetails | None = None
+
+
+class PrincipalTokenMetadata(CurrentTokenMetadata):
+    principal_id: PrincipalId
+
+
+class MeResponse(HubuumModel):
+    principal: PrincipalMember
+    token: CurrentTokenMetadata
 
 
 class TaskStatus(StrEnum):

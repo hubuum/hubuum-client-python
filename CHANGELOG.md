@@ -6,6 +6,35 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.0.2] - 2026-07-26
+
+### Added
+
+- Added matching synchronous and asynchronous token services for listing
+  visible token metadata and minting or revoking principal tokens with Hubuum
+  v0.0.4's nested `scope.permissions` and `scope.resources` request shape.
+- Added typed token scope, token metadata, and multi-measure object aggregate
+  models, including resource scope kinds and aggregate value states.
+
+### Changed
+
+- Prepared the complete 196-operation interface against the immutable OpenAPI
+  document from the Hubuum v0.0.4 release commit
+  `81ca7b575ce888415c97dd19c83bfddaca272b6e`.
+- Switched the declared server target and complete live suite to the immutable
+  v0.0.4 image index digest, with synchronous and asynchronous nested-scope
+  token lifecycle coverage for minting, metadata, authorization, and
+  revocation.
+- Object aggregate services now decode v0.0.4 dimension and measure results
+  into typed response models.
+
+### Security
+
+- Reject empty or oversized `Idempotency-Key` request headers before I/O,
+  matching Hubuum v0.0.4's 1-to-255-byte bound for task submissions.
+- Replaced the yanked zizmor 1.27.0 development lock with 1.28.0 before
+  release verification.
+
 ## [0.0.1] - 2026-07-25
 
 ### Added
@@ -80,5 +109,6 @@ All notable changes to this project are documented here. The format follows
   error diagnostics.
 - Redacted login tokens from model representations.
 
-[Unreleased]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.1...HEAD
+[Unreleased]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.2...HEAD
+[0.0.2]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/hubuum/hubuum-client-python/releases/tag/v0.0.1

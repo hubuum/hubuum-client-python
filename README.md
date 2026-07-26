@@ -12,9 +12,10 @@ resource IDs, immutable queries, cursor pagination, structured errors, and a
 contract-checked interface for all 196 operations in the server's OpenAPI
 surface.
 
-Version 0.0.1 targets Hubuum server **v0.0.3**. Compatibility is tested against
+Version 0.0.2 targets Hubuum server **v0.0.4**. Compatibility is tested against
 the tag-and-digest server image recorded in the
-[compatibility matrix](docs/compatibility.md).
+[compatibility matrix](docs/compatibility.md). Client version 0.0.1 remains the
+v0.0.3-compatible baseline.
 
 ## Installation
 
@@ -98,11 +99,13 @@ The typed surface currently covers the most common Hubuum workflows:
 - classes and class-scoped objects, including exact-name addressing and nested
   `data` filtering and atomic JSON Patch;
 - users, groups, memberships, and user anonymization;
+- scoped token listing, minting, and revocation;
 - class relations and object relations;
+- typed grouped and multi-measure object aggregates;
 - cursor pagination and task polling;
 - health, readiness, and public server configuration.
 
-Every v0.0.3 OpenAPI operation is registered by its stable `operationId`:
+Every v0.0.4 OpenAPI operation is registered by its stable `operationId`:
 
 ```python
 from hubuum_client import OpenAPIOptions

@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hubuum-client"
-version = "0.0.1"
-description = "Modern typed Python client for Hubuum server v0.0.3"
+version = "0.0.2"
+description = "Modern typed Python client for Hubuum server v0.0.4"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
@@ -64,7 +64,7 @@ packages = ["src/hubuum_client"]
 addopts = "-ra --strict-config --strict-markers"
 testpaths = ["tests/unit"]
 asyncio_mode = "auto"
-markers = ["e2e: requires a live Hubuum v0.0.3 server"]
+markers = ["e2e: requires a live Hubuum v0.0.4 server"]
 
 [tool.coverage.run]
 branch = true
