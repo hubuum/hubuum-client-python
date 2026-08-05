@@ -47,6 +47,20 @@ Focused tests are useful while iterating but do not replace the full unit suite.
 Every behavior change needs regression coverage for both sync and async paths
 when they could diverge.
 
+## Release readiness
+
+- Never prepare or push a release tag while a Dependabot pull request is open.
+- Before release version changes, inspect every open Dependabot pull request,
+  merge or explicitly supersede each update, run `uv lock --upgrade`, and
+  review the resulting application, development, documentation, and workflow
+  dependency changes.
+- Wait for dependency changes to pass `main` CI, then confirm the Dependabot
+  queue is empty with
+  `gh pr list --state open --author app/dependabot --json number,title,url`.
+  Repeat that check immediately before creating the release tag.
+- The release workflow must retain its tag-time Dependabot gate. Do not bypass
+  or remove the gate to publish a release.
+
 ## Docker-backed end-to-end tests
 
 Run the complete live-server suite with:

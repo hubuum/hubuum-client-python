@@ -35,19 +35,31 @@ script with an authenticated GitHub CLI session after changing the baseline.
 
 ## Release process
 
-1. Choose the version and update it in `pyproject.toml` and
+1. Resolve every open Dependabot pull request before changing the version.
+   Merge or explicitly supersede each update, run `uv lock --upgrade`, review
+   all application, development, documentation, and workflow dependency
+   changes, and wait for `main` CI to pass. Confirm the queue is empty with:
+
+   ```bash
+   gh pr list --state open --author app/dependabot --json number,title,url
+   ```
+
+2. Choose the version and update it in `pyproject.toml` and
    `src/hubuum_client/_constants.py`.
-2. Move relevant changelog entries from `[Unreleased]` into a dated version
+3. Move relevant changelog entries from `[Unreleased]` into a dated version
    section and update its comparison links.
-3. Run every check in
+4. Run every check in
    [CONTRIBUTING.md](https://github.com/hubuum/hubuum-client-python/blob/main/CONTRIBUTING.md),
    including the pinned-server e2e suite.
-4. Commit the release changes, merge them to `main`, and wait for `main` CI to
+5. Commit the release changes, merge them to `main`, and wait for `main` CI to
    pass.
-5. Create an annotated `vX.Y.Z` tag on that commit and push the tag.
-6. Approve the waiting `pypi` environment deployment. The release workflow
+6. Repeat the Dependabot query and create the annotated `vX.Y.Z` tag only when
+   it returns an empty list, then push the tag. The release workflow repeats
+   this check and refuses to build a tagged release while a Dependabot pull
+   request remains open.
+7. Approve the waiting `pypi` environment deployment. The release workflow
    publishes the distributions through PyPI trusted publishing.
-7. Optionally publish a GitHub release from the tag after the PyPI job
+8. Optionally publish a GitHub release from the tag after the PyPI job
    succeeds.
 
 The workflow verifies that the pushed tag equals `v` followed by the package

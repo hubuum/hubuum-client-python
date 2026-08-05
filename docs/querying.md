@@ -114,16 +114,12 @@ Resource services expose four common terminals:
   `ResultCardinalityError` otherwise.
 
 ```python
-page = client.classes.by_id(class_id).objects.page(
-    Query().limit(50).include_total()
-)
+page = client.classes.by_id(class_id).objects.page(Query().limit(50).include_total())
 
 print(page.total_count)
 print(page.page_limit)
 if page.has_next:
-    next_page = client.classes.by_id(class_id).objects.page(
-        Query().cursor(page.next_cursor)
-    )
+    next_page = client.classes.by_id(class_id).objects.page(Query().cursor(page.next_cursor))
 ```
 
 `total_count` is `None` when `include_total=False` or the server omits the

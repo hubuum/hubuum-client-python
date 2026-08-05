@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hubuum-client"
-version = "0.0.4"
+version = "0.0.5"
 description = "Modern typed Python client for Hubuum server v0.0.8"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -53,7 +53,7 @@ dev = [
   "pytest-asyncio>=0.24,<2",
   "pytest-cov>=6,<8",
   "respx>=0.22,<1",
-  "ruff>=0.9,<1",
+  "ruff>=0.16.0,<1",
   "zizmor>=1.27,<2",
 ]
 

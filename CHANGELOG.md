@@ -6,6 +6,19 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.0.5] - 2026-08-05
+
+### Changed
+
+- Updated the GitHub Actions pins and refreshed all locked dependencies to the
+  latest compatible releases, including Ruff 0.16.1 and Zizmor 1.29.0.
+- Adopted Ruff 0.16's Markdown formatting for documentation code examples.
+
+### Security
+
+- Added a mandatory release-readiness policy and tag-time workflow guard that
+  prevent publishing while any Dependabot pull request remains open.
+
 ## [0.0.4] - 2026-08-05
 
 ### Added
@@ -161,7 +174,8 @@ All notable changes to this project are documented here. The format follows
   error diagnostics.
 - Redacted login tokens from model representations.
 
-[Unreleased]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.4...HEAD
+[Unreleased]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.5...HEAD
+[0.0.5]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.1...v0.0.2
