@@ -53,6 +53,8 @@ def test_resource_services_are_lazily_cached_per_client() -> None:
         "class_relations",
         "object_relations",
         "tasks",
+        "imports",
+        "exports",
     )
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -69,6 +71,23 @@ def test_resource_services_are_lazily_cached_per_client() -> None:
         assert client.classes.by_id(1) is not client.classes.by_id(1)
         selected = client.classes.by_id(1)
         assert selected.objects is not selected.objects
+
+
+def test_metrics_paths_are_public_and_origin_locked() -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, text="# HELP hubuum_up Hubuum health\n")
+
+    with _client(handler, token="secret-token") as client:
+        assert client.metrics().startswith("# HELP")
+        assert client.metrics_at("/internal/metrics").startswith("# HELP")
+        with pytest.raises(ConfigurationError):
+            client.metrics_at("//attacker.test/metrics")
+
+    assert [request.url.path for request in requests] == ["/metrics", "/internal/metrics"]
+    assert all("authorization" not in request.headers for request in requests)
 
 
 def test_login_authentication_and_logout_are_redacted() -> None:

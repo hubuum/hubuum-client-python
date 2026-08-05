@@ -42,6 +42,8 @@ async def test_async_resource_services_are_lazily_cached_per_client() -> None:
         "class_relations",
         "object_relations",
         "tasks",
+        "imports",
+        "exports",
     )
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -58,6 +60,23 @@ async def test_async_resource_services_are_lazily_cached_per_client() -> None:
         assert client.classes.by_id(1) is not client.classes.by_id(1)
         selected = client.classes.by_id(1)
         assert selected.objects is not selected.objects
+
+
+async def test_async_metrics_paths_are_public_and_origin_locked() -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, text="# HELP hubuum_up Hubuum health\n")
+
+    async with _client(handler, token="secret-token") as client:
+        assert (await client.metrics()).startswith("# HELP")
+        assert (await client.metrics_at("/internal/metrics")).startswith("# HELP")
+        with pytest.raises(ConfigurationError):
+            await client.metrics_at("//attacker.test/metrics")
+
+    assert [request.url.path for request in requests] == ["/metrics", "/internal/metrics"]
+    assert all("authorization" not in request.headers for request in requests)
 
 
 async def test_async_login_and_typed_service(class_json: dict[str, Any]) -> None:

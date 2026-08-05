@@ -6,6 +6,40 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.0.4] - 2026-08-05
+
+### Added
+
+- Added strict v0.0.8 request and forward-compatible response models for class
+  relation cardinality limits, import timestamp restoration, export scopes and
+  output, import graphs and per-entity results, task progress/details/links,
+  task events, and provenance.
+- Added matching synchronous and asynchronous `imports`, `exports`, and
+  cursor-paginated task-event services, including bounded submit/wait/result
+  helpers and streamed export output.
+- Added public, origin-locked Prometheus metric retrieval at the default or a
+  caller-specified server path, matching the Rust client's metrics surface.
+- Added pinned live-server coverage for cardinality enforcement, restored
+  timestamps, export phase durations, and task events.
+
+### Changed
+
+- Updated package version metadata and the declared server target, immutable
+  OpenAPI contract, CI, documentation, and Docker-backed suite to Hubuum v0.0.8
+  at release commit `9de161ff05f563302cfe6f74b04b80c1f617f5d6` and the pinned
+  multi-platform image digest.
+- Refactored cursor pagination into shared read-only foundations used by CRUD,
+  task, event, and import-result services to reduce sync/async drift.
+- Request serialization now always uses wire aliases; the required import
+  format version is emitted even when its default is used.
+
+### Security
+
+- Excluded object data, import graphs/results, rendered export bodies, task
+  links/details/summaries, and schema payloads from representations.
+- Added `TaskUnsuccessfulError`, which retains only task ID and status rather
+  than potentially sensitive server summaries.
+
 ## [0.0.3] - 2026-07-26
 
 ### Added
@@ -127,7 +161,8 @@ All notable changes to this project are documented here. The format follows
   error diagnostics.
 - Redacted login tokens from model representations.
 
-[Unreleased]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.3...HEAD
+[Unreleased]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.4...HEAD
+[0.0.4]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/hubuum/hubuum-client-python/releases/tag/v0.0.1

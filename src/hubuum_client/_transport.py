@@ -7,6 +7,7 @@ import re
 from collections.abc import Mapping
 from contextlib import suppress
 from datetime import UTC, datetime, timedelta
+from enum import StrEnum
 from typing import Any, TypeVar
 from urllib.parse import quote_plus, unquote, urlsplit
 
@@ -26,6 +27,7 @@ from .errors import (
 from .options import Params
 
 T = TypeVar("T", bound=BaseModel)
+ContentTypeT = TypeVar("ContentTypeT", bound=StrEnum)
 _REDACTED = "<redacted>"
 _SENSITIVE_KEY_PARTS = (
     "api_key",
@@ -376,6 +378,25 @@ def decode_model(response: httpx.Response, model: type[T]) -> T:
             url=safe_response_url(response),
             status_code=response.status_code,
             reason=validation_error_reason(error, response),
+        ) from error
+
+
+def decode_content_type(
+    response: httpx.Response,
+    content_types: type[ContentTypeT],
+    *,
+    default: ContentTypeT,
+) -> ContentTypeT:
+    """Decode a successful response's base media type into a string enum."""
+    value = response.headers.get("content-type", default.value).partition(";")[0]
+    try:
+        return content_types(value.strip().lower())
+    except ValueError as error:
+        raise DecodeError(
+            response.request.method,
+            safe_response_url(response),
+            response.status_code,
+            f"unsupported response Content-Type: {value!r}",
         ) from error
 
 

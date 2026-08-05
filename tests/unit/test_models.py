@@ -8,10 +8,21 @@ from pydantic import ValidationError
 from hubuum_client import (
     AccessToken,
     ClassCreate,
+    ClassId,
+    ClassRelationCreate,
     Collection,
     CollectionId,
     Credentials,
+    ExportContentType,
+    ExportRequest,
+    ExportScope,
+    ExportScopeKind,
+    GroupKey,
     HubuumClass,
+    ImportCollectionPermissionInput,
+    ImportGraph,
+    ImportObjectInput,
+    ImportRequest,
     NewTokenRequest,
     ObjectAggregateMeasureOperation,
     ObjectAggregateMeasureState,
@@ -19,7 +30,11 @@ from hubuum_client import (
     Permission,
     PrincipalId,
     PrincipalTokenMetadata,
+    RenderedExport,
+    RestoreTimestamps,
+    Task,
     TaskStatus,
+    TaskUnsuccessfulError,
     TokenId,
     TokenResourceKind,
     TokenResourceScope,
@@ -199,15 +214,130 @@ def test_v005_token_metadata_and_aggregate_measures_are_typed() -> None:
 
 
 @pytest.mark.parametrize(
-    ("status", "terminal"),
+    ("status", "terminal", "successful"),
     [
-        (TaskStatus.QUEUED, False),
-        (TaskStatus.RUNNING, False),
-        (TaskStatus.SUCCEEDED, True),
-        (TaskStatus.FAILED, True),
-        (TaskStatus.PARTIALLY_SUCCEEDED, True),
-        (TaskStatus.CANCELLED, True),
+        (TaskStatus.QUEUED, False, False),
+        (TaskStatus.RUNNING, False, False),
+        (TaskStatus.SUCCEEDED, True, True),
+        (TaskStatus.FAILED, True, False),
+        (TaskStatus.PARTIALLY_SUCCEEDED, True, True),
+        (TaskStatus.CANCELLED, True, False),
     ],
 )
-def test_task_terminal_status(status: TaskStatus, terminal: bool) -> None:
+def test_task_status_properties(status: TaskStatus, terminal: bool, successful: bool) -> None:
     assert status.terminal is terminal
+    assert status.successful is successful
+
+
+def test_v008_relation_limits_and_import_timestamps_use_wire_names() -> None:
+    timestamps = RestoreTimestamps(
+        created_at=datetime(2024, 1, 2, 3, 4, 5),
+        updated_at=datetime(2024, 1, 2, 3, 4, 6),
+    )
+    request = ImportRequest(
+        graph=ImportGraph(
+            objects=(
+                ImportObjectInput(
+                    ref_="object-1",
+                    name="server-1",
+                    description="Server",
+                    data={"credential": "never-show-this"},
+                    class_ref="class-1",
+                    timestamps=timestamps,
+                ),
+            ),
+            collection_permissions=(
+                ImportCollectionPermissionInput(
+                    ref_="permission-1",
+                    collection_ref="collection-1",
+                    group_key=GroupKey(groupname="admin"),
+                    permissions=(Permission.READ_COLLECTION,),
+                ),
+            ),
+        )
+    )
+    relation = ClassRelationCreate(
+        from_hubuum_class_id=ClassId(1),
+        to_hubuum_class_id=ClassId(2),
+        from_max_relations=1,
+        to_max_relations=2,
+    )
+
+    assert relation.payload()["from_max_relations"] == 1
+    assert request.payload()["version"] == 1
+    assert request.payload()["graph"]["objects"][0]["ref"] == "object-1"
+    assert request.payload()["graph"]["collection_permissions"][0] == {
+        "ref": "permission-1",
+        "collection_ref": "collection-1",
+        "group_key": {"groupname": "admin"},
+        "permissions": ["ReadCollection"],
+    }
+    assert request.payload()["graph"]["objects"][0]["timestamps"] == {
+        "created_at": "2024-01-02T03:04:05",
+        "updated_at": "2024-01-02T03:04:06",
+    }
+    assert "never-show-this" not in repr(request)
+    with pytest.raises(ValidationError, match="greater than or equal to 1"):
+        ClassRelationCreate(
+            from_hubuum_class_id=ClassId(1),
+            to_hubuum_class_id=ClassId(2),
+            from_max_relations=0,
+        )
+
+
+def test_v008_timestamp_and_export_scope_validation_happens_before_io() -> None:
+    with pytest.raises(ValidationError, match="updated_at must not be earlier"):
+        RestoreTimestamps(
+            created_at=datetime(2024, 1, 2),
+            updated_at=datetime(2024, 1, 1),
+        )
+    with pytest.raises(ValidationError, match="must be timezone-free"):
+        RestoreTimestamps(
+            created_at=datetime(2024, 1, 2, tzinfo=UTC),
+            updated_at=datetime(2024, 1, 3, tzinfo=UTC),
+        )
+    with pytest.raises(ValidationError, match="requires class_id"):
+        ExportScope(kind=ExportScopeKind.OBJECTS_IN_CLASS)
+    with pytest.raises(ValidationError, match="does not accept identifiers"):
+        ExportScope(kind=ExportScopeKind.COLLECTIONS, class_id=ClassId(1))
+
+    export = ExportRequest(
+        scope=ExportScope(
+            kind=ExportScopeKind.RELATED_OBJECTS,
+            class_id=ClassId(1),
+            object_id=2,
+        )
+    )
+    assert export.payload()["scope"] == {
+        "kind": "related_objects",
+        "class_id": 1,
+        "object_id": 2,
+    }
+
+
+def test_task_and_export_diagnostics_do_not_expose_content() -> None:
+    task = Task.model_validate(
+        {
+            "id": 40,
+            "kind": "import",
+            "status": "failed",
+            "created_at": "2026-07-21T10:00:00Z",
+            "summary": "submitted-data-secret",
+            "progress": {
+                "total_items": 1,
+                "processed_items": 1,
+                "success_items": 0,
+                "failed_items": 1,
+            },
+            "links": {
+                "task": "/api/v1/tasks/40",
+                "events": "/api/v1/tasks/40/events",
+            },
+        }
+    )
+    rendered = RenderedExport(content_type=ExportContentType.TEXT, body="export-body-secret")
+    error = TaskUnsuccessfulError(40, task.status.value)
+
+    assert "submitted-data-secret" not in repr(task)
+    assert "export-body-secret" not in repr(rendered)
+    assert "submitted-data-secret" not in str(error)

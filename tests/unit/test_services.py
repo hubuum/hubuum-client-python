@@ -20,9 +20,16 @@ from hubuum_client import (
     CollectionId,
     CollectionUpdate,
     DecodeError,
+    ExportContentType,
+    ExportJsonResponse,
+    ExportRequest,
+    ExportScope,
+    ExportScopeKind,
     GroupCreate,
     GroupId,
     GroupUpdate,
+    ImportGraph,
+    ImportRequest,
     NewTokenRequest,
     ObjectCreate,
     ObjectId,
@@ -33,6 +40,7 @@ from hubuum_client import (
     PrincipalId,
     PrincipalMember,
     Query,
+    RenderedExport,
     RequestOptions,
     ResultCardinalityError,
     TaskId,
@@ -49,7 +57,9 @@ from hubuum_client.async_services import (
     AsyncClassRelationsService,
     AsyncClassService,
     AsyncCollectionsService,
+    AsyncExportsService,
     AsyncGroupsService,
+    AsyncImportsService,
     AsyncObjectRelationsService,
     AsyncObjectsService,
     AsyncPrincipalTokensService,
@@ -64,7 +74,9 @@ from hubuum_client.services import (
     ClassRelationsService,
     ClassService,
     CollectionsService,
+    ExportsService,
     GroupsService,
+    ImportsService,
     ObjectRelationsService,
     ObjectsService,
     PrincipalTokensService,
@@ -141,8 +153,18 @@ def _task_json(status: str = "succeeded") -> dict[str, Any]:
         "kind": "import",
         "status": status,
         "created_at": "2026-07-21T10:00:00Z",
-        "progress": {},
-        "links": {},
+        "progress": {
+            "total_items": 1,
+            "processed_items": 1,
+            "success_items": 1 if status == "succeeded" else 0,
+            "failed_items": 1 if status == "failed" else 0,
+        },
+        "links": {
+            "task": "/api/v1/tasks/40",
+            "events": "/api/v1/tasks/40/events",
+            "import": "/api/v1/imports/40",
+            "import_results": "/api/v1/imports/40/results",
+        },
     }
 
 
@@ -173,6 +195,8 @@ def test_sync_and_async_services_keep_public_method_parity() -> None:
         (ClassRelationsService, AsyncClassRelationsService),
         (ObjectRelationsService, AsyncObjectRelationsService),
         (TasksService, AsyncTasksService),
+        (ImportsService, AsyncImportsService),
+        (ExportsService, AsyncExportsService),
     ]
 
     for sync_service, async_service in pairs:
@@ -834,3 +858,133 @@ async def test_async_task_wait_caps_sleep_to_remaining_timeout(
 
     assert task.status.value == "succeeded"
     assert sleeps == [0.25]
+
+
+def _task_event_json() -> dict[str, Any]:
+    return {
+        "id": 81,
+        "task_id": 40,
+        "event_type": "completed",
+        "message": "Task completed",
+        "created_at": "2026-07-21T10:00:01Z",
+        "provenance": {
+            "actor": {
+                "kind": "principal",
+                "principal": {"principal_id": 21, "name": "admin"},
+            },
+            "task_id": 40,
+        },
+    }
+
+
+def _import_result_json() -> dict[str, Any]:
+    return {
+        "id": 91,
+        "task_id": 40,
+        "entity_kind": "collection",
+        "action": "create",
+        "outcome": "succeeded",
+        "created_at": "2026-07-21T10:00:01Z",
+        "item_ref": "collection:inventory",
+    }
+
+
+def test_sync_v008_task_import_and_export_services() -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        path = request.url.path
+        if path == "/api/v1/tasks/40/events":
+            return httpx.Response(200, json=[_task_event_json()])
+        if path == "/api/v1/imports/40/results":
+            return httpx.Response(200, json=[_import_result_json()])
+        if path == "/api/v1/exports/40/output":
+            return httpx.Response(
+                200,
+                headers={"content-type": "text/csv; charset=utf-8"},
+                text="id,name\n1,inventory\n",
+            )
+        return httpx.Response(200 if request.method == "GET" else 202, json=_task_json())
+
+    with Client(
+        "https://hubuum.test", token="token", transport=httpx.MockTransport(handler)
+    ) as client:
+        event = client.tasks.events(40)[0]
+        imported = client.imports.run(
+            ImportRequest(graph=ImportGraph()),
+            idempotency_key="import-v008",
+            timeout_seconds=0,
+        )
+        exported = client.exports.run(
+            ExportRequest(scope=ExportScope(kind=ExportScopeKind.COLLECTIONS)),
+            idempotency_key="export-v008",
+            timeout_seconds=0,
+        )
+
+    assert event.provenance.actor.principal is not None
+    assert event.provenance.actor.principal.name == "admin"
+    assert imported.succeeded == 1
+    assert imported.failed == 0
+    assert isinstance(exported, RenderedExport)
+    assert exported.content_type is ExportContentType.CSV
+    assert exported.body.endswith("inventory\n")
+    submissions = [request for request in requests if request.method == "POST"]
+    assert [request.headers["idempotency-key"] for request in submissions] == [
+        "import-v008",
+        "export-v008",
+    ]
+    assert json.loads(submissions[0].content) == {"graph": {}, "version": 1}
+
+
+async def test_async_v008_task_import_and_export_services() -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        path = request.url.path
+        if path == "/api/v1/tasks/40/events":
+            return httpx.Response(200, json=[_task_event_json()])
+        if path == "/api/v1/imports/40/results":
+            return httpx.Response(200, json=[_import_result_json()])
+        if path == "/api/v1/exports/40/output":
+            return httpx.Response(
+                200,
+                headers={"content-type": "application/json; charset=utf-8"},
+                json={
+                    "items": [{"id": 1}],
+                    "meta": {
+                        "count": 1,
+                        "truncated": False,
+                        "scope": {"kind": "collections"},
+                        "content_type": "application/json",
+                    },
+                    "warnings": [],
+                },
+            )
+        return httpx.Response(200 if request.method == "GET" else 202, json=_task_json())
+
+    async with AsyncClient(
+        "https://hubuum.test", token="token", transport=httpx.MockTransport(handler)
+    ) as client:
+        event = (await client.tasks.events(40))[0]
+        imported = await client.imports.run(
+            ImportRequest(graph=ImportGraph()),
+            idempotency_key="async-import-v008",
+            timeout_seconds=0,
+        )
+        exported = await client.exports.run(
+            ExportRequest(scope=ExportScope(kind=ExportScopeKind.COLLECTIONS)),
+            idempotency_key="async-export-v008",
+            timeout_seconds=0,
+        )
+
+    assert event.task_id == TaskId(40)
+    assert imported.succeeded == 1
+    assert isinstance(exported, ExportJsonResponse)
+    assert exported.meta.count == 1
+    submissions = [request for request in requests if request.method == "POST"]
+    assert [request.headers["idempotency-key"] for request in submissions] == [
+        "async-import-v008",
+        "async-export-v008",
+    ]
