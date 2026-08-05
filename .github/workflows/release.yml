@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: release-${{ github.ref }}
@@ -17,6 +18,23 @@ jobs:
     name: Build release distributions
     runs-on: ubuntu-latest
     steps:
+      - name: Refuse release with open Dependabot pull requests
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          open_dependabot_prs="$(
+            gh api --method GET --paginate \
+              "repos/${GITHUB_REPOSITORY}/pulls" \
+              -f state=open \
+              -f per_page=100 \
+              --jq '.[] | select(.user.login == "dependabot[bot]") | "#\(.number) \(.html_url)"'
+          )"
+          if [[ -n "${open_dependabot_prs}" ]]; then
+            echo "::error::Open Dependabot pull requests must be resolved before release."
+            printf '%s\n' "${open_dependabot_prs}"
+            exit 1
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false

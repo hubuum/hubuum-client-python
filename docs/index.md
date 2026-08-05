@@ -1,9 +1,10 @@
 # Hubuum client for Python
 
 `hubuum-client` is a small, modern interface to the Hubuum REST API. Version
-0.0.4 targets Hubuum server v0.0.8 and gives synchronous and asynchronous
+0.0.5 targets Hubuum server v0.0.8 and gives synchronous and asynchronous
 applications the same typed resource model. Client version 0.0.2 remains the
-v0.0.4-compatible baseline, and 0.0.3 remains the v0.0.5 baseline.
+Hubuum server v0.0.4-compatible baseline, and client 0.0.3 remains the server
+v0.0.5 baseline.
 
 ```python
 from hubuum_client import Client, Credentials, Query

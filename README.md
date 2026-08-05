@@ -12,10 +12,10 @@ resource IDs, immutable queries, cursor pagination, structured errors, and a
 contract-checked interface for all 196 operations in the server's OpenAPI
 surface.
 
-Version 0.0.4 targets Hubuum server **v0.0.8**. Compatibility is tested against
+Version 0.0.5 targets Hubuum server **v0.0.8**. Compatibility is tested against
 the tag-and-digest server image recorded in the
 [compatibility matrix](docs/compatibility.md). Client version 0.0.3 remains the
-v0.0.5-compatible baseline.
+Hubuum server v0.0.5-compatible baseline.
 
 ## Installation
 
@@ -35,9 +35,7 @@ from hubuum_client import ClassCreate, Client, Credentials, Query
 with Client("https://hubuum.example.com") as client:
     client.login(Credentials("alice", "correct-horse-battery-staple"))
 
-    classes = client.classes.list(
-        Query().where("name", "server").limit(25).include_total()
-    )
+    classes = client.classes.list(Query().where("name", "server").limit(25).include_total())
 
     created = client.classes.create(
         ClassCreate(
@@ -145,11 +143,7 @@ first_page = client.classes.page(base.limit(25).include_total())
 all_matches = client.classes.all(base, max_items=5_000)
 
 active_web_servers = client.classes.by_name("Servers").objects.all(
-    Query()
-    .data("status")
-    .equals("active")
-    .data("tags")
-    .contains_all("web", "api")
+    Query().data("status").equals("active").data("tags").contains_all("web", "api")
 )
 ```
 
