@@ -16,7 +16,9 @@ UserId = NewType("UserId", int)
 GroupId = NewType("GroupId", int)
 PrincipalId = NewType("PrincipalId", int)
 TaskId = NewType("TaskId", int)
+TaskEventId = NewType("TaskEventId", int)
 TokenId = NewType("TokenId", int)
+ImportResultId = NewType("ImportResultId", int)
 
 
 @dataclass(frozen=True, slots=True, repr=False)

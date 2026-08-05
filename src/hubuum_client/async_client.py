@@ -58,14 +58,17 @@ class AsyncClient:
 
     @property
     def base_url(self) -> str:
+        """Return the validated server base URL, including its trailing slash."""
         return self._base_url
 
     @property
     def is_authenticated(self) -> bool:
+        """Return whether the client currently holds an access token."""
         return self._token is not None
 
     @property
     def token(self) -> AccessToken | None:
+        """Return the current redacted token value, if authenticated."""
         return self._token
 
     async def __aenter__(self) -> Self:
@@ -75,9 +78,11 @@ class AsyncClient:
         await self.close()
 
     async def close(self) -> None:
+        """Close the HTTP connection pool owned by this client."""
         await self._http.aclose()
 
     async def login(self, credentials: Credentials) -> Self:
+        """Authenticate this client in place and retain the returned token."""
         response = await self.request(
             "POST",
             "/api/v0/auth/login",
@@ -89,22 +94,26 @@ class AsyncClient:
         return self
 
     async def logout(self) -> None:
+        """Revoke the current session and clear the local token in all cases."""
         try:
             await self.request("POST", "/api/v0/auth/logout")
         finally:
             self._token = None
 
     async def healthz(self) -> ProbeResponse:
+        """Return the unauthenticated process-health probe."""
         return await self.request(
             "GET", "/healthz", response_model=ProbeResponse, options=_PUBLIC_REQUEST
         )
 
     async def readyz(self) -> ProbeResponse:
+        """Return the unauthenticated dependency-readiness probe."""
         return await self.request(
             "GET", "/readyz", response_model=ProbeResponse, options=_PUBLIC_REQUEST
         )
 
     async def config(self) -> ClientConfig:
+        """Return client-safe public server configuration."""
         return await self.request(
             "GET",
             "/api/v1/config",
@@ -112,44 +121,72 @@ class AsyncClient:
             options=_PUBLIC_REQUEST,
         )
 
+    async def metrics(self) -> str:
+        """Return Prometheus exposition text from the default ``/metrics`` path."""
+        return await self.metrics_at("/metrics")
+
+    async def metrics_at(self, path: str) -> str:
+        """Return unauthenticated metrics text from an origin-locked custom path."""
+        response = await self._request_response("GET", path, options=_PUBLIC_REQUEST)
+        return response.text
+
     async def me(self) -> MeResponse:
+        """Return the authenticated principal and current token metadata."""
         return await self.request("GET", "/api/v1/iam/me", response_model=MeResponse)
 
     @cached_property
     def collections(self) -> AsyncCollectionsService:
+        """Return typed collection CRUD and hierarchy operations."""
         return AsyncCollectionsService(self)
 
     @cached_property
     def classes(self) -> AsyncClassesService:
+        """Return typed class and nested-object operations."""
         return AsyncClassesService(self)
 
     @cached_property
     def users(self) -> AsyncUsersService:
+        """Return typed user lifecycle operations."""
         return AsyncUsersService(self)
 
     @cached_property
     def groups(self) -> AsyncGroupsService:
+        """Return typed group and membership operations."""
         return AsyncGroupsService(self)
 
     @cached_property
     def tokens(self) -> AsyncTokensService:
+        """Return typed principal-token operations."""
         return AsyncTokensService(self)
 
     @cached_property
     def class_relations(self) -> AsyncClassRelationsService:
+        """Return typed class-relation operations."""
         return AsyncClassRelationsService(self)
 
     @cached_property
     def object_relations(self) -> AsyncObjectRelationsService:
+        """Return typed object-relation operations."""
         return AsyncObjectRelationsService(self)
 
     @cached_property
     def tasks(self) -> AsyncTasksService:
+        """Return task inspection, event, pagination, and polling operations."""
         return AsyncTasksService(self)
+
+    @cached_property
+    def imports(self) -> AsyncImportsService:
+        """Return typed asynchronous-import operations."""
+        return AsyncImportsService(self)
+
+    @cached_property
+    def exports(self) -> AsyncExportsService:
+        """Return typed asynchronous-export and output operations."""
+        return AsyncExportsService(self)
 
     @property
     def openapi(self) -> AsyncOpenAPIOperations:
-        """Complete operation-ID interface for all 196 v0.0.5 operations."""
+        """Return the complete operation-ID interface for all 196 v0.0.8 operations."""
         return AsyncOpenAPIOperations(self)
 
     @overload
@@ -183,6 +220,12 @@ class AsyncClient:
         response_model: type[T] | None = None,
         options: RequestOptions | None = None,
     ) -> T | Any:
+        """Send an authenticated, origin-locked request to a relative API path.
+
+        Supply ``response_model`` to validate a JSON response. Prefer a typed
+        resource service when one exists; this method is the constrained
+        extension point for server routes outside that surface.
+        """
         response = await self._request_response(
             method,
             path,
@@ -302,7 +345,9 @@ from .async_services import (  # noqa: E402
     AsyncClassesService,
     AsyncClassRelationsService,
     AsyncCollectionsService,
+    AsyncExportsService,
     AsyncGroupsService,
+    AsyncImportsService,
     AsyncObjectRelationsService,
     AsyncTasksService,
     AsyncTokensService,

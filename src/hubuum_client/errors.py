@@ -14,6 +14,22 @@ class ResultCardinalityError(HubuumError):
     """A query expected exactly one result but returned another cardinality."""
 
 
+@dataclass(eq=False, frozen=True, slots=True)
+class TaskUnsuccessfulError(HubuumError):
+    """A task reached a terminal state that does not represent full success.
+
+    Only the task ID and status are retained. In particular, the server's task
+    summary is excluded because it can contain details derived from submitted
+    data.
+    """
+
+    task_id: int
+    status: str
+
+    def __str__(self) -> str:
+        return f"task {self.task_id} finished with status {self.status}"
+
+
 class ConfigurationError(HubuumError, ValueError):
     """Raised when client configuration is unsafe or invalid."""
 

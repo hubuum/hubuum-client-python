@@ -63,14 +63,17 @@ class Client:
 
     @property
     def base_url(self) -> str:
+        """Return the validated server base URL, including its trailing slash."""
         return self._base_url
 
     @property
     def is_authenticated(self) -> bool:
+        """Return whether the client currently holds an access token."""
         return self._token is not None
 
     @property
     def token(self) -> AccessToken | None:
+        """Return the current redacted token value, if authenticated."""
         return self._token
 
     def __enter__(self) -> Self:
@@ -80,9 +83,11 @@ class Client:
         self.close()
 
     def close(self) -> None:
+        """Close the HTTP connection pool owned by this client."""
         self._http.close()
 
     def login(self, credentials: Credentials) -> Self:
+        """Authenticate this client in place and retain the returned token."""
         response = self.request(
             "POST",
             "/api/v0/auth/login",
@@ -94,20 +99,24 @@ class Client:
         return self
 
     def logout(self) -> None:
+        """Revoke the current session and clear the local token in all cases."""
         try:
             self.request("POST", "/api/v0/auth/logout")
         finally:
             self._token = None
 
     def healthz(self) -> ProbeResponse:
+        """Return the unauthenticated process-health probe."""
         return self.request(
             "GET", "/healthz", response_model=ProbeResponse, options=_PUBLIC_REQUEST
         )
 
     def readyz(self) -> ProbeResponse:
+        """Return the unauthenticated dependency-readiness probe."""
         return self.request("GET", "/readyz", response_model=ProbeResponse, options=_PUBLIC_REQUEST)
 
     def config(self) -> ClientConfig:
+        """Return client-safe public server configuration."""
         return self.request(
             "GET",
             "/api/v1/config",
@@ -115,44 +124,71 @@ class Client:
             options=_PUBLIC_REQUEST,
         )
 
+    def metrics(self) -> str:
+        """Return Prometheus exposition text from the default ``/metrics`` path."""
+        return self.metrics_at("/metrics")
+
+    def metrics_at(self, path: str) -> str:
+        """Return unauthenticated metrics text from an origin-locked custom path."""
+        return self._request_response("GET", path, options=_PUBLIC_REQUEST).text
+
     def me(self) -> MeResponse:
+        """Return the authenticated principal and current token metadata."""
         return self.request("GET", "/api/v1/iam/me", response_model=MeResponse)
 
     @cached_property
     def collections(self) -> CollectionsService:
+        """Return typed collection CRUD and hierarchy operations."""
         return CollectionsService(self)
 
     @cached_property
     def classes(self) -> ClassesService:
+        """Return typed class and nested-object operations."""
         return ClassesService(self)
 
     @cached_property
     def users(self) -> UsersService:
+        """Return typed user lifecycle operations."""
         return UsersService(self)
 
     @cached_property
     def groups(self) -> GroupsService:
+        """Return typed group and membership operations."""
         return GroupsService(self)
 
     @cached_property
     def tokens(self) -> TokensService:
+        """Return typed principal-token operations."""
         return TokensService(self)
 
     @cached_property
     def class_relations(self) -> ClassRelationsService:
+        """Return typed class-relation operations."""
         return ClassRelationsService(self)
 
     @cached_property
     def object_relations(self) -> ObjectRelationsService:
+        """Return typed object-relation operations."""
         return ObjectRelationsService(self)
 
     @cached_property
     def tasks(self) -> TasksService:
+        """Return task inspection, event, pagination, and polling operations."""
         return TasksService(self)
+
+    @cached_property
+    def imports(self) -> ImportsService:
+        """Return typed asynchronous-import operations."""
+        return ImportsService(self)
+
+    @cached_property
+    def exports(self) -> ExportsService:
+        """Return typed asynchronous-export and output operations."""
+        return ExportsService(self)
 
     @property
     def openapi(self) -> OpenAPIOperations:
-        """Complete operation-ID interface for all 196 v0.0.5 operations."""
+        """Return the complete operation-ID interface for all 196 v0.0.8 operations."""
         return OpenAPIOperations(self)
 
     @overload
@@ -186,6 +222,12 @@ class Client:
         response_model: type[T] | None = None,
         options: RequestOptions | None = None,
     ) -> T | Any:
+        """Send an authenticated, origin-locked request to a relative API path.
+
+        Supply ``response_model`` to validate a JSON response. Prefer a typed
+        resource service when one exists; this method is the constrained
+        extension point for server routes outside that surface.
+        """
         response = self._request_response(
             method,
             path,
@@ -306,7 +348,9 @@ from .services import (  # noqa: E402  (imported after Client is defined)
     ClassesService,
     ClassRelationsService,
     CollectionsService,
+    ExportsService,
     GroupsService,
+    ImportsService,
     ObjectRelationsService,
     TasksService,
     TokensService,

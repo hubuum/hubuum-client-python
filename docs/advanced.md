@@ -37,7 +37,7 @@ the attribute is `None` when the header is absent or malformed.
 
 ## Complete OpenAPI operation surface
 
-The Hubuum v0.0.5 OpenAPI contract contains 196 operations. Every operation is
+The Hubuum v0.0.8 OpenAPI contract contains 196 operations. Every operation is
 registered by its exact `operationId`, HTTP method, path template, request
 media type, and authentication policy:
 
@@ -67,7 +67,7 @@ status = client.openapi.call(
 ```
 
 `Idempotency-Key` values are validated before I/O and must contain between 1
-and 255 bytes, matching v0.0.5 task-submission endpoints.
+and 255 bytes, matching v0.0.8 task-submission endpoints.
 
 `call()` returns a JSON value for JSON responses, `str` for a negotiated text
 response, `bytes` for any other media type, and `None` for an empty success.
@@ -101,7 +101,7 @@ match exactly.
 
 ## Scoped tokens
 
-Hubuum v0.0.5 nests token boundaries under one `scope` field. Omit `scope` for
+Hubuum v0.0.8 nests token boundaries under one `scope` field. Omit `scope` for
 an unscoped token; within a scope, permissions and collection/class/object
 resources are independent dimensions:
 
@@ -191,10 +191,76 @@ validated for their RFC 6902 member shape, explicit JSON null values are
 preserved, and the server applies the complete patch atomically with rename
 safety.
 
+## Typed imports, exports, and task events
+
+Core import graphs use strict request models, including the timestamps Hubuum
+v0.0.8 can restore. `run()` submits the task, waits with a bounded poller, and
+collects every per-entity result through guarded cursor pagination:
+
+```python
+from datetime import datetime
+
+from hubuum_client import (
+    ImportCollectionInput,
+    ImportGraph,
+    ImportRequest,
+    RestoreTimestamps,
+)
+
+result = client.imports.run(
+    ImportRequest(
+        graph=ImportGraph(
+            collections=(
+                ImportCollectionInput(
+                    ref_="inventory",
+                    name="Inventory",
+                    description="Imported inventory",
+                    timestamps=RestoreTimestamps(
+                        created_at=datetime(2024, 1, 1),
+                        updated_at=datetime(2024, 1, 2),
+                    ),
+                ),
+            )
+        )
+    ),
+    idempotency_key="inventory-import-2024-01-02",
+)
+print(result.succeeded, result.failed)
+```
+
+The Python field `ref_` is serialized as the contract's `ref`. Import graphs,
+object data, result details, and error strings are excluded from model
+representations. Integration-oriented import sections remain strict JSON
+objects so the full v0.0.8 graph can be submitted without representing secret
+configuration in diagnostic output.
+
+Direct exports are similarly typed:
+
+```python
+from hubuum_client import ExportRequest, ExportScope, ExportScopeKind
+
+output = client.exports.run(
+    ExportRequest(
+        scope=ExportScope(
+            kind=ExportScopeKind.OBJECTS_IN_CLASS,
+            class_id=class_id,
+        )
+    ),
+    idempotency_key="servers-export-1",
+)
+```
+
+JSON output is returned as `ExportJsonResponse`; text, HTML, and CSV are
+returned as `RenderedExport`. Use `client.exports.output_stream(task_id)` for
+large output. Completed export task details expose `total_duration_ms`,
+`query_duration_ms`, `hydration_duration_ms`, and `render_duration_ms`.
+Task history is available through `client.tasks.events()`, `event_pages()`, and
+`all_events()`. Every method has a matching async form.
+
 ## Custom extension routes
 
 `request()` remains the lower-level escape hatch for a server extension that is
-not part of the pinned v0.0.5 OpenAPI document:
+not part of the pinned v0.0.8 OpenAPI document:
 
 ```python
 from hubuum_client import RequestOptions
@@ -218,10 +284,11 @@ Once a task ID is known, wait for a terminal state with a bounded poller:
 
 ```python
 task = client.tasks.wait(task_id, timeout_seconds=300, poll_interval=0.5)
-if task.status.value != "succeeded":
-    raise RuntimeError(task.summary or "Hubuum task failed")
+print(task.status, task.progress.processed_items)
 ```
 
 The async equivalent uses the same `timeout_seconds` and `poll_interval`
 keywords and awaits without blocking the event loop. Both pollers reject
-invalid bounds and cap each sleep to the remaining timeout.
+invalid bounds and cap each sleep to the remaining timeout. Import/export
+`run()` helpers raise `TaskUnsuccessfulError`, whose diagnostics contain only
+the task ID and status rather than potentially sensitive task summaries.

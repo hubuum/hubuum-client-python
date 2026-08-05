@@ -12,10 +12,10 @@ resource IDs, immutable queries, cursor pagination, structured errors, and a
 contract-checked interface for all 196 operations in the server's OpenAPI
 surface.
 
-Version 0.0.3 targets Hubuum server **v0.0.5**. Compatibility is tested against
+Version 0.0.4 targets Hubuum server **v0.0.8**. Compatibility is tested against
 the tag-and-digest server image recorded in the
-[compatibility matrix](docs/compatibility.md). Client version 0.0.2 remains the
-v0.0.4-compatible baseline.
+[compatibility matrix](docs/compatibility.md). Client version 0.0.3 remains the
+v0.0.5-compatible baseline.
 
 ## Installation
 
@@ -91,7 +91,7 @@ Credentials and bearer tokens have redacted representations. TLS certificate
 validation is enabled by default; disabling it is an explicit client option and
 should be limited to disposable development systems.
 
-Hubuum v0.0.5 reports the authoritative expiry for newly issued tokens. After
+Hubuum v0.0.8 reports the authoritative expiry for newly issued tokens. After
 login or token minting, it is available as `client.token.expires_at` or
 `created_token.expires_at`. The unauthenticated public configuration reports
 the default used when no explicit expiry is requested:
@@ -112,10 +112,11 @@ The typed surface currently covers the most common Hubuum workflows:
 - scoped token listing, minting, and revocation;
 - class relations and object relations;
 - typed grouped and multi-measure object aggregates;
-- cursor pagination and task polling;
-- health, readiness, and public server configuration.
+- cursor pagination, typed task events, and bounded task polling;
+- typed import graphs/results and export requests/JSON or rendered output;
+- health, readiness, Prometheus metrics, and public server configuration.
 
-Every v0.0.5 OpenAPI operation is registered by its stable `operationId`:
+Every v0.0.8 OpenAPI operation is registered by its stable `operationId`:
 
 ```python
 from hubuum_client import OpenAPIOptions

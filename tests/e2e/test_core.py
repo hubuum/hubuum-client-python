@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import suppress
+from datetime import datetime
 
 import pytest
 
@@ -16,9 +17,16 @@ from hubuum_client import (
     CollectionUpdate,
     ConflictError,
     Credentials,
+    ExportJsonResponse,
+    ExportRequest,
+    ExportScope,
+    ExportScopeKind,
     GroupCreate,
     GroupId,
     HubuumObject,
+    ImportCollectionInput,
+    ImportGraph,
+    ImportRequest,
     NewTokenRequest,
     NotFoundError,
     ObjectCreate,
@@ -29,6 +37,8 @@ from hubuum_client import (
     PermissionDeniedError,
     PrincipalId,
     Query,
+    RestoreTimestamps,
+    TaskStatus,
     TokenResourceKind,
     TokenResourceScope,
     TokenScope,
@@ -46,6 +56,7 @@ def test_public_config_authentication_and_core_crud(
     public = Client(client.base_url)
     try:
         assert public.healthz().status
+        assert "# HELP" in public.metrics()
         config = public.config()
         assert config.authentication.default_token_lifetime_hours > 0
         assert config.pagination.default_page_limit > 0
@@ -293,6 +304,7 @@ def test_iam_and_relations(client: Client, admin_group_id: GroupId, unique_name:
     objects: list[HubuumObject] = []
     class_relation = None
     object_relation = None
+    extra_to_object = None
     try:
         client.groups.add_member(group.id, PrincipalId(user.id))
         assert any(
@@ -334,8 +346,12 @@ def test_iam_and_relations(client: Client, admin_group_id: GroupId, unique_name:
             ClassRelationCreate(
                 from_hubuum_class_id=classes[0].id,
                 to_hubuum_class_id=classes[1].id,
+                from_max_relations=1,
+                to_max_relations=2,
             )
         )
+        assert class_relation.from_max_relations == 1
+        assert class_relation.to_max_relations == 2
         object_relation = client.object_relations.create(
             ObjectRelationCreate(
                 from_hubuum_object_id=objects[0].id,
@@ -344,11 +360,30 @@ def test_iam_and_relations(client: Client, admin_group_id: GroupId, unique_name:
             )
         )
         assert client.object_relations.get(object_relation.id).id == object_relation.id
+        extra_to_object = client.classes.by_id(classes[1].id).objects.create(
+            ObjectCreate(
+                name=f"{unique_name}-to-extra-object",
+                collection_id=collections[1].id,
+                hubuum_class_id=classes[1].id,
+                description="Relation cardinality e2e object",
+                data={},
+            )
+        )
+        with pytest.raises(ConflictError):
+            client.object_relations.create(
+                ObjectRelationCreate(
+                    from_hubuum_object_id=objects[0].id,
+                    to_hubuum_object_id=extra_to_object.id,
+                    class_relation_id=class_relation.id,
+                )
+            )
     finally:
         if object_relation is not None:
             client.object_relations.delete(object_relation.id)
         if class_relation is not None:
             client.class_relations.delete(class_relation.id)
+        if extra_to_object is not None and len(classes) == 2:
+            client.classes.by_id(classes[1].id).objects.delete(extra_to_object.id)
         for hubuum_class, hubuum_object in zip(classes, objects, strict=True):
             client.classes.by_id(hubuum_class.id).objects.delete(hubuum_object.id)
         for hubuum_class in classes:
@@ -357,6 +392,69 @@ def test_iam_and_relations(client: Client, admin_group_id: GroupId, unique_name:
             client.collections.delete(collection.id)
         client.groups.delete(group.id)
         client.users.delete(user.id)
+
+
+def test_v008_import_timestamps_export_timings_and_task_events(
+    client: Client,
+    unique_name: str,
+) -> None:
+    restored_created_at = datetime(2024, 2, 3, 4, 5, 6)
+    restored_updated_at = datetime(2024, 2, 3, 4, 5, 7)
+    collection_name = f"{unique_name}-imported-collection"
+    imported_collection = None
+    try:
+        imported = client.imports.run(
+            ImportRequest(
+                graph=ImportGraph(
+                    collections=(
+                        ImportCollectionInput(
+                            ref_="imported-collection",
+                            name=collection_name,
+                            description="v0.0.8 restored timestamp e2e collection",
+                            timestamps=RestoreTimestamps(
+                                created_at=restored_created_at,
+                                updated_at=restored_updated_at,
+                            ),
+                        ),
+                    )
+                )
+            ),
+            idempotency_key=f"{unique_name}-import",
+        )
+        assert imported.task.status in {
+            TaskStatus.SUCCEEDED,
+            TaskStatus.PARTIALLY_SUCCEEDED,
+        }
+        assert imported.succeeded == 1
+        assert imported.failed == 0
+        imported_collection = client.collections.one(Query().where("name", collection_name))
+        assert imported_collection.created_at.replace(tzinfo=None) == restored_created_at
+        assert imported_collection.updated_at.replace(tzinfo=None) == restored_updated_at
+
+        submitted = client.exports.submit(
+            ExportRequest(scope=ExportScope(kind=ExportScopeKind.COLLECTIONS)),
+            idempotency_key=f"{unique_name}-export",
+        )
+        export_task = client.tasks.wait(submitted.id)
+        assert export_task.status is TaskStatus.SUCCEEDED
+        assert export_task.details is not None
+        assert export_task.details.export is not None
+        timings = export_task.details.export
+        durations = (
+            timings.total_duration_ms,
+            timings.query_duration_ms,
+            timings.hydration_duration_ms,
+            timings.render_duration_ms,
+        )
+        assert all(duration is not None for duration in durations)
+        assert all(duration >= 0 for duration in durations if duration is not None)
+        output = client.exports.output(export_task.id)
+        assert isinstance(output, ExportJsonResponse)
+        assert output.meta.count >= 1
+        assert client.tasks.all_events(export_task.id)
+    finally:
+        if imported_collection is not None:
+            client.collections.delete(imported_collection.id)
 
 
 def test_sync_scoped_token_full_lifecycle(

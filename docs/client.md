@@ -14,7 +14,7 @@ with Client("https://hubuum.example.com") as client:
 
 `login()` authenticates the current client and returns it for optional chaining.
 The resulting `client.token.expires_at` contains the authoritative expiry
-persisted by Hubuum v0.0.5. A token supplied directly at construction has no
+persisted by Hubuum v0.0.8. A token supplied directly at construction has no
 known expiry unless its `AccessToken` value includes one.
 An existing bearer token can be supplied at construction:
 
@@ -153,7 +153,12 @@ Authentication is not required for:
 health = client.healthz()
 readiness = client.readyz()
 config = client.config()
+prometheus_text = client.metrics()
 ```
+
+Metrics are fetched without bearer authentication. If Hubuum is configured
+with a non-default metrics route, use `metrics_at("/custom/metrics")`; the path
+is subject to the same origin and traversal protections as every request.
 
 The typed client configuration contains the server's effective pagination
 defaults and the default token lifetime applied when login or token minting

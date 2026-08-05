@@ -42,6 +42,32 @@
     options:
       members: true
 
+## Task-backed services
+
+::: hubuum_client.services.TasksService
+    options:
+      members: true
+
+::: hubuum_client.async_services.AsyncTasksService
+    options:
+      members: true
+
+::: hubuum_client.services.ImportsService
+    options:
+      members: true
+
+::: hubuum_client.async_services.AsyncImportsService
+    options:
+      members: true
+
+::: hubuum_client.services.ExportsService
+    options:
+      members: true
+
+::: hubuum_client.async_services.AsyncExportsService
+    options:
+      members: true
+
 ## Queries
 
 ::: hubuum_client.Query
@@ -90,6 +116,32 @@
 
 ::: hubuum_client.Task
 
+::: hubuum_client.TaskEvent
+
+::: hubuum_client.TaskProgress
+
+::: hubuum_client.TaskDetails
+
+::: hubuum_client.ClassRelationCreate
+
+::: hubuum_client.ImportRequest
+
+::: hubuum_client.ImportGraph
+
+::: hubuum_client.RestoreTimestamps
+
+::: hubuum_client.ImportTaskResult
+
+::: hubuum_client.ImportRunResult
+
+::: hubuum_client.ExportRequest
+
+::: hubuum_client.ExportScope
+
+::: hubuum_client.ExportJsonResponse
+
+::: hubuum_client.RenderedExport
+
 ::: hubuum_client.NewTokenRequest
 
 ::: hubuum_client.TokenScope
@@ -117,3 +169,5 @@
 ::: hubuum_client.TransportError
 
 ::: hubuum_client.DecodeError
+
+::: hubuum_client.TaskUnsuccessfulError
