@@ -53,7 +53,7 @@ dev = [
   "pytest-asyncio>=0.24,<2",
   "pytest-cov>=6,<8",
   "respx>=0.22,<1",
-  "ruff>=0.9,<1",
+  "ruff>=0.16.0,<1",
   "zizmor>=1.27,<2",
 ]
 
