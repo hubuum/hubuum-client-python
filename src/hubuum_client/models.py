@@ -891,22 +891,29 @@ class TokenScopeDetails(HubuumModel):
     resources: tuple[TokenResourceScopeDetails, ...] | None = None
 
 
-class CurrentTokenMetadata(HubuumModel):
+class _TokenMetadataBase(HubuumModel):
+    """Fields shared by current, point, and list token representations."""
+
     id: TokenId
     issued: datetime
     description: str | None = None
     expires_at: datetime | None = None
-    last_used_at: datetime | None = None
     name: str | None = None
-    revoked_at: datetime | None = None
     scope: TokenScopeDetails | None = None
     revision: ResourceRevision
 
 
-class PrincipalTokenPoint(CurrentTokenMetadata):
+class CurrentTokenMetadata(_TokenMetadataBase):
+    """Metadata for the token authenticating the current request."""
+
+    last_used_at: datetime | None = None
+
+
+class PrincipalTokenPoint(_TokenMetadataBase):
     """Canonical point-in-time token metadata without routine usage state."""
 
     principal_id: PrincipalId
+    revoked_at: datetime | None = None
 
 
 class PrincipalTokenMetadata(PrincipalTokenPoint):
@@ -914,6 +921,7 @@ class PrincipalTokenMetadata(PrincipalTokenPoint):
 
     active: bool
     expired: bool
+    last_used_at: datetime | None = None
 
 
 class TokenListState(StrEnum):

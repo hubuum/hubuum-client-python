@@ -191,6 +191,7 @@ def _token_metadata_json() -> dict[str, Any]:
         "id": 50,
         "principal_id": 21,
         "issued": "2026-07-25T10:00:00Z",
+        "last_used_at": "2026-07-25T10:01:00Z",
         "name": "inventory-reader",
         "scope": {
             "permissions": ["ReadCollection"],
@@ -242,6 +243,8 @@ def test_sync_v009_token_service_supports_lifecycle_reads_and_renewal() -> None:
         if request.url.path == "/api/v1/iam/me":
             token = _token_metadata_json()
             token.pop("principal_id")
+            token.pop("active")
+            token.pop("expired")
             return httpx.Response(
                 200,
                 json={"principal": _membership_principal_json(), "token": token},
@@ -250,6 +253,7 @@ def test_sync_v009_token_service_supports_lifecycle_reads_and_renewal() -> None:
             token = _token_metadata_json()
             token.pop("active")
             token.pop("expired")
+            token.pop("last_used_at")
             return httpx.Response(200, json=token)
         if request.method == "GET":
             return httpx.Response(
@@ -295,10 +299,14 @@ def test_sync_v009_token_service_supports_lifecycle_reads_and_renewal() -> None:
         principal = current.for_principal(PrincipalId(21))
         assert principal.principal_id == PrincipalId(21)
         assert principal.page().total_count == 1
-        assert principal.list(state=TokenListState.REVOKED)[0].id == TokenId(50)
+        listed = principal.list(state=TokenListState.REVOKED)[0]
+        assert listed.id == TokenId(50)
+        assert listed.last_used_at == datetime(2026, 7, 25, 10, 1, tzinfo=UTC)
         assert len(list(principal.pages())) == 1
         assert principal.all()[0].name == "inventory-reader"
-        assert principal.get(TokenId(50)).revision == 1
+        point = principal.get(TokenId(50))
+        assert point.revision == 1
+        assert not hasattr(point, "last_used_at")
         created = principal.create(payload)
         renewed = principal.renew(
             TokenId(50),
@@ -335,6 +343,8 @@ async def test_async_v009_token_service_matches_sync_behavior() -> None:
         if request.url.path == "/api/v1/iam/me":
             token = _token_metadata_json()
             token.pop("principal_id")
+            token.pop("active")
+            token.pop("expired")
             return httpx.Response(
                 200,
                 json={"principal": _membership_principal_json(), "token": token},
@@ -343,6 +353,7 @@ async def test_async_v009_token_service_matches_sync_behavior() -> None:
             token = _token_metadata_json()
             token.pop("active")
             token.pop("expired")
+            token.pop("last_used_at")
             return httpx.Response(200, json=token)
         if request.method == "GET":
             return httpx.Response(200, json=[_token_metadata_json()])
@@ -377,10 +388,14 @@ async def test_async_v009_token_service_matches_sync_behavior() -> None:
 
         principal = current.for_principal(21)
         assert (await principal.page()).items[0].id == TokenId(50)
-        assert (await principal.list(state=TokenListState.EXPIRED))[0].name == "inventory-reader"
+        listed = (await principal.list(state=TokenListState.EXPIRED))[0]
+        assert listed.name == "inventory-reader"
+        assert listed.last_used_at == datetime(2026, 7, 25, 10, 1, tzinfo=UTC)
         assert len([page async for page in principal.pages()]) == 1
         assert (await principal.all())[0].scope is not None
-        assert (await principal.get(50)).revision == 1
+        point = await principal.get(50)
+        assert point.revision == 1
+        assert not hasattr(point, "last_used_at")
         created = await principal.create(payload)
         renewed = await principal.renew(50)
         await principal.revoke(50)

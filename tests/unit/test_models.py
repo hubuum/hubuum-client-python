@@ -13,6 +13,7 @@ from hubuum_client import (
     Collection,
     CollectionId,
     Credentials,
+    CurrentTokenMetadata,
     ExportContentType,
     ExportRequest,
     ExportScope,
@@ -32,6 +33,7 @@ from hubuum_client import (
     Permission,
     PrincipalId,
     PrincipalTokenMetadata,
+    PrincipalTokenPoint,
     RenderedExport,
     RestoreTimestamps,
     Task,
@@ -209,7 +211,37 @@ def test_v005_token_scope_uses_nested_strict_wire_shape() -> None:
         )
 
 
-def test_v005_token_metadata_and_aggregate_measures_are_typed() -> None:
+def test_v009_token_response_shapes_keep_usage_state_off_point_metadata() -> None:
+    common = {
+        "id": 7,
+        "issued": "2026-07-25T10:00:00Z",
+        "revision": 1,
+    }
+    current = CurrentTokenMetadata.model_validate(common | {"last_used_at": "2026-07-25T10:01:00Z"})
+    point = PrincipalTokenPoint.model_validate(common | {"principal_id": 21})
+    metadata = PrincipalTokenMetadata.model_validate(
+        common
+        | {
+            "principal_id": 21,
+            "last_used_at": "2026-07-25T10:01:00Z",
+            "scope": {
+                "permissions": ["ReadObject"],
+                "resources": [{"kind": "object", "id": 13}],
+                "future_dimension": True,
+            },
+            "active": True,
+            "expired": False,
+        }
+    )
+
+    assert current.last_used_at == datetime(2026, 7, 25, 10, 1, tzinfo=UTC)
+    assert "revoked_at" not in CurrentTokenMetadata.model_fields
+    assert "last_used_at" not in PrincipalTokenPoint.model_fields
+    assert not hasattr(point, "last_used_at")
+    assert metadata.last_used_at == datetime(2026, 7, 25, 10, 1, tzinfo=UTC)
+
+
+def test_v009_token_metadata_and_aggregate_measures_are_typed() -> None:
     metadata = PrincipalTokenMetadata.model_validate(
         {
             "id": 7,

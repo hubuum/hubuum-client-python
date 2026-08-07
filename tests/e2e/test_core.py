@@ -35,6 +35,7 @@ from hubuum_client import (
     OpenAPIOptions,
     Permission,
     PermissionDeniedError,
+    PreconditionFailedError,
     PrincipalId,
     Query,
     RestoreTimestamps,
@@ -126,6 +127,48 @@ def test_public_config_authentication_and_core_crud(
             client.classes.by_id(hubuum_class.id).objects.delete(hubuum_object.id)
         if hubuum_class is not None:
             client.classes.delete(hubuum_class.id)
+        client.collections.delete(collection.id)
+
+
+def test_stale_if_match_maps_to_precondition_failed(
+    client: Client,
+    admin_group_id: GroupId,
+    unique_name: str,
+) -> None:
+    collection = client.collections.create(
+        CollectionCreate(
+            name=f"{unique_name}-precondition-collection",
+            description="Precondition mapping e2e collection",
+            group_id=admin_group_id,
+        )
+    )
+    path = f"/api/v1/collections/{collection.id}"
+    try:
+        with client.stream("GET", path) as response:
+            assert response.status_code == 200
+            stale_etag = response.headers.get("etag")
+            assert stale_etag is not None
+            assert b"".join(response.iter_bytes())
+
+        updated = client.collections.update(
+            collection.id,
+            CollectionUpdate(description="Revision advanced before stale update"),
+        )
+        assert updated.revision > collection.revision
+
+        with pytest.raises(PreconditionFailedError) as raised:
+            client.openapi.call(
+                "patchApiV1CollectionsByCollectionId",
+                json={"description": "This stale update must not be applied"},
+                options=OpenAPIOptions(
+                    path_params={"collection_id": collection.id},
+                    headers={"If-Match": stale_etag},
+                ),
+            )
+
+        assert raised.value.status_code == 412
+        assert client.collections.get(collection.id).description == updated.description
+    finally:
         client.collections.delete(collection.id)
 
 
