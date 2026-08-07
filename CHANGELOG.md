@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.0.6] - 2026-08-07
+
 ### Added
 
 - Added typed positive resource revisions, distinct v0.0.9 list and point
@@ -25,6 +27,8 @@ All notable changes to this project are documented here. The format follows
   `sha256:1f12baf882b6d3df5b4b2dbdf26aad0793274e57f86a2c186b8e1e68632db5db`.
 - Updated imports to emit the required v2 format and exposed the public maximum
   token lifetime alongside the default lifetime.
+- Refreshed the locked development and test dependencies immediately before
+  release.
 
 ## [0.0.5] - 2026-08-05
 
@@ -194,7 +198,8 @@ All notable changes to this project are documented here. The format follows
   error diagnostics.
 - Redacted login tokens from model representations.
 
-[Unreleased]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.5...HEAD
+[Unreleased]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.6...HEAD
+[0.0.6]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.2...v0.0.3

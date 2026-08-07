@@ -12,10 +12,9 @@ resource IDs, immutable queries, cursor pagination, structured errors, and a
 contract-checked interface for all 202 operations in the server's OpenAPI
 surface.
 
-The current development version targets Hubuum server **v0.0.9**. Compatibility
-is tested against the tag-and-digest server image recorded in the
-[compatibility matrix](docs/compatibility.md). Released client version 0.0.5
-remains the Hubuum server v0.0.8-compatible baseline.
+Version 0.0.6 targets Hubuum server **v0.0.9**. Compatibility is tested against
+the tag-and-digest server image recorded in the
+[compatibility matrix](docs/compatibility.md).
 
 ## Installation
 
