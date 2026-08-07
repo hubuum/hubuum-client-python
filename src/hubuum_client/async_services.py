@@ -51,9 +51,12 @@ from .models import (
     ObjectUpdate,
     PrincipalMember,
     PrincipalTokenMetadata,
+    PrincipalTokenPoint,
     RenderedExport,
+    RenewTokenRequest,
     Task,
     TaskEvent,
+    TokenListState,
     User,
     UserCreate,
     UserUpdate,
@@ -92,17 +95,19 @@ class _AsyncCursorService(Generic[ModelT]):
         *,
         collection_path: str,
         model: type[ModelT],
+        fixed_params: tuple[tuple[str, str], ...] = (),
     ) -> None:
         self._client = client
         self._collection_path = collection_path
         self._model = model
+        self._fixed_params = fixed_params
 
     async def page(self, query: Query | None = None) -> Page[ModelT]:
         """Return one cursor page using immutable query controls."""
         response = await self._client._request_response(
             "GET",
             self._collection_path,
-            options=RequestOptions(params=(query or Query()).as_params()),
+            options=RequestOptions(params=[*self._fixed_params, *(query or Query()).as_params()]),
         )
         items = _decode_model_list(response, self._model)
         return Page(
@@ -568,10 +573,13 @@ class AsyncGroupsService(AsyncResourceService[Group, GroupCreate, GroupUpdate]):
             max_items=max_items,
         )
 
-    async def add_member(self, group_id: GroupId | int, principal_id: PrincipalId | int) -> None:
-        await self._client.request(
+    async def add_member(
+        self, group_id: GroupId | int, principal_id: PrincipalId | int
+    ) -> PrincipalMember:
+        return await self._client.request(
             "POST",
             f"/api/v1/iam/groups/{_segment(group_id)}/members/{_segment(principal_id)}",
+            response_model=PrincipalMember,
         )
 
     async def remove_member(self, group_id: GroupId | int, principal_id: PrincipalId | int) -> None:
@@ -585,79 +593,114 @@ class AsyncTokensService:
     """Async token metadata visible to the current human user."""
 
     def __init__(self, client: AsyncClient) -> None:
-        self._service = AsyncResourceService[PrincipalTokenMetadata, BaseModel, BaseModel](
-            client,
-            collection_path="/api/v1/iam/me/tokens",
-            item_path="/api/v1/iam/me/tokens/{id}",
-            model=PrincipalTokenMetadata,
-        )
         self._client = client
 
-    async def page(self, query: Query | None = None) -> Page[PrincipalTokenMetadata]:
-        return await self._service.page(query)
+    def _service(self, state: TokenListState) -> _AsyncCursorService[PrincipalTokenMetadata]:
+        return _AsyncCursorService(
+            self._client,
+            collection_path="/api/v1/iam/me/tokens",
+            model=PrincipalTokenMetadata,
+            fixed_params=(("state", state.value),),
+        )
 
-    async def list(self, query: Query | None = None) -> builtins.list[PrincipalTokenMetadata]:
-        return await self._service.list(query)
+    async def page(
+        self,
+        query: Query | None = None,
+        *,
+        state: TokenListState = TokenListState.ACTIVE,
+    ) -> Page[PrincipalTokenMetadata]:
+        return await self._service(state).page(query)
+
+    async def list(
+        self,
+        query: Query | None = None,
+        *,
+        state: TokenListState = TokenListState.ACTIVE,
+    ) -> builtins.list[PrincipalTokenMetadata]:
+        return await self._service(state).list(query)
 
     async def pages(
         self,
         query: Query | None = None,
         *,
+        state: TokenListState = TokenListState.ACTIVE,
         max_pages: int = 100,
     ) -> AsyncIterator[Page[PrincipalTokenMetadata]]:
-        async for page in self._service.pages(query, max_pages=max_pages):
+        async for page in self._service(state).pages(query, max_pages=max_pages):
             yield page
 
     async def all(
         self,
         query: Query | None = None,
         *,
+        state: TokenListState = TokenListState.ACTIVE,
         max_pages: int = 100,
         max_items: int = 10_000,
     ) -> builtins.list[PrincipalTokenMetadata]:
-        return await self._service.all(query, max_pages=max_pages, max_items=max_items)
+        return await self._service(state).all(query, max_pages=max_pages, max_items=max_items)
 
     def for_principal(self, principal_id: PrincipalId | int) -> AsyncPrincipalTokensService:
         return AsyncPrincipalTokensService(self._client, PrincipalId(principal_id))
 
 
 class AsyncPrincipalTokensService:
-    """Async list, mint, and revoke operations for one principal."""
+    """Async list, inspect, mint, renew, and revoke operations for one principal."""
 
     def __init__(self, client: AsyncClient, principal_id: PrincipalId) -> None:
         self._client = client
         self.principal_id = principal_id
         self._base = f"/api/v1/iam/principals/{_segment(principal_id)}/tokens"
-        self._service = AsyncResourceService[PrincipalTokenMetadata, NewTokenRequest, BaseModel](
-            client,
+
+    def _service(self, state: TokenListState) -> _AsyncCursorService[PrincipalTokenMetadata]:
+        return _AsyncCursorService(
+            self._client,
             collection_path=self._base,
-            item_path=f"{self._base}/{{id}}",
             model=PrincipalTokenMetadata,
+            fixed_params=(("state", state.value),),
         )
 
-    async def page(self, query: Query | None = None) -> Page[PrincipalTokenMetadata]:
-        return await self._service.page(query)
+    async def page(
+        self,
+        query: Query | None = None,
+        *,
+        state: TokenListState = TokenListState.ACTIVE,
+    ) -> Page[PrincipalTokenMetadata]:
+        return await self._service(state).page(query)
 
-    async def list(self, query: Query | None = None) -> builtins.list[PrincipalTokenMetadata]:
-        return await self._service.list(query)
+    async def list(
+        self,
+        query: Query | None = None,
+        *,
+        state: TokenListState = TokenListState.ACTIVE,
+    ) -> builtins.list[PrincipalTokenMetadata]:
+        return await self._service(state).list(query)
 
     async def pages(
         self,
         query: Query | None = None,
         *,
+        state: TokenListState = TokenListState.ACTIVE,
         max_pages: int = 100,
     ) -> AsyncIterator[Page[PrincipalTokenMetadata]]:
-        async for page in self._service.pages(query, max_pages=max_pages):
+        async for page in self._service(state).pages(query, max_pages=max_pages):
             yield page
 
     async def all(
         self,
         query: Query | None = None,
         *,
+        state: TokenListState = TokenListState.ACTIVE,
         max_pages: int = 100,
         max_items: int = 10_000,
     ) -> builtins.list[PrincipalTokenMetadata]:
-        return await self._service.all(query, max_pages=max_pages, max_items=max_items)
+        return await self._service(state).all(query, max_pages=max_pages, max_items=max_items)
+
+    async def get(self, token_id: TokenId | int) -> PrincipalTokenPoint:
+        return await self._client.request(
+            "GET",
+            f"{self._base}/{_segment(token_id)}",
+            response_model=PrincipalTokenPoint,
+        )
 
     async def create(self, payload: NewTokenRequest) -> AccessToken:
         response = await self._client.request(
@@ -673,6 +716,19 @@ class AsyncPrincipalTokensService:
             "POST",
             f"{self._base}/{_segment(token_id)}/revoke",
         )
+
+    async def renew(
+        self,
+        token_id: TokenId | int,
+        payload: RenewTokenRequest | None = None,
+    ) -> AccessToken:
+        response = await self._client.request(
+            "POST",
+            f"{self._base}/{_segment(token_id)}/renew",
+            json=payload or RenewTokenRequest(),
+            response_model=LoginResponse,
+        )
+        return AccessToken(response.token, expires_at=response.expires_at)
 
 
 class AsyncClassRelationsService:

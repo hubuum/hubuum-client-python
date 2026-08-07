@@ -5,7 +5,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
-from typing import NewType
+from typing import Annotated, NewType, TypeAlias
+
+from pydantic import Field
+
+_MAX_LOGIN_NAME_CHARS = 255
+_MAX_LOGIN_PASSWORD_CHARS = 4_096
+_MAX_LOGIN_SCOPE_CHARS = 255
 
 CollectionId = NewType("CollectionId", int)
 ClassId = NewType("ClassId", int)
@@ -19,6 +25,7 @@ TaskId = NewType("TaskId", int)
 TaskEventId = NewType("TaskEventId", int)
 TokenId = NewType("TokenId", int)
 ImportResultId = NewType("ImportResultId", int)
+ResourceRevision: TypeAlias = Annotated[int, Field(ge=1)]
 
 
 @dataclass(frozen=True, slots=True, repr=False)
@@ -28,6 +35,14 @@ class Credentials:
     name: str
     password: str
     identity_scope: str | None = None
+
+    def __post_init__(self) -> None:
+        if len(self.name) > _MAX_LOGIN_NAME_CHARS:
+            raise ValueError("login name must not exceed 255 characters")
+        if len(self.password) > _MAX_LOGIN_PASSWORD_CHARS:
+            raise ValueError("login password must not exceed 4096 characters")
+        if self.identity_scope is not None and len(self.identity_scope) > _MAX_LOGIN_SCOPE_CHARS:
+            raise ValueError("login identity scope must not exceed 255 characters")
 
     def __repr__(self) -> str:
         return (

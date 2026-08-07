@@ -14,6 +14,7 @@ def collection_json() -> dict[str, Any]:
         "parent_collection_id": None,
         "created_at": "2026-07-21T10:00:00Z",
         "updated_at": "2026-07-21T10:00:00Z",
+        "revision": 1,
     }
 
 
@@ -28,6 +29,7 @@ def class_json() -> dict[str, Any]:
         "json_schema": None,
         "created_at": "2026-07-21T10:00:00Z",
         "updated_at": "2026-07-21T10:00:00Z",
+        "revision": 1,
     }
 
 
@@ -42,4 +44,5 @@ def object_json() -> dict[str, Any]:
         "description": "Web server",
         "created_at": "2026-07-21T10:00:00Z",
         "updated_at": "2026-07-21T10:00:00Z",
+        "revision": 1,
     }

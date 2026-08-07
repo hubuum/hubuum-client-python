@@ -14,7 +14,7 @@ with Client("https://hubuum.example.com") as client:
 
 `login()` authenticates the current client and returns it for optional chaining.
 The resulting `client.token.expires_at` contains the authoritative expiry
-persisted by Hubuum v0.0.8. A token supplied directly at construction has no
+persisted by Hubuum v0.0.9. A token supplied directly at construction has no
 known expiry unless its `AccessToken` value includes one.
 An existing bearer token can be supplied at construction:
 

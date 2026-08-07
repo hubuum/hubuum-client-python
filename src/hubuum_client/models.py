@@ -20,6 +20,7 @@ from .types import (
     ObjectId,
     ObjectRelationId,
     PrincipalId,
+    ResourceRevision,
     TaskEventId,
     TaskId,
     TokenId,
@@ -57,6 +58,7 @@ class ClientAuthenticationConfig(HubuumModel):
     """Public authentication settings needed by API consumers."""
 
     default_token_lifetime_hours: int = Field(ge=1)
+    max_token_lifetime_hours: int = Field(ge=1)
 
 
 class ClientPaginationConfig(HubuumModel):
@@ -85,6 +87,7 @@ class Collection(HubuumModel):
     parent_collection_id: CollectionId | None = None
     created_at: datetime
     updated_at: datetime
+    revision: ResourceRevision
 
 
 class CollectionCreate(RequestModel):
@@ -109,6 +112,7 @@ class HubuumClass(HubuumModel):
     json_schema: JsonValue | None = Field(default=None, repr=False)
     created_at: datetime
     updated_at: datetime
+    revision: ResourceRevision
 
     @model_validator(mode="before")
     @classmethod
@@ -149,6 +153,7 @@ class HubuumObject(HubuumModel):
     description: str
     created_at: datetime
     updated_at: datetime
+    revision: ResourceRevision
 
 
 class ObjectAggregateValueState(StrEnum):
@@ -262,8 +267,9 @@ def _object_data_patch_payload(
 
 class User(HubuumModel):
     id: UserId
-    identity_scope: str
-    provider_kind: str
+    identity_scope: str | None = None
+    identity_scope_id: int | None = None
+    provider_kind: str | None = None
     provider_managed: bool
     name: str
     email: str | None = None
@@ -272,6 +278,7 @@ class User(HubuumModel):
     updated_at: datetime
     last_sync_attempted_at: datetime | None = None
     last_sync_success_at: datetime | None = None
+    revision: ResourceRevision
 
 
 class UserCreate(RequestModel):
@@ -292,8 +299,8 @@ class Group(HubuumModel):
     id: GroupId
     groupname: str
     description: str
-    # The runtime can return the scope name while OpenAPI declares
-    # identity_scope_id. Accept both until the server contract converges.
+    # List/point responses expose the scope name while lower-level server
+    # representations use the stable identity_scope_id.
     identity_scope: str | None = None
     identity_scope_id: int | None = None
     managed_by: str
@@ -302,6 +309,7 @@ class Group(HubuumModel):
     updated_at: datetime
     last_sync_attempted_at: datetime | None = None
     last_sync_success_at: datetime | None = None
+    revision: ResourceRevision
 
 
 class GroupCreate(RequestModel):
@@ -332,6 +340,7 @@ class ClassRelation(HubuumModel):
     to_max_relations: ObjectRelationLimit | None = None
     created_at: datetime
     updated_at: datetime
+    revision: ResourceRevision
 
 
 class ClassRelationCreate(RequestModel):
@@ -357,6 +366,7 @@ class ObjectRelation(HubuumModel):
     class_relation_id: ClassRelationId
     created_at: datetime
     updated_at: datetime
+    revision: ResourceRevision
 
 
 class ObjectRelationCreate(RequestModel):
@@ -510,7 +520,7 @@ class ExportJsonResponse(HubuumModel):
 class RestoreTimestamps(RequestModel):
     """Original UTC timestamps restored by an authorized import.
 
-    Hubuum v0.0.8 accepts timezone-free ISO 8601 values and interprets them as
+    Hubuum v0.0.9 accepts timezone-free ISO 8601 values and interprets them as
     UTC. The update timestamp must not precede the creation timestamp.
     """
 
@@ -557,6 +567,31 @@ class ObjectKey(RequestModel):
     class_key: ClassKey | None = None
 
 
+class ImportWriteMode(StrEnum):
+    """Per-item collision and revision behavior for Hubuum import v2."""
+
+    CREATE_ONLY = "create_only"
+    OVERWRITE = "overwrite"
+    IF_REVISION = "if_revision"
+
+
+class ImportWriteCondition(RequestModel):
+    """One import-v2 write condition checked by the queued worker."""
+
+    mode: ImportWriteMode
+    expected_revision: ResourceRevision | None = None
+
+    @model_validator(mode="after")
+    def validate_expected_revision(self) -> Self:
+        if self.mode is ImportWriteMode.IF_REVISION and self.expected_revision is None:
+            raise ValueError("if_revision requires expected_revision")
+        if self.mode is not ImportWriteMode.IF_REVISION and self.expected_revision is not None:
+            raise ValueError("expected_revision is only valid for if_revision")
+        if self.expected_revision is not None and self.expected_revision < 1:
+            raise ValueError("expected_revision must be positive")
+        return self
+
+
 class ImportCollectionInput(RequestModel):
     """Collection definition in a Hubuum import graph."""
 
@@ -566,6 +601,7 @@ class ImportCollectionInput(RequestModel):
     parent_collection_ref: str | None = None
     parent_collection_key: CollectionKey | None = None
     timestamps: RestoreTimestamps | None = None
+    condition: ImportWriteCondition | None = None
 
 
 class ImportClassInput(RequestModel):
@@ -579,6 +615,7 @@ class ImportClassInput(RequestModel):
     collection_ref: str | None = None
     collection_key: CollectionKey | None = None
     timestamps: RestoreTimestamps | None = None
+    condition: ImportWriteCondition | None = None
 
 
 class ImportObjectInput(RequestModel):
@@ -591,10 +628,11 @@ class ImportObjectInput(RequestModel):
     class_ref: str | None = None
     class_key: ClassKey | None = None
     timestamps: RestoreTimestamps | None = None
+    condition: ImportWriteCondition | None = None
 
 
 class ImportClassRelationInput(RequestModel):
-    """Class relation definition, including v0.0.8 cardinality and timestamps."""
+    """Class relation definition, including cardinality and import-v2 controls."""
 
     ref_: str | None = Field(default=None, alias="ref")
     from_class_ref: str | None = None
@@ -606,6 +644,7 @@ class ImportClassRelationInput(RequestModel):
     from_max_relations: ObjectRelationLimit | None = None
     to_max_relations: ObjectRelationLimit | None = None
     timestamps: RestoreTimestamps | None = None
+    condition: ImportWriteCondition | None = None
 
 
 class ImportObjectRelationInput(RequestModel):
@@ -617,6 +656,7 @@ class ImportObjectRelationInput(RequestModel):
     to_object_ref: str | None = None
     to_object_key: ObjectKey | None = None
     timestamps: RestoreTimestamps | None = None
+    condition: ImportWriteCondition | None = None
 
 
 class ImportCollectionPermissionInput(RequestModel):
@@ -628,6 +668,7 @@ class ImportCollectionPermissionInput(RequestModel):
     group_key: GroupKey
     permissions: tuple[Permission, ...]
     replace_existing: bool | None = None
+    condition: ImportWriteCondition | None = None
 
 
 class ImportAtomicity(StrEnum):
@@ -663,7 +704,7 @@ class ImportGraph(RequestModel):
     """Complete import graph with typed core resources.
 
     Identity and integration sections remain JSON-object sequences so the
-    complete v0.0.8 graph is accepted without exposing unstable or
+    complete v0.0.9 graph is accepted without exposing unstable or
     secret-bearing integration configuration in representations. Core
     collection, class, object, relation, and collection-permission sections
     are fully typed.
@@ -683,6 +724,7 @@ class ImportGraph(RequestModel):
     remote_targets: tuple[dict[str, JsonValue], ...] = Field(default=(), repr=False)
     event_sinks: tuple[dict[str, JsonValue], ...] = Field(default=(), repr=False)
     event_subscriptions: tuple[dict[str, JsonValue], ...] = Field(default=(), repr=False)
+    computed_fields: tuple[dict[str, JsonValue], ...] = Field(default=(), repr=False)
 
     @property
     def total_items(self) -> int:
@@ -704,18 +746,19 @@ class ImportGraph(RequestModel):
                 self.remote_targets,
                 self.event_sinks,
                 self.event_subscriptions,
+                self.computed_fields,
             )
         )
 
 
-CURRENT_IMPORT_VERSION: Literal[1] = 1
+CURRENT_IMPORT_VERSION: Literal[2] = 2
 
 
 class ImportRequest(RequestModel):
     """Versioned asynchronous import request for the complete Hubuum graph."""
 
     graph: ImportGraph = Field(repr=False)
-    version: Literal[1] = CURRENT_IMPORT_VERSION
+    version: Literal[2] = CURRENT_IMPORT_VERSION
     dry_run: bool | None = None
     mode: ImportMode | None = None
 
@@ -739,15 +782,30 @@ class ImportTaskResult(HubuumModel):
     item_ref: str | None = None
     error: str | None = Field(default=None, repr=False)
     details: JsonValue | None = Field(default=None, repr=False)
+    observed_revision: ResourceRevision | None = None
 
 
-class PrincipalMember(HubuumModel):
+class MembershipPrincipal(HubuumModel):
+    """Principal details nested in a membership or current-user response."""
+
     principal_id: PrincipalId
     identity_scope: str
     kind: str
     name: str
     created_at: datetime
     updated_at: datetime
+    revision: ResourceRevision
+
+
+class PrincipalMember(HubuumModel):
+    """Revision-owned membership between a principal and a group."""
+
+    principal_id: PrincipalId
+    group_id: GroupId
+    created_at: datetime
+    updated_at: datetime
+    revision: ResourceRevision
+    principal: MembershipPrincipal | None = None
 
 
 class Permission(StrEnum):
@@ -805,12 +863,18 @@ class TokenScope(RequestModel):
 
 
 class NewTokenRequest(RequestModel):
-    """Hubuum v0.0.5 token-mint request using the nested ``scope`` wire field."""
+    """Token-mint request using Hubuum's nested ``scope`` wire field."""
 
     description: str | None = None
     expires_at: datetime | None = None
     name: str | None = None
     scope: TokenScope | None = None
+
+
+class RenewTokenRequest(RequestModel):
+    """Optional expiry override for a renewed token."""
+
+    expires_at: datetime | None = None
 
 
 class TokenResourceScopeDetails(HubuumModel):
@@ -836,14 +900,33 @@ class CurrentTokenMetadata(HubuumModel):
     name: str | None = None
     revoked_at: datetime | None = None
     scope: TokenScopeDetails | None = None
+    revision: ResourceRevision
 
 
-class PrincipalTokenMetadata(CurrentTokenMetadata):
+class PrincipalTokenPoint(CurrentTokenMetadata):
+    """Canonical point-in-time token metadata without routine usage state."""
+
     principal_id: PrincipalId
 
 
+class PrincipalTokenMetadata(PrincipalTokenPoint):
+    """Lifecycle-aware token metadata returned by retained-token lists."""
+
+    active: bool
+    expired: bool
+
+
+class TokenListState(StrEnum):
+    """Retained-token lifecycle subset selected by token list operations."""
+
+    ACTIVE = "active"
+    EXPIRED = "expired"
+    REVOKED = "revoked"
+    ALL = "all"
+
+
 class MeResponse(HubuumModel):
-    principal: PrincipalMember
+    principal: MembershipPrincipal
     token: CurrentTokenMetadata
 
 
@@ -913,7 +996,7 @@ class ImportTaskDetails(HubuumModel):
 
 
 class ExportTaskDetails(HubuumModel):
-    """Export output state and v0.0.8 phase-duration measurements."""
+    """Export output state and v0.0.9 phase-duration measurements."""
 
     output_url: str = Field(repr=False)
     output_available: bool
@@ -941,7 +1024,7 @@ class BackupTaskDetails(HubuumModel):
 
 
 class TaskDetails(HubuumModel):
-    """Kind-specific task metadata exposed by Hubuum v0.0.8."""
+    """Kind-specific task metadata exposed by Hubuum v0.0.9."""
 
     import_: ImportTaskDetails | None = Field(default=None, alias="import")
     export: ExportTaskDetails | None = None

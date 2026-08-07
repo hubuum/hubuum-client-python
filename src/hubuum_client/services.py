@@ -50,9 +50,12 @@ from .models import (
     ObjectUpdate,
     PrincipalMember,
     PrincipalTokenMetadata,
+    PrincipalTokenPoint,
     RenderedExport,
+    RenewTokenRequest,
     Task,
     TaskEvent,
+    TokenListState,
     User,
     UserCreate,
     UserUpdate,
@@ -84,17 +87,19 @@ class _CursorService(Generic[ModelT]):
         *,
         collection_path: str,
         model: type[ModelT],
+        fixed_params: tuple[tuple[str, str], ...] = (),
     ) -> None:
         self._client = client
         self._collection_path = collection_path
         self._model = model
+        self._fixed_params = fixed_params
 
     def page(self, query: Query | None = None) -> Page[ModelT]:
         """Return one cursor page using immutable query controls."""
         response = self._client._request_response(
             "GET",
             self._collection_path,
-            options=RequestOptions(params=(query or Query()).as_params()),
+            options=RequestOptions(params=[*self._fixed_params, *(query or Query()).as_params()]),
         )
         items = _decode_model_list(response, self._model)
         return Page(
@@ -545,10 +550,13 @@ class GroupsService(ResourceService[Group, GroupCreate, GroupUpdate]):
             max_items=max_items,
         )
 
-    def add_member(self, group_id: GroupId | int, principal_id: PrincipalId | int) -> None:
-        self._client.request(
+    def add_member(
+        self, group_id: GroupId | int, principal_id: PrincipalId | int
+    ) -> PrincipalMember:
+        return self._client.request(
             "POST",
             f"/api/v1/iam/groups/{_segment(group_id)}/members/{_segment(principal_id)}",
+            response_model=PrincipalMember,
         )
 
     def remove_member(self, group_id: GroupId | int, principal_id: PrincipalId | int) -> None:
@@ -562,77 +570,112 @@ class TokensService:
     """Token metadata visible to the current human user."""
 
     def __init__(self, client: Client) -> None:
-        self._service = ResourceService[PrincipalTokenMetadata, BaseModel, BaseModel](
-            client,
-            collection_path="/api/v1/iam/me/tokens",
-            item_path="/api/v1/iam/me/tokens/{id}",
-            model=PrincipalTokenMetadata,
-        )
         self._client = client
 
-    def page(self, query: Query | None = None) -> Page[PrincipalTokenMetadata]:
-        return self._service.page(query)
+    def _service(self, state: TokenListState) -> _CursorService[PrincipalTokenMetadata]:
+        return _CursorService(
+            self._client,
+            collection_path="/api/v1/iam/me/tokens",
+            model=PrincipalTokenMetadata,
+            fixed_params=(("state", state.value),),
+        )
 
-    def list(self, query: Query | None = None) -> builtins.list[PrincipalTokenMetadata]:
-        return self._service.list(query)
+    def page(
+        self,
+        query: Query | None = None,
+        *,
+        state: TokenListState = TokenListState.ACTIVE,
+    ) -> Page[PrincipalTokenMetadata]:
+        return self._service(state).page(query)
+
+    def list(
+        self,
+        query: Query | None = None,
+        *,
+        state: TokenListState = TokenListState.ACTIVE,
+    ) -> builtins.list[PrincipalTokenMetadata]:
+        return self._service(state).list(query)
 
     def pages(
         self,
         query: Query | None = None,
         *,
+        state: TokenListState = TokenListState.ACTIVE,
         max_pages: int = 100,
     ) -> Iterator[Page[PrincipalTokenMetadata]]:
-        return self._service.pages(query, max_pages=max_pages)
+        return self._service(state).pages(query, max_pages=max_pages)
 
     def all(
         self,
         query: Query | None = None,
         *,
+        state: TokenListState = TokenListState.ACTIVE,
         max_pages: int = 100,
         max_items: int = 10_000,
     ) -> builtins.list[PrincipalTokenMetadata]:
-        return self._service.all(query, max_pages=max_pages, max_items=max_items)
+        return self._service(state).all(query, max_pages=max_pages, max_items=max_items)
 
     def for_principal(self, principal_id: PrincipalId | int) -> PrincipalTokensService:
         return PrincipalTokensService(self._client, PrincipalId(principal_id))
 
 
 class PrincipalTokensService:
-    """List, mint, and revoke tokens for one principal."""
+    """List, inspect, mint, renew, and revoke tokens for one principal."""
 
     def __init__(self, client: Client, principal_id: PrincipalId) -> None:
         self._client = client
         self.principal_id = principal_id
         self._base = f"/api/v1/iam/principals/{_segment(principal_id)}/tokens"
-        self._service = ResourceService[PrincipalTokenMetadata, NewTokenRequest, BaseModel](
-            client,
+
+    def _service(self, state: TokenListState) -> _CursorService[PrincipalTokenMetadata]:
+        return _CursorService(
+            self._client,
             collection_path=self._base,
-            item_path=f"{self._base}/{{id}}",
             model=PrincipalTokenMetadata,
+            fixed_params=(("state", state.value),),
         )
 
-    def page(self, query: Query | None = None) -> Page[PrincipalTokenMetadata]:
-        return self._service.page(query)
+    def page(
+        self,
+        query: Query | None = None,
+        *,
+        state: TokenListState = TokenListState.ACTIVE,
+    ) -> Page[PrincipalTokenMetadata]:
+        return self._service(state).page(query)
 
-    def list(self, query: Query | None = None) -> builtins.list[PrincipalTokenMetadata]:
-        return self._service.list(query)
+    def list(
+        self,
+        query: Query | None = None,
+        *,
+        state: TokenListState = TokenListState.ACTIVE,
+    ) -> builtins.list[PrincipalTokenMetadata]:
+        return self._service(state).list(query)
 
     def pages(
         self,
         query: Query | None = None,
         *,
+        state: TokenListState = TokenListState.ACTIVE,
         max_pages: int = 100,
     ) -> Iterator[Page[PrincipalTokenMetadata]]:
-        return self._service.pages(query, max_pages=max_pages)
+        return self._service(state).pages(query, max_pages=max_pages)
 
     def all(
         self,
         query: Query | None = None,
         *,
+        state: TokenListState = TokenListState.ACTIVE,
         max_pages: int = 100,
         max_items: int = 10_000,
     ) -> builtins.list[PrincipalTokenMetadata]:
-        return self._service.all(query, max_pages=max_pages, max_items=max_items)
+        return self._service(state).all(query, max_pages=max_pages, max_items=max_items)
+
+    def get(self, token_id: TokenId | int) -> PrincipalTokenPoint:
+        return self._client.request(
+            "GET",
+            f"{self._base}/{_segment(token_id)}",
+            response_model=PrincipalTokenPoint,
+        )
 
     def create(self, payload: NewTokenRequest) -> AccessToken:
         response = self._client.request(
@@ -648,6 +691,19 @@ class PrincipalTokensService:
             "POST",
             f"{self._base}/{_segment(token_id)}/revoke",
         )
+
+    def renew(
+        self,
+        token_id: TokenId | int,
+        payload: RenewTokenRequest | None = None,
+    ) -> AccessToken:
+        response = self._client.request(
+            "POST",
+            f"{self._base}/{_segment(token_id)}/renew",
+            json=payload or RenewTokenRequest(),
+            response_model=LoginResponse,
+        )
+        return AccessToken(response.token, expires_at=response.expires_at)
 
 
 class ClassRelationsService:

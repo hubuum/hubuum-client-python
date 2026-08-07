@@ -128,6 +128,10 @@
 
 ::: hubuum_client.ImportGraph
 
+::: hubuum_client.ImportWriteCondition
+
+::: hubuum_client.ImportWriteMode
+
 ::: hubuum_client.RestoreTimestamps
 
 ::: hubuum_client.ImportTaskResult
@@ -144,11 +148,21 @@
 
 ::: hubuum_client.NewTokenRequest
 
+::: hubuum_client.RenewTokenRequest
+
+::: hubuum_client.TokenListState
+
 ::: hubuum_client.TokenScope
 
 ::: hubuum_client.TokenResourceScope
 
 ::: hubuum_client.PrincipalTokenMetadata
+
+::: hubuum_client.PrincipalTokenPoint
+
+::: hubuum_client.PrincipalMember
+
+::: hubuum_client.MembershipPrincipal
 
 ::: hubuum_client.CurrentTokenMetadata
 
@@ -171,3 +185,5 @@
 ::: hubuum_client.DecodeError
 
 ::: hubuum_client.TaskUnsuccessfulError
+
+::: hubuum_client.PreconditionFailedError

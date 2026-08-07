@@ -40,9 +40,9 @@ def _async_client(handler: Callable[[httpx.Request], httpx.Response]) -> AsyncCl
     )
 
 
-def test_manifest_deliberately_covers_all_v003_operations() -> None:
-    assert len(OPERATIONS) == 196
-    assert len(SUPPORTED_OPERATIONS) == 196
+def test_manifest_deliberately_covers_all_v009_operations() -> None:
+    assert len(OPERATIONS) == 202
+    assert len(SUPPORTED_OPERATIONS) == 202
     assert OPERATIONS["getApiV1SearchStream"].path == "/api/v1/search/stream"
     assert (
         OPERATIONS[
@@ -52,6 +52,11 @@ def test_manifest_deliberately_covers_all_v003_operations() -> None:
     )
     assert OPERATIONS["deleteApiV1ClassesByClassId"].response_media_types == ()
     assert OPERATIONS["getApiV1Config"].response_media_types == ("application/json",)
+    assert OPERATIONS["patchApiV1IamMeSettings"].request_media_types == (
+        "application/json",
+        "application/json-patch+json",
+        "application/merge-patch+json",
+    )
     assert OPERATIONS["getApiV1ExportsByTaskIdOutput"].response_media_types == (
         "application/json",
         "text/csv",
@@ -145,6 +150,30 @@ def test_openapi_call_formats_paths_media_types_and_response_modes() -> None:
     assert requests[2].headers["accept"] == "text/csv"
 
 
+def test_openapi_call_selects_one_declared_request_media_type() -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, json={"revision": 2, "settings": {"theme": "dark"}})
+
+    with _client(handler) as client:
+        result = client.openapi.call(
+            "patchApiV1IamMeSettings",
+            json=[{"op": "replace", "path": "/theme", "value": "dark"}],
+            options=OpenAPIOptions(content_type="application/json-patch+json"),
+        )
+        with pytest.raises(ValueError, match="unsupported content type"):
+            client.openapi.call(
+                "patchApiV1IamMeSettings",
+                json={},
+                options=OpenAPIOptions(content_type="text/plain"),
+            )
+
+    assert result == {"revision": 2, "settings": {"theme": "dark"}}
+    assert requests[0].headers["content-type"] == "application/json-patch+json"
+
+
 @pytest.mark.parametrize(
     ("call", "message"),
     [
@@ -232,7 +261,7 @@ async def test_async_openapi_call_and_stream_match_sync_behavior() -> None:
         return httpx.Response(200, json={"id": 9})
 
     async with _async_client(handler) as client:
-        assert len(client.openapi.operation_ids) == 196
+        assert len(client.openapi.operation_ids) == 202
         assert client.openapi.operation("getApiV1TasksByTaskId").method == "GET"
         result = await client.openapi.call(
             "getApiV1TasksByTaskId",
@@ -281,7 +310,7 @@ def test_openapi_binary_empty_and_operation_metadata() -> None:
     )
 
     with _client(lambda request: next(responses)) as client:
-        assert len(client.openapi.operation_ids) == 196
+        assert len(client.openapi.operation_ids) == 202
         assert client.openapi.operation("getApiV1Config").path == "/api/v1/config"
         assert client.openapi.call("getApiV1Config") == b"\x00\x01"
         assert client.openapi.call("getApiV1Config") is None

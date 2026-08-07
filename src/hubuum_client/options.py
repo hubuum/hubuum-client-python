@@ -45,3 +45,4 @@ class OpenAPIOptions:
     params: Params = None
     headers: Mapping[str, str] | None = None
     accept: str | None = None
+    content_type: str | None = None

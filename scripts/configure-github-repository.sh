@@ -206,7 +206,7 @@ gh api --silent --method PUT \
   "required_status_checks": {
     "strict": true,
     "checks": [
-      {"context": "Pinned Hubuum v0.0.8 e2e"}
+      {"context": "Pinned Hubuum v0.0.9 e2e"}
     ]
   },
   "enforce_admins": false,

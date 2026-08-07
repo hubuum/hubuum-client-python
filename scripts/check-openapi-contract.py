@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the immutable Hubuum v0.0.8 OpenAPI source."""
+"""Validate the immutable Hubuum v0.0.9 OpenAPI source."""
 
 from __future__ import annotations
 
@@ -13,11 +13,11 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
-TARGET_REVISION = "9de161ff05f563302cfe6f74b04b80c1f617f5d6"
+TARGET_REVISION = "04367a8d6eb38e4356b4e4673269b356f46bbcc3"
 TARGET_URL = f"https://raw.githubusercontent.com/hubuum/hubuum/{TARGET_REVISION}/docs/openapi.json"
-TARGET_SHA256 = "15329801b66af891b18f231d8faa81daf0c6ca12e0e581632e10e9ba3b88295a"
-TARGET_VERSION = "0.0.8"
-TARGET_OPERATION_COUNT = 196
+TARGET_SHA256 = "f4fcadd502ec3329973de7eb879f483ced9de232139057c9c951b89f8088e0dd"
+TARGET_VERSION = "0.0.9"
+TARGET_OPERATION_COUNT = 202
 MAX_SOURCE_BYTES = 10 * 1024 * 1024
 HTTP_METHODS = {"get", "put", "post", "delete", "patch", "head", "options", "trace"}
 REQUIRED_OPERATIONS = {
@@ -74,8 +74,8 @@ def _operations(document: dict[str, Any]) -> set[tuple[str, str]]:
 
 def _operation_manifest(
     document: dict[str, Any],
-) -> dict[str, tuple[str, str, str | None, tuple[str, ...]]]:
-    result: dict[str, tuple[str, str, str | None, tuple[str, ...]]] = {}
+) -> dict[str, tuple[str, str, tuple[str, ...], tuple[str, ...]]]:
+    result: dict[str, tuple[str, str, tuple[str, ...], tuple[str, ...]]] = {}
     for path, path_item in document.get("paths", {}).items():
         if not isinstance(path_item, dict):
             continue
@@ -87,8 +87,6 @@ def _operation_manifest(
                 raise ValueError(f"{method.upper()} {path} has no operationId")
             content = operation.get("requestBody", {}).get("content", {})
             media_types = sorted(content) if isinstance(content, dict) else []
-            if len(media_types) > 1:
-                raise ValueError(f"{operation_id} has multiple request media types")
             response_media_types: set[str] = set()
             for status, response in operation.get("responses", {}).items():
                 if not str(status).startswith("2") or not isinstance(response, dict):
@@ -99,13 +97,13 @@ def _operation_manifest(
             result[operation_id] = (
                 method.upper(),
                 path,
-                media_types[0] if media_types else None,
+                tuple(media_types),
                 tuple(sorted(response_media_types)),
             )
     return result
 
 
-def _client_manifest() -> dict[str, tuple[str, str, str | None, tuple[str, ...]]]:
+def _client_manifest() -> dict[str, tuple[str, str, tuple[str, ...], tuple[str, ...]]]:
     spec = importlib.util.spec_from_file_location("_hubuum_client_operations", CLIENT_MANIFEST)
     if spec is None or spec.loader is None:
         raise ValueError("could not load the client operation manifest")
@@ -116,7 +114,7 @@ def _client_manifest() -> dict[str, tuple[str, str, str | None, tuple[str, ...]]
         operation_id: (
             item.method,
             item.path,
-            item.request_media_type,
+            item.request_media_types,
             item.response_media_types,
         )
         for operation_id, item in module.OPERATIONS.items()
@@ -167,7 +165,7 @@ def main() -> int:
         "source",
         nargs="?",
         default=TARGET_URL,
-        help="OpenAPI file or URL; defaults to the immutable v0.0.8 release commit",
+        help="OpenAPI file or URL; defaults to the immutable v0.0.9 release commit",
     )
     args = parser.parse_args()
     try:

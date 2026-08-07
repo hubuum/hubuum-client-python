@@ -41,10 +41,12 @@ from hubuum_client import (
     PrincipalMember,
     Query,
     RenderedExport,
+    RenewTokenRequest,
     RequestOptions,
     ResultCardinalityError,
     TaskId,
     TokenId,
+    TokenListState,
     TokenResourceKind,
     TokenResourceScope,
     TokenScope,
@@ -96,6 +98,7 @@ def _group_json() -> dict[str, Any]:
         "managed_by": "local",
         "created_at": "2026-07-21T10:00:00Z",
         "updated_at": "2026-07-21T10:00:00Z",
+        "revision": 1,
     }
 
 
@@ -110,10 +113,22 @@ def _user_json() -> dict[str, Any]:
         "proper_name": "Alice",
         "created_at": "2026-07-21T10:00:00Z",
         "updated_at": "2026-07-21T10:00:00Z",
+        "revision": 1,
     }
 
 
 def _principal_member_json() -> dict[str, Any]:
+    return {
+        "principal_id": 21,
+        "group_id": 20,
+        "created_at": "2026-07-21T10:00:00Z",
+        "updated_at": "2026-07-21T10:00:00Z",
+        "revision": 1,
+        "principal": _membership_principal_json(),
+    }
+
+
+def _membership_principal_json() -> dict[str, Any]:
     return {
         "principal_id": 21,
         "identity_scope": "local",
@@ -121,6 +136,7 @@ def _principal_member_json() -> dict[str, Any]:
         "name": "alice",
         "created_at": "2026-07-21T10:00:00Z",
         "updated_at": "2026-07-21T10:00:00Z",
+        "revision": 1,
     }
 
 
@@ -133,6 +149,7 @@ def _class_relation_json() -> dict[str, Any]:
         "reverse_template_alias": "room",
         "created_at": "2026-07-21T10:00:00Z",
         "updated_at": "2026-07-21T10:00:00Z",
+        "revision": 1,
     }
 
 
@@ -144,6 +161,7 @@ def _object_relation_json() -> dict[str, Any]:
         "class_relation_id": 30,
         "created_at": "2026-07-21T10:00:00Z",
         "updated_at": "2026-07-21T10:00:00Z",
+        "revision": 1,
     }
 
 
@@ -178,6 +196,9 @@ def _token_metadata_json() -> dict[str, Any]:
             "permissions": ["ReadCollection"],
             "resources": [{"kind": "collection", "id": 11}],
         },
+        "active": True,
+        "expired": False,
+        "revision": 1,
     }
 
 
@@ -213,7 +234,7 @@ def test_sync_and_async_services_keep_public_method_parity() -> None:
         assert sync_methods == async_methods
 
 
-def test_sync_v005_token_service_uses_nested_scope_and_returns_authoritative_expiry() -> None:
+def test_sync_v009_token_service_supports_lifecycle_reads_and_renewal() -> None:
     requests: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -223,8 +244,13 @@ def test_sync_v005_token_service_uses_nested_scope_and_returns_authoritative_exp
             token.pop("principal_id")
             return httpx.Response(
                 200,
-                json={"principal": _principal_member_json(), "token": token},
+                json={"principal": _membership_principal_json(), "token": token},
             )
+        if request.method == "GET" and request.url.path.endswith("/tokens/50"):
+            token = _token_metadata_json()
+            token.pop("active")
+            token.pop("expired")
+            return httpx.Response(200, json=token)
         if request.method == "GET":
             return httpx.Response(
                 200,
@@ -233,6 +259,14 @@ def test_sync_v005_token_service_uses_nested_scope_and_returns_authoritative_exp
             )
         if request.url.path.endswith("/revoke"):
             return httpx.Response(204)
+        if request.url.path.endswith("/renew"):
+            return httpx.Response(
+                201,
+                json={
+                    "token": "renewed-token-secret",
+                    "expires_at": "2026-07-28T12:00:00Z",
+                },
+            )
         return httpx.Response(
             201,
             json={
@@ -253,7 +287,7 @@ def test_sync_v005_token_service_uses_nested_scope_and_returns_authoritative_exp
     ) as client:
         assert client.me().token.scope is not None
         current = client.tokens
-        assert current.page(Query().limit(25)).items[0].id == TokenId(50)
+        assert current.page(Query().limit(25), state=TokenListState.ALL).items[0].id == TokenId(50)
         assert current.list()[0].scope is not None
         assert len(list(current.pages())) == 1
         assert current.all()[0].principal_id == PrincipalId(21)
@@ -261,19 +295,27 @@ def test_sync_v005_token_service_uses_nested_scope_and_returns_authoritative_exp
         principal = current.for_principal(PrincipalId(21))
         assert principal.principal_id == PrincipalId(21)
         assert principal.page().total_count == 1
-        assert principal.list()[0].id == TokenId(50)
+        assert principal.list(state=TokenListState.REVOKED)[0].id == TokenId(50)
         assert len(list(principal.pages())) == 1
         assert principal.all()[0].name == "inventory-reader"
+        assert principal.get(TokenId(50)).revision == 1
         created = principal.create(payload)
+        renewed = principal.renew(
+            TokenId(50),
+            RenewTokenRequest(expires_at=datetime(2026, 7, 28, 12, tzinfo=UTC)),
+        )
         principal.revoke(TokenId(50))
 
     assert created.value == "minted-token-secret"
     assert created.expires_at == datetime(2026, 7, 27, 12, tzinfo=UTC)
     assert "minted-token-secret" not in repr(created)
+    assert renewed.value == "renewed-token-secret"
+    assert any(request.url.params.get("state") == "all" for request in requests)
+    assert any(request.url.params.get("state") == "revoked" for request in requests)
     create_request = next(
         request
         for request in requests
-        if request.method == "POST" and not request.url.path.endswith("/revoke")
+        if request.method == "POST" and request.url.path.endswith("/principals/21/tokens")
     )
     assert json.loads(create_request.content) == {
         "name": "inventory-reader",
@@ -285,7 +327,7 @@ def test_sync_v005_token_service_uses_nested_scope_and_returns_authoritative_exp
     assert requests[-1].url.path == "/api/v1/iam/principals/21/tokens/50/revoke"
 
 
-async def test_async_v005_token_service_matches_sync_behavior() -> None:
+async def test_async_v009_token_service_matches_sync_behavior() -> None:
     requests: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -295,12 +337,25 @@ async def test_async_v005_token_service_matches_sync_behavior() -> None:
             token.pop("principal_id")
             return httpx.Response(
                 200,
-                json={"principal": _principal_member_json(), "token": token},
+                json={"principal": _membership_principal_json(), "token": token},
             )
+        if request.method == "GET" and request.url.path.endswith("/tokens/50"):
+            token = _token_metadata_json()
+            token.pop("active")
+            token.pop("expired")
+            return httpx.Response(200, json=token)
         if request.method == "GET":
             return httpx.Response(200, json=[_token_metadata_json()])
         if request.url.path.endswith("/revoke"):
             return httpx.Response(204)
+        if request.url.path.endswith("/renew"):
+            return httpx.Response(
+                201,
+                json={
+                    "token": "async-renewed-secret",
+                    "expires_at": "2026-07-28T13:00:00Z",
+                },
+            )
         return httpx.Response(
             201,
             json={
@@ -315,22 +370,30 @@ async def test_async_v005_token_service_matches_sync_behavior() -> None:
     ) as client:
         assert (await client.me()).token.scope is not None
         current = client.tokens
-        assert (await current.page()).items[0].id == TokenId(50)
+        assert (await current.page(state=TokenListState.ALL)).items[0].id == TokenId(50)
         assert (await current.list())[0].principal_id == PrincipalId(21)
         assert len([page async for page in current.pages()]) == 1
         assert (await current.all())[0].scope is not None
 
         principal = current.for_principal(21)
         assert (await principal.page()).items[0].id == TokenId(50)
-        assert (await principal.list())[0].name == "inventory-reader"
+        assert (await principal.list(state=TokenListState.EXPIRED))[0].name == "inventory-reader"
         assert len([page async for page in principal.pages()]) == 1
         assert (await principal.all())[0].scope is not None
+        assert (await principal.get(50)).revision == 1
         created = await principal.create(payload)
+        renewed = await principal.renew(50)
         await principal.revoke(50)
 
     assert created.value == "async-minted-secret"
     assert created.expires_at == datetime(2026, 7, 27, 13, tzinfo=UTC)
-    assert json.loads(requests[-2].content) == {
+    assert renewed.value == "async-renewed-secret"
+    create_request = next(
+        request
+        for request in requests
+        if request.method == "POST" and request.url.path.endswith("/principals/21/tokens")
+    )
+    assert json.loads(create_request.content) == {
         "scope": {"permissions": ["ReadObject"]},
     }
     assert requests[-1].url.path == "/api/v1/iam/principals/21/tokens/50/revoke"
@@ -400,6 +463,8 @@ def test_sync_object_user_and_group_methods(object_json: dict[str, Any]) -> None
                 json=[_principal_member_json()],
             )
         if "/members/" in path:
+            if request.method == "POST":
+                return httpx.Response(201, json=_principal_member_json())
             return httpx.Response(204)
         if request.method == "GET" and path == "/api/v1/iam/groups":
             return httpx.Response(200, json=[_group_json()])
@@ -443,7 +508,7 @@ def test_sync_object_user_and_group_methods(object_json: dict[str, Any]) -> None
         assert page.page_limit == 25
         assert [item for page in client.groups.member_pages(20) for item in page] == [member]
         assert client.groups.all_members(20) == [member]
-        client.groups.add_member(20, PrincipalId(21))
+        assert client.groups.add_member(20, PrincipalId(21)).revision == 1
         client.groups.remove_member(20, PrincipalId(21))
         client.groups.delete(20)
 
@@ -469,7 +534,10 @@ def test_sync_relations_tasks_probes_and_service_properties() -> None:
             return httpx.Response(
                 200,
                 json={
-                    "authentication": {"default_token_lifetime_hours": 48},
+                    "authentication": {
+                        "default_token_lifetime_hours": 48,
+                        "max_token_lifetime_hours": 8_760,
+                    },
                     "pagination": {"default_page_limit": 100, "max_page_limit": 250},
                 },
             )
@@ -695,6 +763,8 @@ async def test_async_user_group_methods() -> None:
                 json=[_principal_member_json()],
             )
         if "/members/" in path:
+            if request.method == "POST":
+                return httpx.Response(201, json=_principal_member_json())
             return httpx.Response(204)
         if request.method == "GET" and path == "/api/v1/iam/groups":
             return httpx.Response(200, json=[_group_json()])
@@ -727,7 +797,7 @@ async def test_async_user_group_methods() -> None:
         pages = [page async for page in client.groups.member_pages(20)]
         assert [item for page in pages for item in page] == [member]
         assert await client.groups.all_members(20) == [member]
-        await client.groups.add_member(20, PrincipalId(21))
+        assert (await client.groups.add_member(20, PrincipalId(21))).revision == 1
         await client.groups.remove_member(20, PrincipalId(21))
         await client.groups.delete(20)
 
@@ -889,7 +959,7 @@ def _import_result_json() -> dict[str, Any]:
     }
 
 
-def test_sync_v008_task_import_and_export_services() -> None:
+def test_sync_v009_task_import_and_export_services() -> None:
     requests: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -913,12 +983,12 @@ def test_sync_v008_task_import_and_export_services() -> None:
         event = client.tasks.events(40)[0]
         imported = client.imports.run(
             ImportRequest(graph=ImportGraph()),
-            idempotency_key="import-v008",
+            idempotency_key="import-v009",
             timeout_seconds=0,
         )
         exported = client.exports.run(
             ExportRequest(scope=ExportScope(kind=ExportScopeKind.COLLECTIONS)),
-            idempotency_key="export-v008",
+            idempotency_key="export-v009",
             timeout_seconds=0,
         )
 
@@ -931,13 +1001,13 @@ def test_sync_v008_task_import_and_export_services() -> None:
     assert exported.body.endswith("inventory\n")
     submissions = [request for request in requests if request.method == "POST"]
     assert [request.headers["idempotency-key"] for request in submissions] == [
-        "import-v008",
-        "export-v008",
+        "import-v009",
+        "export-v009",
     ]
-    assert json.loads(submissions[0].content) == {"graph": {}, "version": 1}
+    assert json.loads(submissions[0].content) == {"graph": {}, "version": 2}
 
 
-async def test_async_v008_task_import_and_export_services() -> None:
+async def test_async_v009_task_import_and_export_services() -> None:
     requests: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -970,12 +1040,12 @@ async def test_async_v008_task_import_and_export_services() -> None:
         event = (await client.tasks.events(40))[0]
         imported = await client.imports.run(
             ImportRequest(graph=ImportGraph()),
-            idempotency_key="async-import-v008",
+            idempotency_key="async-import-v009",
             timeout_seconds=0,
         )
         exported = await client.exports.run(
             ExportRequest(scope=ExportScope(kind=ExportScopeKind.COLLECTIONS)),
-            idempotency_key="async-export-v008",
+            idempotency_key="async-export-v009",
             timeout_seconds=0,
         )
 
@@ -985,6 +1055,6 @@ async def test_async_v008_task_import_and_export_services() -> None:
     assert exported.meta.count == 1
     submissions = [request for request in requests if request.method == "POST"]
     assert [request.headers["idempotency-key"] for request in submissions] == [
-        "async-import-v008",
-        "async-export-v008",
+        "async-import-v009",
+        "async-export-v009",
     ]

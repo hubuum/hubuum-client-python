@@ -23,6 +23,8 @@ from hubuum_client import (
     ImportGraph,
     ImportObjectInput,
     ImportRequest,
+    ImportWriteCondition,
+    ImportWriteMode,
     NewTokenRequest,
     ObjectAggregateMeasureOperation,
     ObjectAggregateMeasureState,
@@ -39,6 +41,7 @@ from hubuum_client import (
     TokenResourceKind,
     TokenResourceScope,
     TokenScope,
+    User,
 )
 from hubuum_client.models import LoginResponse
 
@@ -54,6 +57,29 @@ def test_response_model_decodes_ids_datetimes_and_forward_fields(
     assert model.model_extra == {"future_field": "accepted"}
     with pytest.raises(ValidationError, match="frozen"):
         model.name = "changed"  # type: ignore[misc]
+    with pytest.raises(ValidationError, match="greater than or equal to 1"):
+        Collection.model_validate(collection_json | {"revision": 0})
+
+
+def test_v009_user_point_shape_uses_stable_identity_scope_id() -> None:
+    user = User.model_validate(
+        {
+            "id": 21,
+            "identity_scope_id": 1,
+            "provider_managed": False,
+            "name": "alice",
+            "email": "alice@example.com",
+            "proper_name": "Alice",
+            "created_at": "2026-08-07T10:00:00Z",
+            "updated_at": "2026-08-07T10:00:00Z",
+            "revision": 3,
+        }
+    )
+
+    assert user.identity_scope_id == 1
+    assert user.identity_scope is None
+    assert user.provider_kind is None
+    assert user.revision == 3
 
 
 def test_request_model_is_strict_and_excludes_optional_values() -> None:
@@ -88,10 +114,12 @@ def test_class_normalizes_live_embedded_collection() -> None:
                 "parent_collection_id": None,
                 "created_at": "2026-07-21T10:00:00Z",
                 "updated_at": "2026-07-21T10:00:00Z",
+                "revision": 1,
             },
             "validate_schema": None,
             "created_at": "2026-07-21T10:00:00Z",
             "updated_at": "2026-07-21T10:00:00Z",
+            "revision": 1,
         }
     )
 
@@ -109,6 +137,7 @@ def test_class_normalizes_live_embedded_collection() -> None:
                 "collection": {"name": "missing-id"},
                 "created_at": "2026-07-21T10:00:00Z",
                 "updated_at": "2026-07-21T10:00:00Z",
+                "revision": 1,
             }
         )
 
@@ -131,6 +160,12 @@ def test_secret_values_are_redacted_but_can_produce_wire_values() -> None:
     assert AccessToken("  token-secret\n").value == "token-secret"
     with pytest.raises(ValueError, match="must not be empty"):
         AccessToken(" ")
+    with pytest.raises(ValueError, match="login name"):
+        Credentials("x" * 256, "secret")
+    with pytest.raises(ValueError, match="login password"):
+        Credentials("alice", "x" * 4_097)
+    with pytest.raises(ValueError, match="identity scope"):
+        Credentials("alice", "secret", "x" * 256)
 
     login_response = LoginResponse(
         token="login-token-secret",
@@ -185,6 +220,9 @@ def test_v005_token_metadata_and_aggregate_measures_are_typed() -> None:
                 "resources": [{"kind": "object", "id": 13}],
                 "future_dimension": True,
             },
+            "active": True,
+            "expired": False,
+            "revision": 1,
         }
     )
     aggregate = ObjectAggregateRow.model_validate(
@@ -229,7 +267,7 @@ def test_task_status_properties(status: TaskStatus, terminal: bool, successful: 
     assert status.successful is successful
 
 
-def test_v008_relation_limits_and_import_timestamps_use_wire_names() -> None:
+def test_v009_import_v2_conditions_and_timestamps_use_wire_names() -> None:
     timestamps = RestoreTimestamps(
         created_at=datetime(2024, 1, 2, 3, 4, 5),
         updated_at=datetime(2024, 1, 2, 3, 4, 6),
@@ -244,6 +282,10 @@ def test_v008_relation_limits_and_import_timestamps_use_wire_names() -> None:
                     data={"credential": "never-show-this"},
                     class_ref="class-1",
                     timestamps=timestamps,
+                    condition=ImportWriteCondition(
+                        mode=ImportWriteMode.IF_REVISION,
+                        expected_revision=7,
+                    ),
                 ),
             ),
             collection_permissions=(
@@ -264,7 +306,7 @@ def test_v008_relation_limits_and_import_timestamps_use_wire_names() -> None:
     )
 
     assert relation.payload()["from_max_relations"] == 1
-    assert request.payload()["version"] == 1
+    assert request.payload()["version"] == 2
     assert request.payload()["graph"]["objects"][0]["ref"] == "object-1"
     assert request.payload()["graph"]["collection_permissions"][0] == {
         "ref": "permission-1",
@@ -276,7 +318,18 @@ def test_v008_relation_limits_and_import_timestamps_use_wire_names() -> None:
         "created_at": "2024-01-02T03:04:05",
         "updated_at": "2024-01-02T03:04:06",
     }
+    assert request.payload()["graph"]["objects"][0]["condition"] == {
+        "mode": "if_revision",
+        "expected_revision": 7,
+    }
     assert "never-show-this" not in repr(request)
+    with pytest.raises(ValidationError, match="requires expected_revision"):
+        ImportWriteCondition(mode=ImportWriteMode.IF_REVISION)
+    with pytest.raises(ValidationError, match="only valid for if_revision"):
+        ImportWriteCondition(
+            mode=ImportWriteMode.CREATE_ONLY,
+            expected_revision=1,
+        )
     with pytest.raises(ValidationError, match="greater than or equal to 1"):
         ClassRelationCreate(
             from_hubuum_class_id=ClassId(1),
@@ -285,7 +338,7 @@ def test_v008_relation_limits_and_import_timestamps_use_wire_names() -> None:
         )
 
 
-def test_v008_timestamp_and_export_scope_validation_happens_before_io() -> None:
+def test_v009_timestamp_and_export_scope_validation_happens_before_io() -> None:
     with pytest.raises(ValidationError, match="updated_at must not be earlier"):
         RestoreTimestamps(
             created_at=datetime(2024, 1, 2),

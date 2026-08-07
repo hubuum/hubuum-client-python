@@ -1,4 +1,4 @@
-"""Immutable Hubuum v0.0.8 OpenAPI operation manifest."""
+"""Immutable Hubuum v0.0.9 OpenAPI operation manifest."""
 
 from __future__ import annotations
 
@@ -10,6 +10,14 @@ class OperationSpec(NamedTuple):
     method: str
     path: str
     request_media_type: str | None
+
+    @property
+    def request_media_types(self) -> tuple[str, ...]:
+        """Request media types declared by the pinned contract."""
+        return _REQUEST_MEDIA_TYPE_OVERRIDES.get(
+            self.operation_id,
+            (self.request_media_type,) if self.request_media_type is not None else (),
+        )
 
     @property
     def response_media_types(self) -> tuple[str, ...]:
@@ -185,6 +193,12 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "/api/v1/classes/{class_id}/computed-fields",
         None,
     ),
+    (
+        "getApiV1ClassesByClassIdComputedFieldsByFieldId",
+        "GET",
+        "/api/v1/classes/{class_id}/computed-fields/{field_id}",
+        None,
+    ),
     ("getApiV1ClassesByClassIdEvents", "GET", "/api/v1/classes/{class_id}/events", None),
     ("getApiV1ClassesByClassIdHistory", "GET", "/api/v1/classes/{class_id}/history", None),
     (
@@ -239,6 +253,12 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "getApiV1ClassesByClassIdRelatedRelations",
         "GET",
         "/api/v1/classes/{class_id}/related/relations",
+        None,
+    ),
+    (
+        "getApiV1ClassesByClassIdRelationsByRelationId",
+        "GET",
+        "/api/v1/classes/{class_id}/relations/{relation_id}",
         None,
     ),
     ("getApiV1ClassesByClassIdTrailing", "GET", "/api/v1/classes/{class_id}/", None),
@@ -452,8 +472,20 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "/api/v1/iam/groups/{group_id}/members",
         None,
     ),
+    (
+        "getApiV1IamGroupsByGroupIdMembersByPrincipalId",
+        "GET",
+        "/api/v1/iam/groups/{group_id}/members/{principal_id}",
+        None,
+    ),
     ("getApiV1IamMe", "GET", "/api/v1/iam/me", None),
     ("getApiV1IamMeComputedFields", "GET", "/api/v1/iam/me/computed-fields", None),
+    (
+        "getApiV1IamMeComputedFieldsByFieldId",
+        "GET",
+        "/api/v1/iam/me/computed-fields/{field_id}",
+        None,
+    ),
     ("getApiV1IamMeGroups", "GET", "/api/v1/iam/me/groups", None),
     ("getApiV1IamMePermissions", "GET", "/api/v1/iam/me/permissions", None),
     ("getApiV1IamMeSettings", "GET", "/api/v1/iam/me/settings", None),
@@ -480,6 +512,12 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "getApiV1IamPrincipalsByPrincipalIdTokens",
         "GET",
         "/api/v1/iam/principals/{principal_id}/tokens",
+        None,
+    ),
+    (
+        "getApiV1IamPrincipalsByPrincipalIdTokensByTokenId",
+        "GET",
+        "/api/v1/iam/principals/{principal_id}/tokens/{token_id}",
         None,
     ),
     ("getApiV1IamServiceAccounts", "GET", "/api/v1/iam/service-accounts", None),
@@ -779,6 +817,12 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "application/json",
     ),
     (
+        "postApiV1IamPrincipalsByPrincipalIdTokensByTokenIdRenew",
+        "POST",
+        "/api/v1/iam/principals/{principal_id}/tokens/{token_id}/renew",
+        "application/json",
+    ),
+    (
         "postApiV1IamPrincipalsByPrincipalIdTokensByTokenIdRevoke",
         "POST",
         "/api/v1/iam/principals/{principal_id}/tokens/{token_id}/revoke",
@@ -870,8 +914,6 @@ _NO_SUCCESS_RESPONSE_MEDIA = frozenset(
         "deleteApiV1ClassesByNameByClassNameObjectsByNameByObjectName",
         "deleteApiV1CollectionsByCollectionId",
         "deleteApiV1CollectionsByCollectionIdEventSubscriptionsBySubscriptionId",
-        "deleteApiV1CollectionsByCollectionIdPermissionsGroupByGroupId",
-        "deleteApiV1CollectionsByCollectionIdPermissionsGroupByGroupIdByPermission",
         "deleteApiV1EventSinksBySinkId",
         "deleteApiV1ExportTemplatesByTemplateId",
         "deleteApiV1IamGroupsByGroupId",
@@ -886,14 +928,22 @@ _NO_SUCCESS_RESPONSE_MEDIA = frozenset(
         "deleteApiV1RemoteTargetsByTargetId",
         "getApiV1CollectionsByCollectionIdPermissionsGroupByGroupIdByPermission",
         "getApiV1SearchStream",
-        "postApiV1CollectionsByCollectionIdPermissionsGroupByGroupId",
-        "postApiV1CollectionsByCollectionIdPermissionsGroupByGroupIdByPermission",
-        "postApiV1IamGroupsByGroupIdMembersByPrincipalId",
         "postApiV1IamPrincipalsByPrincipalIdTokensByTokenIdRevoke",
         "postApiV1IamUsersByUserIdAnonymize",
-        "putApiV1CollectionsByCollectionIdPermissionsGroupByGroupId",
     }
 )
+_REQUEST_MEDIA_TYPE_OVERRIDES = {
+    "patchApiV1IamMeSettings": (
+        "application/json",
+        "application/json-patch+json",
+        "application/merge-patch+json",
+    ),
+    "patchApiV1IamPrincipalsByPrincipalIdSettings": (
+        "application/json",
+        "application/json-patch+json",
+        "application/merge-patch+json",
+    ),
+}
 _SUCCESS_RESPONSE_MEDIA_OVERRIDES = {
     "getApiV1ExportsByTaskIdOutput": (
         "application/json",

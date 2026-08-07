@@ -6,6 +6,25 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Added typed positive resource revisions, v0.0.9 user and membership response
+  shapes, retained-token lifecycle selection, token point lookup and renewal,
+  import-v2 write conditions, and `PreconditionFailedError` for stale `412`
+  responses, with synchronous and asynchronous parity.
+- Added caller-selectable OpenAPI request content types so the new principal
+  settings JSON Patch and JSON Merge Patch representations are both usable.
+
+### Changed
+
+- Updated the declared server target, immutable OpenAPI contract, complete
+  202-operation manifest, CI, documentation, and Docker-backed suite to Hubuum
+  v0.0.9 at release commit `04367a8d6eb38e4356b4e4673269b356f46bbcc3`
+  and image digest
+  `sha256:1f12baf882b6d3df5b4b2dbdf26aad0793274e57f86a2c186b8e1e68632db5db`.
+- Updated imports to emit the required v2 format and exposed the public maximum
+  token lifetime alongside the default lifetime.
+
 ## [0.0.5] - 2026-08-05
 
 ### Changed
