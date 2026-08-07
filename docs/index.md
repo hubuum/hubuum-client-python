@@ -1,10 +1,9 @@
 # Hubuum client for Python
 
-`hubuum-client` is a small, modern interface to the Hubuum REST API. Version
-0.0.5 targets Hubuum server v0.0.8 and gives synchronous and asynchronous
-applications the same typed resource model. Client version 0.0.2 remains the
-Hubuum server v0.0.4-compatible baseline, and client 0.0.3 remains the server
-v0.0.5 baseline.
+`hubuum-client` is a small, modern interface to the Hubuum REST API. The current
+development version targets Hubuum server v0.0.9 and gives synchronous and
+asynchronous applications the same typed resource model. Released client 0.0.5
+remains the server v0.0.8-compatible baseline.
 
 ```python
 from hubuum_client import Client, Credentials, Query
@@ -23,7 +22,7 @@ with Client("https://hubuum.example.com") as client:
 - **Predictable typing.** Request and response bodies are Pydantic v2 models;
   resource identities use distinct `NewType` declarations.
 - **Runtime parity.** `Client` and `AsyncClient` expose matching resources,
-  errors, authentication behavior, pagination semantics, and all 196 pinned
+  errors, authentication behavior, pagination semantics, and all 202 pinned
   OpenAPI operations.
 - **Secure defaults.** TLS validation is enabled, tokens and credentials are
   redacted, and raw requests cannot switch origin or traverse URL paths.
@@ -45,12 +44,12 @@ Python 3.11 and later are supported.
 The strongly modeled service surface includes collections, hierarchy
 operations, classes, class-scoped objects, natural-key class/object routes,
 atomic object-data JSON Patch, users, groups, group membership, class and
-object relations, nested token scopes, typed object aggregate measures, task
-events, imports, and exports. Health, readiness, and public configuration are available before
-authentication.
+object relations, nested token scopes and renewal, typed object aggregate
+measures, task events, import v2, and exports. Health, readiness, and public
+configuration are available before authentication.
 
 The `openapi` service deliberately registers every operation in the immutable
-v0.0.8 specification. Administrative domains that do not yet
+v0.0.9 specification. Administrative domains that do not yet
 have dedicated Pydantic resources are invoked by `operationId` and return
 standard typed JSON, text, or byte values. CI compares that manifest with the
 authoritative server contract so an endpoint cannot silently fall out of

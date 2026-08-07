@@ -35,10 +35,12 @@ from hubuum_client import (
     OpenAPIOptions,
     Permission,
     PermissionDeniedError,
+    PreconditionFailedError,
     PrincipalId,
     Query,
     RestoreTimestamps,
     TaskStatus,
+    TokenListState,
     TokenResourceKind,
     TokenResourceScope,
     TokenScope,
@@ -46,6 +48,31 @@ from hubuum_client import (
 )
 
 pytestmark = pytest.mark.e2e
+
+
+def _conditional_collection_options(collection_id: int, etag: str) -> OpenAPIOptions:
+    return OpenAPIOptions(
+        path_params={"collection_id": collection_id},
+        headers={"If-Match": etag},
+    )
+
+
+def _response_etag(client: Client, path: str) -> str:
+    with client.stream("GET", path) as response:
+        assert response.status_code == 200
+        etag = response.headers.get("etag")
+        assert etag is not None
+        assert b"".join(response.iter_bytes())
+    return etag
+
+
+async def _async_response_etag(client: AsyncClient, path: str) -> str:
+    async with client.stream("GET", path) as response:
+        assert response.status_code == 200
+        etag = response.headers.get("etag")
+        assert etag is not None
+        assert b"".join([chunk async for chunk in response.iter_bytes()])
+    return etag
 
 
 def test_public_config_authentication_and_core_crud(
@@ -59,6 +86,10 @@ def test_public_config_authentication_and_core_crud(
         assert "# HELP" in public.metrics()
         config = public.config()
         assert config.authentication.default_token_lifetime_hours > 0
+        assert (
+            config.authentication.max_token_lifetime_hours
+            >= config.authentication.default_token_lifetime_hours
+        )
         assert config.pagination.default_page_limit > 0
         assert client.token is not None
         assert client.token.expires_at is not None
@@ -75,6 +106,7 @@ def test_public_config_authentication_and_core_crud(
     hubuum_class = None
     hubuum_object = None
     try:
+        assert collection.revision > 0
         numeric_name = str(int(unique_name.rsplit("-", 1)[-1], 16))
         hubuum_class = client.classes.create(
             ClassCreate(
@@ -83,6 +115,7 @@ def test_public_config_authentication_and_core_crud(
                 description="Python e2e class",
             )
         )
+        assert hubuum_class.revision > 0
         assert client.classes.get_by_name(numeric_name).id == hubuum_class.id
 
         hubuum_object = client.classes.by_id(hubuum_class.id).objects.create(
@@ -94,6 +127,7 @@ def test_public_config_authentication_and_core_crud(
                 data={"source": "hubuum-client-python"},
             )
         )
+        assert hubuum_object.revision > 0
         updated = client.classes.by_id(hubuum_class.id).objects.update(
             hubuum_object.id,
             ObjectUpdate(description="Updated from Python", data={"updated": True}),
@@ -119,6 +153,160 @@ def test_public_config_authentication_and_core_crud(
         if hubuum_class is not None:
             client.classes.delete(hubuum_class.id)
         client.collections.delete(collection.id)
+
+
+def test_sync_etag_preconditions_cover_updates_and_deletes(
+    client: Client,
+    admin_group_id: GroupId,
+    unique_name: str,
+) -> None:
+    collection = client.collections.create(
+        CollectionCreate(
+            name=f"{unique_name}-precondition-collection",
+            description="Precondition mapping e2e collection",
+            group_id=admin_group_id,
+        )
+    )
+    path = f"/api/v1/collections/{collection.id}"
+    deleted = False
+    try:
+        original_etag = _response_etag(client, path)
+        updated = client.openapi.call(
+            "patchApiV1CollectionsByCollectionId",
+            json={"description": "Updated with the current validator"},
+            options=_conditional_collection_options(collection.id, original_etag),
+        )
+        assert isinstance(updated, dict)
+        assert updated["description"] == "Updated with the current validator"
+        updated_revision = updated["revision"]
+        assert isinstance(updated_revision, int)
+        assert updated_revision > collection.revision
+
+        with pytest.raises(PreconditionFailedError) as raised:
+            client.openapi.call(
+                "patchApiV1CollectionsByCollectionId",
+                json={"description": "This stale update must not be applied"},
+                options=_conditional_collection_options(collection.id, original_etag),
+            )
+
+        assert raised.value.status_code == 412
+        current_etag = _response_etag(client, path)
+        assert current_etag != original_etag
+
+        with pytest.raises(PreconditionFailedError) as stale_delete:
+            client.openapi.call(
+                "deleteApiV1CollectionsByCollectionId",
+                options=_conditional_collection_options(collection.id, original_etag),
+            )
+        assert stale_delete.value.status_code == 412
+        assert client.collections.get(collection.id).description == updated["description"]
+
+        assert (
+            client.openapi.call(
+                "deleteApiV1CollectionsByCollectionId",
+                options=_conditional_collection_options(collection.id, current_etag),
+            )
+            is None
+        )
+        deleted = True
+        with pytest.raises(NotFoundError):
+            client.collections.get(collection.id)
+    finally:
+        if not deleted:
+            with suppress(APIError):
+                client.collections.delete(collection.id)
+
+
+async def test_async_etag_preconditions_cover_updates_and_deletes(
+    base_url: str,
+    admin_password: str,
+    admin_group_id: GroupId,
+    unique_name: str,
+) -> None:
+    async with AsyncClient(base_url) as client:
+        await client.login(Credentials("admin", admin_password))
+        collection = await client.collections.create(
+            CollectionCreate(
+                name=f"{unique_name}-async-precondition-collection",
+                description="Async precondition mapping e2e collection",
+                group_id=admin_group_id,
+            )
+        )
+        path = f"/api/v1/collections/{collection.id}"
+        deleted = False
+        try:
+            original_etag = await _async_response_etag(client, path)
+            updated = await client.openapi.call(
+                "patchApiV1CollectionsByCollectionId",
+                json={"description": "Updated asynchronously with the current validator"},
+                options=_conditional_collection_options(collection.id, original_etag),
+            )
+            assert isinstance(updated, dict)
+            assert updated["description"] == "Updated asynchronously with the current validator"
+            updated_revision = updated["revision"]
+            assert isinstance(updated_revision, int)
+            assert updated_revision > collection.revision
+
+            with pytest.raises(PreconditionFailedError) as stale_update:
+                await client.openapi.call(
+                    "patchApiV1CollectionsByCollectionId",
+                    json={"description": "This async stale update must not be applied"},
+                    options=_conditional_collection_options(collection.id, original_etag),
+                )
+            assert stale_update.value.status_code == 412
+
+            current_etag = await _async_response_etag(client, path)
+            assert current_etag != original_etag
+            with pytest.raises(PreconditionFailedError) as stale_delete:
+                await client.openapi.call(
+                    "deleteApiV1CollectionsByCollectionId",
+                    options=_conditional_collection_options(collection.id, original_etag),
+                )
+            assert stale_delete.value.status_code == 412
+            assert (await client.collections.get(collection.id)).description == updated[
+                "description"
+            ]
+
+            assert (
+                await client.openapi.call(
+                    "deleteApiV1CollectionsByCollectionId",
+                    options=_conditional_collection_options(collection.id, current_etag),
+                )
+                is None
+            )
+            deleted = True
+            with pytest.raises(NotFoundError):
+                await client.collections.get(collection.id)
+        finally:
+            if not deleted:
+                with suppress(APIError):
+                    await client.collections.delete(collection.id)
+
+
+def test_v009_principal_settings_json_patch(client: Client, unique_name: str) -> None:
+    key = f"python_e2e_{unique_name.rsplit('-', 1)[-1]}"
+    path = f"/{key}"
+    try:
+        merged = client.openapi.call("patchApiV1IamMeSettings", json={key: "light"})
+        assert isinstance(merged, dict)
+        assert merged["settings"][key] == "light"
+        patched = client.openapi.call(
+            "patchApiV1IamMeSettings",
+            json=[
+                {"op": "test", "path": path, "value": "light"},
+                {"op": "replace", "path": path, "value": "dark"},
+            ],
+            options=OpenAPIOptions(content_type="application/json-patch+json"),
+        )
+        assert isinstance(patched, dict)
+        assert patched["settings"][key] == "dark"
+    finally:
+        with suppress(APIError):
+            client.openapi.call(
+                "patchApiV1IamMeSettings",
+                json=[{"op": "remove", "path": path}],
+                options=OpenAPIOptions(content_type="application/json-patch+json"),
+            )
 
 
 def test_object_data_query_interface(
@@ -299,6 +487,9 @@ def test_iam_and_relations(client: Client, admin_group_id: GroupId, unique_name:
     group = client.groups.create(
         GroupCreate(groupname=f"{unique_name}-group", description="Python e2e group")
     )
+    assert user.identity_scope_id > 0
+    assert not hasattr(user, "provider_kind")
+    assert not hasattr(group, "last_sync_attempted_at")
     collections = []
     classes = []
     objects: list[HubuumObject] = []
@@ -306,11 +497,16 @@ def test_iam_and_relations(client: Client, admin_group_id: GroupId, unique_name:
     object_relation = None
     extra_to_object = None
     try:
-        client.groups.add_member(group.id, PrincipalId(user.id))
-        assert any(
-            member.principal_id == PrincipalId(user.id)
+        added = client.groups.add_member(group.id, PrincipalId(user.id))
+        assert added.revision > 0
+        member = next(
+            member
             for member in client.groups.members(group.id)
+            if member.principal_id == PrincipalId(user.id)
         )
+        assert member.group_id == group.id
+        assert member.principal is not None
+        assert member.principal.name == user.name
         client.groups.remove_member(group.id, PrincipalId(user.id))
 
         for suffix in ("from", "to"):
@@ -394,7 +590,7 @@ def test_iam_and_relations(client: Client, admin_group_id: GroupId, unique_name:
         client.users.delete(user.id)
 
 
-def test_v008_import_timestamps_export_timings_and_task_events(
+def test_v009_import_timestamps_export_timings_and_task_events(
     client: Client,
     unique_name: str,
 ) -> None:
@@ -410,7 +606,7 @@ def test_v008_import_timestamps_export_timings_and_task_events(
                         ImportCollectionInput(
                             ref_="imported-collection",
                             name=collection_name,
-                            description="v0.0.8 restored timestamp e2e collection",
+                            description="v0.0.9 restored timestamp e2e collection",
                             timestamps=RestoreTimestamps(
                                 created_at=restored_created_at,
                                 updated_at=restored_updated_at,
@@ -471,7 +667,6 @@ def test_sync_scoped_token_full_lifecycle(
     )
     token_name = f"{unique_name}-sync-token"
     principal_tokens = client.tokens.for_principal(client.me().principal.principal_id)
-    revoked = False
     try:
         token = principal_tokens.create(
             NewTokenRequest(
@@ -489,12 +684,25 @@ def test_sync_scoped_token_full_lifecycle(
         )
         assert token.expires_at is not None
         metadata = next(item for item in principal_tokens.list() if item.name == token_name)
+        assert metadata.active
+        assert not metadata.expired
+        assert metadata.revision > 0
         assert metadata.scope is not None
         assert metadata.scope.permissions == (Permission.READ_COLLECTION,)
         assert metadata.scope.resources is not None
         assert [(item.kind, item.id) for item in metadata.scope.resources] == [
             (TokenResourceKind.COLLECTION, collection.id)
         ]
+        point = principal_tokens.get(metadata.id)
+        assert point.id == metadata.id
+        assert point.revision == metadata.revision
+        renewed = principal_tokens.renew(metadata.id)
+        renewed_metadata = next(
+            item
+            for item in principal_tokens.list()
+            if item.name == token_name and item.id != metadata.id
+        )
+        assert renewed_metadata.active
 
         with Client(client.base_url, token=token) as scoped:
             current_scope = scoped.me().token.scope
@@ -509,18 +717,25 @@ def test_sync_scoped_token_full_lifecycle(
                 )
 
         principal_tokens.revoke(metadata.id)
-        revoked = True
+        revoked_metadata = next(
+            item
+            for item in principal_tokens.list(state=TokenListState.REVOKED)
+            if item.id == metadata.id
+        )
+        assert not revoked_metadata.active
         with (
             Client(client.base_url, token=token) as revoked_client,
             pytest.raises(AuthenticationError),
         ):
             revoked_client.collections.get(collection.id)
+        with Client(client.base_url, token=renewed) as renewed_client:
+            assert renewed_client.collections.get(collection.id).id == collection.id
+        principal_tokens.revoke(renewed_metadata.id)
     finally:
-        if not revoked:
-            for metadata in principal_tokens.list():
-                if metadata.name == token_name:
-                    with suppress(APIError):
-                        principal_tokens.revoke(metadata.id)
+        for metadata in principal_tokens.list(state=TokenListState.ALL):
+            if metadata.name == token_name and metadata.active:
+                with suppress(APIError):
+                    principal_tokens.revoke(metadata.id)
         client.collections.delete(collection.id)
 
 
@@ -628,7 +843,6 @@ async def test_async_scoped_token_full_lifecycle(
         )
         token_name = f"{unique_name}-async-token"
         principal_tokens = admin.tokens.for_principal((await admin.me()).principal.principal_id)
-        revoked = False
         try:
             token = await principal_tokens.create(
                 NewTokenRequest(
@@ -648,12 +862,21 @@ async def test_async_scoped_token_full_lifecycle(
             metadata = next(
                 item for item in await principal_tokens.list() if item.name == token_name
             )
+            assert metadata.active
+            assert not metadata.expired
             assert metadata.scope is not None
             assert metadata.scope.permissions == (Permission.READ_COLLECTION,)
             assert metadata.scope.resources is not None
             assert [(item.kind, item.id) for item in metadata.scope.resources] == [
                 (TokenResourceKind.COLLECTION, collection.id)
             ]
+            assert (await principal_tokens.get(metadata.id)).revision == metadata.revision
+            renewed = await principal_tokens.renew(metadata.id)
+            renewed_metadata = next(
+                item
+                for item in await principal_tokens.list()
+                if item.name == token_name and item.id != metadata.id
+            )
 
             async with AsyncClient(base_url, token=token) as scoped:
                 current_scope = (await scoped.me()).token.scope
@@ -668,16 +891,21 @@ async def test_async_scoped_token_full_lifecycle(
                     )
 
             await principal_tokens.revoke(metadata.id)
-            revoked = True
+            assert any(
+                item.id == metadata.id and not item.active
+                for item in await principal_tokens.list(state=TokenListState.REVOKED)
+            )
             async with AsyncClient(base_url, token=token) as revoked_client:
                 with pytest.raises(AuthenticationError):
                     await revoked_client.collections.get(collection.id)
+            async with AsyncClient(base_url, token=renewed) as renewed_client:
+                assert (await renewed_client.collections.get(collection.id)).id == collection.id
+            await principal_tokens.revoke(renewed_metadata.id)
         finally:
-            if not revoked:
-                for metadata in await principal_tokens.list():
-                    if metadata.name == token_name:
-                        with suppress(APIError):
-                            await principal_tokens.revoke(metadata.id)
+            for metadata in await principal_tokens.list(state=TokenListState.ALL):
+                if metadata.name == token_name and metadata.active:
+                    with suppress(APIError):
+                        await principal_tokens.revoke(metadata.id)
             await admin.collections.delete(collection.id)
 
 

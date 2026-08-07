@@ -34,7 +34,7 @@ def _operation(operation_id: str) -> OperationSpec:
     try:
         return OPERATIONS[operation_id]
     except KeyError:
-        raise ValueError(f"unknown Hubuum v0.0.8 operationId: {operation_id!r}") from None
+        raise ValueError(f"unknown Hubuum v0.0.9 operationId: {operation_id!r}") from None
 
 
 def _operation_path(
@@ -69,8 +69,13 @@ def _request_options(
         for key, value in (options.headers or {}).items()
         if key.casefold() not in {"accept", "content-type"}
     }
-    if operation.request_media_type is not None:
-        prepared["Content-Type"] = operation.request_media_type
+    content_type = options.content_type or operation.request_media_type
+    if content_type is not None:
+        if content_type not in operation.request_media_types:
+            raise ValueError(
+                f"unsupported content type for {operation.operation_id}: {content_type!r}"
+            )
+        prepared["Content-Type"] = content_type
     prepared["Accept"] = options.accept or default_accept
     return RequestOptions(
         params=options.params,
@@ -80,9 +85,9 @@ def _request_options(
 
 
 def _validate_body(operation: OperationSpec, body: JsonBody) -> None:
-    if operation.request_media_type is None and body is not None:
+    if not operation.request_media_types and body is not None:
         raise ValueError(f"{operation.operation_id} does not define a request body")
-    if operation.request_media_type is not None and body is None:
+    if operation.request_media_types and body is None:
         raise ValueError(f"{operation.operation_id} requires a request body")
 
 
@@ -106,7 +111,7 @@ def _decode_response(response: httpx.Response, *, accept: str | None) -> OpenAPI
 
 
 class OpenAPIOperations:
-    """Invoke every operation in Hubuum v0.0.8 by its stable OpenAPI operationId."""
+    """Invoke every operation in Hubuum v0.0.9 by its stable OpenAPI operationId."""
 
     def __init__(self, client: Client) -> None:
         self._client = client
@@ -166,7 +171,7 @@ class OpenAPIOperations:
 
 
 class AsyncOpenAPIOperations:
-    """Asynchronous operation-ID interface for the complete v0.0.8 contract."""
+    """Asynchronous operation-ID interface for the complete v0.0.9 contract."""
 
     def __init__(self, client: AsyncClient) -> None:
         self._client = client

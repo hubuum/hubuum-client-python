@@ -13,16 +13,21 @@ from hubuum_client import (
     Collection,
     CollectionId,
     Credentials,
+    CurrentTokenMetadata,
     ExportContentType,
     ExportRequest,
     ExportScope,
     ExportScopeKind,
+    Group,
     GroupKey,
+    GroupPoint,
     HubuumClass,
     ImportCollectionPermissionInput,
     ImportGraph,
     ImportObjectInput,
     ImportRequest,
+    ImportWriteCondition,
+    ImportWriteMode,
     NewTokenRequest,
     ObjectAggregateMeasureOperation,
     ObjectAggregateMeasureState,
@@ -30,6 +35,7 @@ from hubuum_client import (
     Permission,
     PrincipalId,
     PrincipalTokenMetadata,
+    PrincipalTokenPoint,
     RenderedExport,
     RestoreTimestamps,
     Task,
@@ -39,6 +45,8 @@ from hubuum_client import (
     TokenResourceKind,
     TokenResourceScope,
     TokenScope,
+    User,
+    UserPoint,
 )
 from hubuum_client.models import LoginResponse
 
@@ -54,6 +62,65 @@ def test_response_model_decodes_ids_datetimes_and_forward_fields(
     assert model.model_extra == {"future_field": "accepted"}
     with pytest.raises(ValidationError, match="frozen"):
         model.name = "changed"  # type: ignore[misc]
+    with pytest.raises(ValidationError, match="greater than or equal to 1"):
+        Collection.model_validate(collection_json | {"revision": 0})
+
+
+def test_v009_user_list_and_point_models_keep_provider_metadata_separate() -> None:
+    point = UserPoint.model_validate(
+        {
+            "id": 21,
+            "identity_scope_id": 1,
+            "provider_managed": False,
+            "name": "alice",
+            "email": "alice@example.com",
+            "proper_name": "Alice",
+            "created_at": "2026-08-07T10:00:00Z",
+            "updated_at": "2026-08-07T10:00:00Z",
+            "revision": 3,
+        }
+    )
+    listed = User.model_validate(
+        {
+            "id": 21,
+            "identity_scope": "local",
+            "provider_kind": "local",
+            "provider_managed": False,
+            "name": "alice",
+            "created_at": "2026-08-07T10:00:00Z",
+            "updated_at": "2026-08-07T10:00:00Z",
+            "last_sync_success_at": "2026-08-07T10:01:00Z",
+            "revision": 3,
+        }
+    )
+
+    assert point.identity_scope_id == 1
+    assert "identity_scope" not in UserPoint.model_fields
+    assert "provider_kind" not in UserPoint.model_fields
+    assert "last_sync_success_at" not in UserPoint.model_fields
+    assert not hasattr(point, "provider_kind")
+    assert listed.provider_kind == "local"
+    assert listed.last_sync_success_at == datetime(2026, 8, 7, 10, 1, tzinfo=UTC)
+    assert "identity_scope_id" not in User.model_fields
+
+
+def test_v009_group_point_omits_list_only_sync_state() -> None:
+    common = {
+        "id": 20,
+        "groupname": "ops",
+        "description": "Operations",
+        "identity_scope": "local",
+        "managed_by": "local",
+        "created_at": "2026-08-07T10:00:00Z",
+        "updated_at": "2026-08-07T10:00:00Z",
+        "revision": 2,
+    }
+    point = GroupPoint.model_validate(common)
+    listed = Group.model_validate(common | {"last_sync_attempted_at": "2026-08-07T10:01:00Z"})
+
+    assert "last_sync_attempted_at" not in GroupPoint.model_fields
+    assert not hasattr(point, "last_sync_attempted_at")
+    assert listed.last_sync_attempted_at == datetime(2026, 8, 7, 10, 1, tzinfo=UTC)
 
 
 def test_request_model_is_strict_and_excludes_optional_values() -> None:
@@ -88,10 +155,12 @@ def test_class_normalizes_live_embedded_collection() -> None:
                 "parent_collection_id": None,
                 "created_at": "2026-07-21T10:00:00Z",
                 "updated_at": "2026-07-21T10:00:00Z",
+                "revision": 1,
             },
             "validate_schema": None,
             "created_at": "2026-07-21T10:00:00Z",
             "updated_at": "2026-07-21T10:00:00Z",
+            "revision": 1,
         }
     )
 
@@ -109,6 +178,7 @@ def test_class_normalizes_live_embedded_collection() -> None:
                 "collection": {"name": "missing-id"},
                 "created_at": "2026-07-21T10:00:00Z",
                 "updated_at": "2026-07-21T10:00:00Z",
+                "revision": 1,
             }
         )
 
@@ -131,6 +201,12 @@ def test_secret_values_are_redacted_but_can_produce_wire_values() -> None:
     assert AccessToken("  token-secret\n").value == "token-secret"
     with pytest.raises(ValueError, match="must not be empty"):
         AccessToken(" ")
+    with pytest.raises(ValueError, match="login name"):
+        Credentials("x" * 256, "secret")
+    with pytest.raises(ValueError, match="login password"):
+        Credentials("alice", "x" * 4_097)
+    with pytest.raises(ValueError, match="identity scope"):
+        Credentials("alice", "secret", "x" * 256)
 
     login_response = LoginResponse(
         token="login-token-secret",
@@ -174,7 +250,37 @@ def test_v005_token_scope_uses_nested_strict_wire_shape() -> None:
         )
 
 
-def test_v005_token_metadata_and_aggregate_measures_are_typed() -> None:
+def test_v009_token_response_shapes_keep_usage_state_off_point_metadata() -> None:
+    common = {
+        "id": 7,
+        "issued": "2026-07-25T10:00:00Z",
+        "revision": 1,
+    }
+    current = CurrentTokenMetadata.model_validate(common | {"last_used_at": "2026-07-25T10:01:00Z"})
+    point = PrincipalTokenPoint.model_validate(common | {"principal_id": 21})
+    metadata = PrincipalTokenMetadata.model_validate(
+        common
+        | {
+            "principal_id": 21,
+            "last_used_at": "2026-07-25T10:01:00Z",
+            "scope": {
+                "permissions": ["ReadObject"],
+                "resources": [{"kind": "object", "id": 13}],
+                "future_dimension": True,
+            },
+            "active": True,
+            "expired": False,
+        }
+    )
+
+    assert current.last_used_at == datetime(2026, 7, 25, 10, 1, tzinfo=UTC)
+    assert "revoked_at" not in CurrentTokenMetadata.model_fields
+    assert "last_used_at" not in PrincipalTokenPoint.model_fields
+    assert not hasattr(point, "last_used_at")
+    assert metadata.last_used_at == datetime(2026, 7, 25, 10, 1, tzinfo=UTC)
+
+
+def test_v009_token_metadata_and_aggregate_measures_are_typed() -> None:
     metadata = PrincipalTokenMetadata.model_validate(
         {
             "id": 7,
@@ -185,6 +291,9 @@ def test_v005_token_metadata_and_aggregate_measures_are_typed() -> None:
                 "resources": [{"kind": "object", "id": 13}],
                 "future_dimension": True,
             },
+            "active": True,
+            "expired": False,
+            "revision": 1,
         }
     )
     aggregate = ObjectAggregateRow.model_validate(
@@ -229,7 +338,7 @@ def test_task_status_properties(status: TaskStatus, terminal: bool, successful: 
     assert status.successful is successful
 
 
-def test_v008_relation_limits_and_import_timestamps_use_wire_names() -> None:
+def test_v009_import_v2_conditions_and_timestamps_use_wire_names() -> None:
     timestamps = RestoreTimestamps(
         created_at=datetime(2024, 1, 2, 3, 4, 5),
         updated_at=datetime(2024, 1, 2, 3, 4, 6),
@@ -244,6 +353,10 @@ def test_v008_relation_limits_and_import_timestamps_use_wire_names() -> None:
                     data={"credential": "never-show-this"},
                     class_ref="class-1",
                     timestamps=timestamps,
+                    condition=ImportWriteCondition(
+                        mode=ImportWriteMode.IF_REVISION,
+                        expected_revision=7,
+                    ),
                 ),
             ),
             collection_permissions=(
@@ -264,7 +377,7 @@ def test_v008_relation_limits_and_import_timestamps_use_wire_names() -> None:
     )
 
     assert relation.payload()["from_max_relations"] == 1
-    assert request.payload()["version"] == 1
+    assert request.payload()["version"] == 2
     assert request.payload()["graph"]["objects"][0]["ref"] == "object-1"
     assert request.payload()["graph"]["collection_permissions"][0] == {
         "ref": "permission-1",
@@ -276,7 +389,18 @@ def test_v008_relation_limits_and_import_timestamps_use_wire_names() -> None:
         "created_at": "2024-01-02T03:04:05",
         "updated_at": "2024-01-02T03:04:06",
     }
+    assert request.payload()["graph"]["objects"][0]["condition"] == {
+        "mode": "if_revision",
+        "expected_revision": 7,
+    }
     assert "never-show-this" not in repr(request)
+    with pytest.raises(ValidationError, match="requires expected_revision"):
+        ImportWriteCondition(mode=ImportWriteMode.IF_REVISION)
+    with pytest.raises(ValidationError, match="only valid for if_revision"):
+        ImportWriteCondition(
+            mode=ImportWriteMode.CREATE_ONLY,
+            expected_revision=1,
+        )
     with pytest.raises(ValidationError, match="greater than or equal to 1"):
         ClassRelationCreate(
             from_hubuum_class_id=ClassId(1),
@@ -285,7 +409,7 @@ def test_v008_relation_limits_and_import_timestamps_use_wire_names() -> None:
         )
 
 
-def test_v008_timestamp_and_export_scope_validation_happens_before_io() -> None:
+def test_v009_timestamp_and_export_scope_validation_happens_before_io() -> None:
     with pytest.raises(ValidationError, match="updated_at must not be earlier"):
         RestoreTimestamps(
             created_at=datetime(2024, 1, 2),

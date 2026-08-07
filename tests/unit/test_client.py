@@ -28,6 +28,7 @@ from hubuum_client import (
     GroupId,
     NotFoundError,
     PermissionDeniedError,
+    PreconditionFailedError,
     Query,
     RateLimitError,
     RequestOptions,
@@ -285,6 +286,7 @@ def test_one_enforces_cardinality() -> None:
         (403, PermissionDeniedError),
         (404, NotFoundError),
         (409, ConflictError),
+        (412, PreconditionFailedError),
         (429, RateLimitError),
     ],
 )
@@ -598,7 +600,10 @@ def test_plain_basemodel_typed_config_and_client_metadata() -> None:
             return httpx.Response(
                 200,
                 json={
-                    "authentication": {"default_token_lifetime_hours": 48},
+                    "authentication": {
+                        "default_token_lifetime_hours": 48,
+                        "max_token_lifetime_hours": 8_760,
+                    },
                     "pagination": {"default_page_limit": 100, "max_page_limit": 250},
                 },
             )

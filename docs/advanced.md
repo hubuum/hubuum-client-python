@@ -11,6 +11,7 @@ to useful subclasses:
 | 403 | `PermissionDeniedError` |
 | 404 | `NotFoundError` |
 | 409 | `ConflictError` |
+| 412 | `PreconditionFailedError` |
 | 429 | `RateLimitError` |
 
 Other failed HTTP responses raise `APIError`. Network and TLS failures raise
@@ -37,9 +38,9 @@ the attribute is `None` when the header is absent or malformed.
 
 ## Complete OpenAPI operation surface
 
-The Hubuum v0.0.8 OpenAPI contract contains 196 operations. Every operation is
+The Hubuum v0.0.9 OpenAPI contract contains 202 operations. Every operation is
 registered by its exact `operationId`, HTTP method, path template, request
-media type, and authentication policy:
+media types, and authentication policy:
 
 ```python
 from hubuum_client import OpenAPIOptions
@@ -67,7 +68,19 @@ status = client.openapi.call(
 ```
 
 `Idempotency-Key` values are validated before I/O and must contain between 1
-and 255 bytes, matching v0.0.8 task-submission endpoints.
+and 255 bytes, matching v0.0.9 task-submission endpoints.
+
+When an operation accepts multiple request representations, select one through
+`content_type`. Principal settings support JSON Merge Patch by default and RFC
+6902 JSON Patch explicitly:
+
+```python
+patched = client.openapi.call(
+    "patchApiV1IamMeSettings",
+    json=[{"op": "replace", "path": "/theme", "value": "dark"}],
+    options=OpenAPIOptions(content_type="application/json-patch+json"),
+)
+```
 
 `call()` returns a JSON value for JSON responses, `str` for a negotiated text
 response, `bytes` for any other media type, and `None` for an empty success.
@@ -96,12 +109,12 @@ with client.openapi.stream(
 
 Use `async with` and `async for` for the asynchronous client. The operation
 manifest is compared with the immutable server OpenAPI document in CI,
-including request and successful-response media types; all 196 operations must
+including request and successful-response media types; all 202 operations must
 match exactly.
 
 ## Scoped tokens
 
-Hubuum v0.0.8 nests token boundaries under one `scope` field. Omit `scope` for
+Hubuum v0.0.9 nests token boundaries under one `scope` field. Omit `scope` for
 an unscoped token; within a scope, permissions and collection/class/object
 resources are independent dimensions:
 
@@ -137,6 +150,19 @@ is omitted, the server uses
 from `client.me().token` and token-list services uses `scope is None` to
 identify an unscoped token; the removed v0.0.3 flat `scopes`,
 `resource_scopes`, and `scoped` fields are not sent.
+
+Token lists default to active credentials and accept `TokenListState.EXPIRED`,
+`REVOKED`, or `ALL`. A principal-specific service can inspect retained tokens
+and renew an active or expired token without exposing its previous secret:
+
+```python
+from hubuum_client import TokenListState
+
+tokens = client.tokens.for_principal(principal_id)
+retained = tokens.list(state=TokenListState.ALL)
+metadata = tokens.get(token_id)
+replacement = tokens.renew(token_id)
+```
 
 ## Object aggregate measures
 
@@ -193,8 +219,8 @@ safety.
 
 ## Typed imports, exports, and task events
 
-Core import graphs use strict request models, including the timestamps Hubuum
-v0.0.8 can restore. `run()` submits the task, waits with a bounded poller, and
+Core import graphs use strict import-v2 request models, including the timestamps
+Hubuum v0.0.9 can restore. `run()` submits the task, waits with a bounded poller, and
 collects every per-entity result through guarded cursor pagination:
 
 ```python
@@ -204,6 +230,8 @@ from hubuum_client import (
     ImportCollectionInput,
     ImportGraph,
     ImportRequest,
+    ImportWriteCondition,
+    ImportWriteMode,
     RestoreTimestamps,
 )
 
@@ -219,6 +247,7 @@ result = client.imports.run(
                         created_at=datetime(2024, 1, 1),
                         updated_at=datetime(2024, 1, 2),
                     ),
+                    condition=ImportWriteCondition(mode=ImportWriteMode.CREATE_ONLY),
                 ),
             )
         )
@@ -231,8 +260,9 @@ print(result.succeeded, result.failed)
 The Python field `ref_` is serialized as the contract's `ref`. Import graphs,
 object data, result details, and error strings are excluded from model
 representations. Integration-oriented import sections remain strict JSON
-objects so the full v0.0.8 graph can be submitted without representing secret
-configuration in diagnostic output.
+objects so the full v0.0.9 graph can be submitted without representing secret
+configuration in diagnostic output. Core resources can use `create_only`,
+unconditional `overwrite`, or `if_revision` per-item write conditions.
 
 Direct exports are similarly typed:
 
@@ -260,7 +290,7 @@ Task history is available through `client.tasks.events()`, `event_pages()`, and
 ## Custom extension routes
 
 `request()` remains the lower-level escape hatch for a server extension that is
-not part of the pinned v0.0.8 OpenAPI document:
+not part of the pinned v0.0.9 OpenAPI document:
 
 ```python
 from hubuum_client import RequestOptions

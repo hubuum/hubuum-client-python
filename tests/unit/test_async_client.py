@@ -131,7 +131,10 @@ async def test_async_exact_name_and_public_config(class_json: dict[str, Any]) ->
             return httpx.Response(
                 200,
                 json={
-                    "authentication": {"default_token_lifetime_hours": 48},
+                    "authentication": {
+                        "default_token_lifetime_hours": 48,
+                        "max_token_lifetime_hours": 8_760,
+                    },
                     "pagination": {"default_page_limit": 100, "max_page_limit": 250},
                 },
             )
@@ -284,7 +287,10 @@ async def test_async_metadata_typed_config_and_raw_decode_error() -> None:
             return httpx.Response(
                 200,
                 json={
-                    "authentication": {"default_token_lifetime_hours": 72},
+                    "authentication": {
+                        "default_token_lifetime_hours": 72,
+                        "max_token_lifetime_hours": 8_760,
+                    },
                     "pagination": {"default_page_limit": 50, "max_page_limit": 200},
                 },
             )

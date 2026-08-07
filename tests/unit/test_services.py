@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import json
 from datetime import UTC, datetime
 from typing import Any
@@ -25,8 +26,9 @@ from hubuum_client import (
     ExportRequest,
     ExportScope,
     ExportScopeKind,
+    Group,
     GroupCreate,
-    GroupId,
+    GroupPoint,
     GroupUpdate,
     ImportGraph,
     ImportRequest,
@@ -41,15 +43,18 @@ from hubuum_client import (
     PrincipalMember,
     Query,
     RenderedExport,
+    RenewTokenRequest,
     RequestOptions,
     ResultCardinalityError,
     TaskId,
     TokenId,
+    TokenListState,
     TokenResourceKind,
     TokenResourceScope,
     TokenScope,
+    User,
     UserCreate,
-    UserId,
+    UserPoint,
     UserUpdate,
 )
 from hubuum_client.async_services import (
@@ -68,7 +73,6 @@ from hubuum_client.async_services import (
     AsyncTokensService,
     AsyncUsersService,
 )
-from hubuum_client.models import Group, User
 from hubuum_client.services import (
     ClassesService,
     ClassRelationsService,
@@ -96,7 +100,15 @@ def _group_json() -> dict[str, Any]:
         "managed_by": "local",
         "created_at": "2026-07-21T10:00:00Z",
         "updated_at": "2026-07-21T10:00:00Z",
+        "last_sync_attempted_at": "2026-07-21T10:01:00Z",
+        "revision": 1,
     }
+
+
+def _group_point_json() -> dict[str, Any]:
+    group = _group_json()
+    group.pop("last_sync_attempted_at")
+    return group
 
 
 def _user_json() -> dict[str, Any]:
@@ -110,10 +122,32 @@ def _user_json() -> dict[str, Any]:
         "proper_name": "Alice",
         "created_at": "2026-07-21T10:00:00Z",
         "updated_at": "2026-07-21T10:00:00Z",
+        "last_sync_success_at": "2026-07-21T10:01:00Z",
+        "revision": 1,
     }
 
 
+def _user_point_json() -> dict[str, Any]:
+    user = _user_json()
+    user["identity_scope_id"] = 1
+    user.pop("identity_scope")
+    user.pop("provider_kind")
+    user.pop("last_sync_success_at")
+    return user
+
+
 def _principal_member_json() -> dict[str, Any]:
+    return {
+        "principal_id": 21,
+        "group_id": 20,
+        "created_at": "2026-07-21T10:00:00Z",
+        "updated_at": "2026-07-21T10:00:00Z",
+        "revision": 1,
+        "principal": _membership_principal_json(),
+    }
+
+
+def _membership_principal_json() -> dict[str, Any]:
     return {
         "principal_id": 21,
         "identity_scope": "local",
@@ -121,6 +155,7 @@ def _principal_member_json() -> dict[str, Any]:
         "name": "alice",
         "created_at": "2026-07-21T10:00:00Z",
         "updated_at": "2026-07-21T10:00:00Z",
+        "revision": 1,
     }
 
 
@@ -133,6 +168,7 @@ def _class_relation_json() -> dict[str, Any]:
         "reverse_template_alias": "room",
         "created_at": "2026-07-21T10:00:00Z",
         "updated_at": "2026-07-21T10:00:00Z",
+        "revision": 1,
     }
 
 
@@ -144,6 +180,7 @@ def _object_relation_json() -> dict[str, Any]:
         "class_relation_id": 30,
         "created_at": "2026-07-21T10:00:00Z",
         "updated_at": "2026-07-21T10:00:00Z",
+        "revision": 1,
     }
 
 
@@ -173,12 +210,30 @@ def _token_metadata_json() -> dict[str, Any]:
         "id": 50,
         "principal_id": 21,
         "issued": "2026-07-25T10:00:00Z",
+        "last_used_at": "2026-07-25T10:01:00Z",
         "name": "inventory-reader",
         "scope": {
             "permissions": ["ReadCollection"],
             "resources": [{"kind": "collection", "id": 11}],
         },
+        "active": True,
+        "expired": False,
+        "revision": 1,
     }
+
+
+def _current_token_metadata_json() -> dict[str, Any]:
+    metadata = _token_metadata_json()
+    for field in ("principal_id", "active", "expired"):
+        metadata.pop(field)
+    return metadata
+
+
+def _token_point_json() -> dict[str, Any]:
+    metadata = _token_metadata_json()
+    for field in ("active", "expired", "last_used_at"):
+        metadata.pop(field)
+    return metadata
 
 
 def test_sync_and_async_services_keep_public_method_parity() -> None:
@@ -202,29 +257,32 @@ def test_sync_and_async_services_keep_public_method_parity() -> None:
     for sync_service, async_service in pairs:
         sync_methods = {
             name
-            for name, value in sync_service.__dict__.items()
-            if not name.startswith("_") and callable(value)
+            for name, value in inspect.getmembers(sync_service, inspect.isfunction)
+            if not name.startswith("_")
         }
         async_methods = {
             name
-            for name, value in async_service.__dict__.items()
-            if not name.startswith("_") and callable(value)
+            for name, value in inspect.getmembers(async_service, inspect.isfunction)
+            if not name.startswith("_")
         }
         assert sync_methods == async_methods
 
 
-def test_sync_v005_token_service_uses_nested_scope_and_returns_authoritative_expiry() -> None:
+def test_sync_v009_token_service_supports_lifecycle_reads_and_renewal() -> None:
     requests: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
         requests.append(request)
         if request.url.path == "/api/v1/iam/me":
-            token = _token_metadata_json()
-            token.pop("principal_id")
             return httpx.Response(
                 200,
-                json={"principal": _principal_member_json(), "token": token},
+                json={
+                    "principal": _membership_principal_json(),
+                    "token": _current_token_metadata_json(),
+                },
             )
+        if request.method == "GET" and request.url.path.endswith("/tokens/50"):
+            return httpx.Response(200, json=_token_point_json())
         if request.method == "GET":
             return httpx.Response(
                 200,
@@ -233,6 +291,14 @@ def test_sync_v005_token_service_uses_nested_scope_and_returns_authoritative_exp
             )
         if request.url.path.endswith("/revoke"):
             return httpx.Response(204)
+        if request.url.path.endswith("/renew"):
+            return httpx.Response(
+                201,
+                json={
+                    "token": "renewed-token-secret",
+                    "expires_at": "2026-07-28T12:00:00Z",
+                },
+            )
         return httpx.Response(
             201,
             json={
@@ -253,7 +319,7 @@ def test_sync_v005_token_service_uses_nested_scope_and_returns_authoritative_exp
     ) as client:
         assert client.me().token.scope is not None
         current = client.tokens
-        assert current.page(Query().limit(25)).items[0].id == TokenId(50)
+        assert current.page(Query().limit(25), state=TokenListState.ALL).items[0].id == TokenId(50)
         assert current.list()[0].scope is not None
         assert len(list(current.pages())) == 1
         assert current.all()[0].principal_id == PrincipalId(21)
@@ -261,19 +327,31 @@ def test_sync_v005_token_service_uses_nested_scope_and_returns_authoritative_exp
         principal = current.for_principal(PrincipalId(21))
         assert principal.principal_id == PrincipalId(21)
         assert principal.page().total_count == 1
-        assert principal.list()[0].id == TokenId(50)
+        listed = principal.list(state=TokenListState.REVOKED)[0]
+        assert listed.id == TokenId(50)
+        assert listed.last_used_at == datetime(2026, 7, 25, 10, 1, tzinfo=UTC)
         assert len(list(principal.pages())) == 1
         assert principal.all()[0].name == "inventory-reader"
+        point = principal.get(TokenId(50))
+        assert point.revision == 1
+        assert not hasattr(point, "last_used_at")
         created = principal.create(payload)
+        renewed = principal.renew(
+            TokenId(50),
+            RenewTokenRequest(expires_at=datetime(2026, 7, 28, 12, tzinfo=UTC)),
+        )
         principal.revoke(TokenId(50))
 
     assert created.value == "minted-token-secret"
     assert created.expires_at == datetime(2026, 7, 27, 12, tzinfo=UTC)
     assert "minted-token-secret" not in repr(created)
+    assert renewed.value == "renewed-token-secret"
+    assert any(request.url.params.get("state") == "all" for request in requests)
+    assert any(request.url.params.get("state") == "revoked" for request in requests)
     create_request = next(
         request
         for request in requests
-        if request.method == "POST" and not request.url.path.endswith("/revoke")
+        if request.method == "POST" and request.url.path.endswith("/principals/21/tokens")
     )
     assert json.loads(create_request.content) == {
         "name": "inventory-reader",
@@ -285,22 +363,33 @@ def test_sync_v005_token_service_uses_nested_scope_and_returns_authoritative_exp
     assert requests[-1].url.path == "/api/v1/iam/principals/21/tokens/50/revoke"
 
 
-async def test_async_v005_token_service_matches_sync_behavior() -> None:
+async def test_async_v009_token_service_matches_sync_behavior() -> None:
     requests: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
         requests.append(request)
         if request.url.path == "/api/v1/iam/me":
-            token = _token_metadata_json()
-            token.pop("principal_id")
             return httpx.Response(
                 200,
-                json={"principal": _principal_member_json(), "token": token},
+                json={
+                    "principal": _membership_principal_json(),
+                    "token": _current_token_metadata_json(),
+                },
             )
+        if request.method == "GET" and request.url.path.endswith("/tokens/50"):
+            return httpx.Response(200, json=_token_point_json())
         if request.method == "GET":
             return httpx.Response(200, json=[_token_metadata_json()])
         if request.url.path.endswith("/revoke"):
             return httpx.Response(204)
+        if request.url.path.endswith("/renew"):
+            return httpx.Response(
+                201,
+                json={
+                    "token": "async-renewed-secret",
+                    "expires_at": "2026-07-28T13:00:00Z",
+                },
+            )
         return httpx.Response(
             201,
             json={
@@ -315,22 +404,34 @@ async def test_async_v005_token_service_matches_sync_behavior() -> None:
     ) as client:
         assert (await client.me()).token.scope is not None
         current = client.tokens
-        assert (await current.page()).items[0].id == TokenId(50)
+        assert (await current.page(state=TokenListState.ALL)).items[0].id == TokenId(50)
         assert (await current.list())[0].principal_id == PrincipalId(21)
         assert len([page async for page in current.pages()]) == 1
         assert (await current.all())[0].scope is not None
 
         principal = current.for_principal(21)
         assert (await principal.page()).items[0].id == TokenId(50)
-        assert (await principal.list())[0].name == "inventory-reader"
+        listed = (await principal.list(state=TokenListState.EXPIRED))[0]
+        assert listed.name == "inventory-reader"
+        assert listed.last_used_at == datetime(2026, 7, 25, 10, 1, tzinfo=UTC)
         assert len([page async for page in principal.pages()]) == 1
         assert (await principal.all())[0].scope is not None
+        point = await principal.get(50)
+        assert point.revision == 1
+        assert not hasattr(point, "last_used_at")
         created = await principal.create(payload)
+        renewed = await principal.renew(50)
         await principal.revoke(50)
 
     assert created.value == "async-minted-secret"
     assert created.expires_at == datetime(2026, 7, 27, 13, tzinfo=UTC)
-    assert json.loads(requests[-2].content) == {
+    assert renewed.value == "async-renewed-secret"
+    create_request = next(
+        request
+        for request in requests
+        if request.method == "POST" and request.url.path.endswith("/principals/21/tokens")
+    )
+    assert json.loads(create_request.content) == {
         "scope": {"permissions": ["ReadObject"]},
     }
     assert requests[-1].url.path == "/api/v1/iam/principals/21/tokens/50/revoke"
@@ -375,6 +476,41 @@ def test_sync_collection_and_class_specific_methods(
     assert ("PATCH", "/api/v1/classes/by-name/server") in seen
 
 
+def _exercise_sync_user_methods(client: Client) -> None:
+    created = client.users.create(UserCreate(name="alice", password="secret"))
+    assert isinstance(created, UserPoint)
+    assert created.identity_scope_id == 1
+    assert isinstance(client.users.get(21), UserPoint)
+    listed = client.users.get_by_name("alice")
+    assert isinstance(listed, User)
+    assert listed.provider_kind == "local"
+    assert isinstance(client.users.update(21, UserUpdate(proper_name="Alice A.")), UserPoint)
+    client.users.anonymize(21)
+    client.users.delete(21)
+
+
+def _exercise_sync_group_methods(client: Client) -> None:
+    created = client.groups.create(GroupCreate(groupname="ops"))
+    assert isinstance(created, GroupPoint)
+    assert not hasattr(created, "last_sync_attempted_at")
+    assert isinstance(client.groups.get(20), GroupPoint)
+    listed = client.groups.get_by_name("ops")
+    assert isinstance(listed, Group)
+    assert listed.last_sync_attempted_at is not None
+    assert isinstance(client.groups.update(20, GroupUpdate(groupname="platform")), GroupPoint)
+    member: PrincipalMember = client.groups.members(20)[0]
+    assert member.principal_id == PrincipalId(21)
+    page = client.groups.members_page(20, Query().limit(25).include_total())
+    assert page.items == (member,)
+    assert page.total_count == 1
+    assert page.page_limit == 25
+    assert [item for page in client.groups.member_pages(20) for item in page] == [member]
+    assert client.groups.all_members(20) == [member]
+    assert client.groups.add_member(20, PrincipalId(21)).revision == 1
+    client.groups.remove_member(20, PrincipalId(21))
+    client.groups.delete(20)
+
+
 def test_sync_object_user_and_group_methods(object_json: dict[str, Any]) -> None:
     seen: list[tuple[str, str]] = []
 
@@ -392,7 +528,7 @@ def test_sync_object_user_and_group_methods(object_json: dict[str, Any]) -> None
                 return httpx.Response(204)
             if request.method == "GET" and path == "/api/v1/iam/users":
                 return httpx.Response(200, json=[_user_json()])
-            return httpx.Response(200, json=_user_json())
+            return httpx.Response(200, json=_user_point_json())
         if path.endswith("/members"):
             return httpx.Response(
                 200,
@@ -400,12 +536,14 @@ def test_sync_object_user_and_group_methods(object_json: dict[str, Any]) -> None
                 json=[_principal_member_json()],
             )
         if "/members/" in path:
+            if request.method == "POST":
+                return httpx.Response(201, json=_principal_member_json())
             return httpx.Response(204)
         if request.method == "GET" and path == "/api/v1/iam/groups":
             return httpx.Response(200, json=[_group_json()])
         if request.method == "DELETE":
             return httpx.Response(204)
-        return httpx.Response(200, json=_group_json())
+        return httpx.Response(200, json=_group_point_json())
 
     with Client(
         "https://hubuum.test", token="token", transport=httpx.MockTransport(handler)
@@ -424,28 +562,8 @@ def test_sync_object_user_and_group_methods(object_json: dict[str, Any]) -> None
         objects.delete(13)
         objects.delete_by_name("web")
 
-        assert client.users.create(UserCreate(name="alice", password="secret")).id == UserId(21)
-        assert client.users.get(21).name == "alice"
-        assert client.users.get_by_name("alice").id == UserId(21)
-        assert client.users.update(21, UserUpdate(proper_name="Alice A.")).id == UserId(21)
-        client.users.anonymize(21)
-        client.users.delete(21)
-
-        assert client.groups.create(GroupCreate(groupname="ops")).id == GroupId(20)
-        assert client.groups.get(20).groupname == "ops"
-        assert client.groups.get_by_name("ops").id == GroupId(20)
-        assert client.groups.update(20, GroupUpdate(groupname="platform")).id == GroupId(20)
-        member: PrincipalMember = client.groups.members(20)[0]
-        assert member.principal_id == PrincipalId(21)
-        page = client.groups.members_page(20, Query().limit(25).include_total())
-        assert page.items == (member,)
-        assert page.total_count == 1
-        assert page.page_limit == 25
-        assert [item for page in client.groups.member_pages(20) for item in page] == [member]
-        assert client.groups.all_members(20) == [member]
-        client.groups.add_member(20, PrincipalId(21))
-        client.groups.remove_member(20, PrincipalId(21))
-        client.groups.delete(20)
+        _exercise_sync_user_methods(client)
+        _exercise_sync_group_methods(client)
 
     assert ("PATCH", "/api/v1/classes/12/13") in seen
     assert ("POST", "/api/v1/iam/groups/20/members/21") in seen
@@ -469,7 +587,10 @@ def test_sync_relations_tasks_probes_and_service_properties() -> None:
             return httpx.Response(
                 200,
                 json={
-                    "authentication": {"default_token_lifetime_hours": 48},
+                    "authentication": {
+                        "default_token_lifetime_hours": 48,
+                        "max_token_lifetime_hours": 8_760,
+                    },
                     "pagination": {"default_page_limit": 100, "max_page_limit": 250},
                 },
             )
@@ -687,7 +808,7 @@ async def test_async_user_group_methods() -> None:
                 return httpx.Response(204)
             if request.method == "GET" and path == "/api/v1/iam/users":
                 return httpx.Response(200, json=[_user_json()])
-            return httpx.Response(200, json=_user_json())
+            return httpx.Response(200, json=_user_point_json())
         if path.endswith("/members"):
             return httpx.Response(
                 200,
@@ -695,29 +816,35 @@ async def test_async_user_group_methods() -> None:
                 json=[_principal_member_json()],
             )
         if "/members/" in path:
+            if request.method == "POST":
+                return httpx.Response(201, json=_principal_member_json())
             return httpx.Response(204)
         if request.method == "GET" and path == "/api/v1/iam/groups":
             return httpx.Response(200, json=[_group_json()])
         if request.method == "DELETE":
             return httpx.Response(204)
-        return httpx.Response(200, json=_group_json())
+        return httpx.Response(200, json=_group_point_json())
 
     async with AsyncClient(
         "https://hubuum.test", token="token", transport=httpx.MockTransport(handler)
     ) as client:
-        user: User = await client.users.create(UserCreate(name="alice", password="secret"))
-        assert user.id == 21
-        assert (await client.users.get(21)).id == 21
-        assert (await client.users.get_by_name("alice")).id == 21
-        assert (await client.users.update(21, UserUpdate(email="new@example.com"))).id == 21
+        user: UserPoint = await client.users.create(UserCreate(name="alice", password="secret"))
+        assert user.identity_scope_id == 1
+        assert isinstance(await client.users.get(21), UserPoint)
+        assert isinstance(await client.users.get_by_name("alice"), User)
+        assert isinstance(
+            await client.users.update(21, UserUpdate(email="new@example.com")), UserPoint
+        )
         await client.users.anonymize(21)
         await client.users.delete(21)
 
-        group: Group = await client.groups.create(GroupCreate(groupname="ops"))
+        group: GroupPoint = await client.groups.create(GroupCreate(groupname="ops"))
         assert group.id == 20
-        assert (await client.groups.get(20)).id == 20
-        assert (await client.groups.get_by_name("ops")).id == 20
-        assert (await client.groups.update(20, GroupUpdate(groupname="platform"))).id == 20
+        assert isinstance(await client.groups.get(20), GroupPoint)
+        assert isinstance(await client.groups.get_by_name("ops"), Group)
+        assert isinstance(
+            await client.groups.update(20, GroupUpdate(groupname="platform")), GroupPoint
+        )
         member: PrincipalMember = (await client.groups.members(20))[0]
         assert member.principal_id == PrincipalId(21)
         page = await client.groups.members_page(20, Query().limit(25).include_total())
@@ -727,7 +854,7 @@ async def test_async_user_group_methods() -> None:
         pages = [page async for page in client.groups.member_pages(20)]
         assert [item for page in pages for item in page] == [member]
         assert await client.groups.all_members(20) == [member]
-        await client.groups.add_member(20, PrincipalId(21))
+        assert (await client.groups.add_member(20, PrincipalId(21))).revision == 1
         await client.groups.remove_member(20, PrincipalId(21))
         await client.groups.delete(20)
 
@@ -889,7 +1016,7 @@ def _import_result_json() -> dict[str, Any]:
     }
 
 
-def test_sync_v008_task_import_and_export_services() -> None:
+def test_sync_v009_task_import_and_export_services() -> None:
     requests: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -913,12 +1040,12 @@ def test_sync_v008_task_import_and_export_services() -> None:
         event = client.tasks.events(40)[0]
         imported = client.imports.run(
             ImportRequest(graph=ImportGraph()),
-            idempotency_key="import-v008",
+            idempotency_key="import-v009",
             timeout_seconds=0,
         )
         exported = client.exports.run(
             ExportRequest(scope=ExportScope(kind=ExportScopeKind.COLLECTIONS)),
-            idempotency_key="export-v008",
+            idempotency_key="export-v009",
             timeout_seconds=0,
         )
 
@@ -931,13 +1058,13 @@ def test_sync_v008_task_import_and_export_services() -> None:
     assert exported.body.endswith("inventory\n")
     submissions = [request for request in requests if request.method == "POST"]
     assert [request.headers["idempotency-key"] for request in submissions] == [
-        "import-v008",
-        "export-v008",
+        "import-v009",
+        "export-v009",
     ]
-    assert json.loads(submissions[0].content) == {"graph": {}, "version": 1}
+    assert json.loads(submissions[0].content) == {"graph": {}, "version": 2}
 
 
-async def test_async_v008_task_import_and_export_services() -> None:
+async def test_async_v009_task_import_and_export_services() -> None:
     requests: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -970,12 +1097,12 @@ async def test_async_v008_task_import_and_export_services() -> None:
         event = (await client.tasks.events(40))[0]
         imported = await client.imports.run(
             ImportRequest(graph=ImportGraph()),
-            idempotency_key="async-import-v008",
+            idempotency_key="async-import-v009",
             timeout_seconds=0,
         )
         exported = await client.exports.run(
             ExportRequest(scope=ExportScope(kind=ExportScopeKind.COLLECTIONS)),
-            idempotency_key="async-export-v008",
+            idempotency_key="async-export-v009",
             timeout_seconds=0,
         )
 
@@ -985,6 +1112,6 @@ async def test_async_v008_task_import_and_export_services() -> None:
     assert exported.meta.count == 1
     submissions = [request for request in requests if request.method == "POST"]
     assert [request.headers["idempotency-key"] for request in submissions] == [
-        "async-import-v008",
-        "async-export-v008",
+        "async-import-v009",
+        "async-export-v009",
     ]

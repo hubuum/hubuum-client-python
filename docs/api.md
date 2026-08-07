@@ -90,6 +90,10 @@
     options:
       members: true
 
+::: hubuum_client.TokenListState
+    options:
+      members: true
+
 ## Core models
 
 ::: hubuum_client.Collection
@@ -108,7 +112,11 @@
 
 ::: hubuum_client.User
 
+::: hubuum_client.UserPoint
+
 ::: hubuum_client.Group
+
+::: hubuum_client.GroupPoint
 
 ::: hubuum_client.ClassRelation
 
@@ -128,6 +136,10 @@
 
 ::: hubuum_client.ImportGraph
 
+::: hubuum_client.ImportWriteCondition
+
+::: hubuum_client.ImportWriteMode
+
 ::: hubuum_client.RestoreTimestamps
 
 ::: hubuum_client.ImportTaskResult
@@ -144,11 +156,19 @@
 
 ::: hubuum_client.NewTokenRequest
 
+::: hubuum_client.RenewTokenRequest
+
 ::: hubuum_client.TokenScope
 
 ::: hubuum_client.TokenResourceScope
 
 ::: hubuum_client.PrincipalTokenMetadata
+
+::: hubuum_client.PrincipalTokenPoint
+
+::: hubuum_client.PrincipalMember
+
+::: hubuum_client.MembershipPrincipal
 
 ::: hubuum_client.CurrentTokenMetadata
 
@@ -171,3 +191,5 @@
 ::: hubuum_client.DecodeError
 
 ::: hubuum_client.TaskUnsuccessfulError
+
+::: hubuum_client.PreconditionFailedError

@@ -99,6 +99,10 @@ class ConflictError(APIError):
     """The operation conflicts with existing server state."""
 
 
+class PreconditionFailedError(APIError):
+    """A conditional mutation used a stale resource validator."""
+
+
 class RateLimitError(APIError):
     """The server rejected the request because a rate limit was exceeded."""
 

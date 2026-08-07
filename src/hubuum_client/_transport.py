@@ -22,6 +22,7 @@ from .errors import (
     DecodeError,
     NotFoundError,
     PermissionDeniedError,
+    PreconditionFailedError,
     RateLimitError,
 )
 from .options import Params
@@ -350,6 +351,7 @@ def raise_api_error(response: httpx.Response) -> None:
         403: PermissionDeniedError,
         404: NotFoundError,
         409: ConflictError,
+        412: PreconditionFailedError,
         429: RateLimitError,
     }.get(response.status_code, APIError)
     api_error = error_type(

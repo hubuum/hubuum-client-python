@@ -35,6 +35,7 @@ from .models import (
     ExportRequest,
     Group,
     GroupCreate,
+    GroupPoint,
     GroupUpdate,
     HubuumClass,
     HubuumObject,
@@ -51,16 +52,19 @@ from .models import (
     ObjectUpdate,
     PrincipalMember,
     PrincipalTokenMetadata,
+    PrincipalTokenPoint,
     RenderedExport,
+    RenewTokenRequest,
     Task,
     TaskEvent,
     User,
     UserCreate,
+    UserPoint,
     UserUpdate,
     _object_data_patch_payload,
 )
 from .options import Params, RequestOptions
-from .query import Page, Query
+from .query import Page, Query, TokenListState
 from .streaming import AsyncResponseStream
 from .types import AccessToken, ClassId, CollectionId, GroupId, PrincipalId, TaskId, TokenId, UserId
 
@@ -68,6 +72,7 @@ if TYPE_CHECKING:
     from .async_client import AsyncClient
 
 ModelT = TypeVar("ModelT", bound=BaseModel)
+PointModelT = TypeVar("PointModelT", bound=BaseModel)
 CreateT = TypeVar("CreateT", bound=BaseModel)
 UpdateT = TypeVar("UpdateT", bound=BaseModel)
 
@@ -92,17 +97,19 @@ class _AsyncCursorService(Generic[ModelT]):
         *,
         collection_path: str,
         model: type[ModelT],
+        fixed_params: tuple[tuple[str, str], ...] = (),
     ) -> None:
         self._client = client
         self._collection_path = collection_path
         self._model = model
+        self._fixed_params = fixed_params
 
     async def page(self, query: Query | None = None) -> Page[ModelT]:
         """Return one cursor page using immutable query controls."""
         response = await self._client._request_response(
             "GET",
             self._collection_path,
-            options=RequestOptions(params=(query or Query()).as_params()),
+            options=RequestOptions(params=[*self._fixed_params, *(query or Query()).as_params()]),
         )
         items = _decode_model_list(response, self._model)
         return Page(
@@ -160,8 +167,10 @@ class _AsyncCursorService(Generic[ModelT]):
         return items[0]
 
 
-class AsyncResourceService(_AsyncCursorService[ModelT], Generic[ModelT, CreateT, UpdateT]):
-    """Async counterpart to the synchronous typed CRUD service."""
+class AsyncResourceService(
+    _AsyncCursorService[ModelT], Generic[ModelT, PointModelT, CreateT, UpdateT]
+):
+    """Async CRUD with independently typed collection and point responses."""
 
     def __init__(
         self,
@@ -169,32 +178,34 @@ class AsyncResourceService(_AsyncCursorService[ModelT], Generic[ModelT, CreateT,
         *,
         collection_path: str,
         item_path: str,
-        model: type[ModelT],
+        list_model: type[ModelT],
+        point_model: type[PointModelT],
     ) -> None:
-        super().__init__(client, collection_path=collection_path, model=model)
+        super().__init__(client, collection_path=collection_path, model=list_model)
         self._item_path = item_path
+        self._point_model = point_model
 
-    async def get(self, resource_id: object) -> ModelT:
+    async def get(self, resource_id: object) -> PointModelT:
         """Return one resource by its path identifier."""
         return await self._client.request(
             "GET",
             self._item_path.format(id=_segment(resource_id)),
-            response_model=self._model,
+            response_model=self._point_model,
         )
 
-    async def create(self, payload: CreateT) -> ModelT:
+    async def create(self, payload: CreateT) -> PointModelT:
         """Create and return a resource from a strict request model."""
         return await self._client.request(
-            "POST", self._collection_path, json=payload, response_model=self._model
+            "POST", self._collection_path, json=payload, response_model=self._point_model
         )
 
-    async def update(self, resource_id: object, payload: UpdateT) -> ModelT:
+    async def update(self, resource_id: object, payload: UpdateT) -> PointModelT:
         """Patch and return one resource by its path identifier."""
         return await self._client.request(
             "PATCH",
             self._item_path.format(id=_segment(resource_id)),
             json=payload,
-            response_model=self._model,
+            response_model=self._point_model,
         )
 
     async def delete(self, resource_id: object) -> None:
@@ -202,13 +213,16 @@ class AsyncResourceService(_AsyncCursorService[ModelT], Generic[ModelT, CreateT,
         await self._client.request("DELETE", self._item_path.format(id=_segment(resource_id)))
 
 
-class AsyncCollectionsService(AsyncResourceService[Collection, CollectionCreate, CollectionUpdate]):
+class AsyncCollectionsService(
+    AsyncResourceService[Collection, Collection, CollectionCreate, CollectionUpdate]
+):
     def __init__(self, client: AsyncClient) -> None:
         super().__init__(
             client,
             collection_path="/api/v1/collections",
             item_path="/api/v1/collections/{id}",
-            model=Collection,
+            list_model=Collection,
+            point_model=Collection,
         )
 
     async def children(self, collection_id: CollectionId | int) -> builtins.list[Collection]:
@@ -236,13 +250,14 @@ class AsyncCollectionsService(AsyncResourceService[Collection, CollectionCreate,
         )
 
 
-class AsyncClassesService(AsyncResourceService[HubuumClass, ClassCreate, ClassUpdate]):
+class AsyncClassesService(AsyncResourceService[HubuumClass, HubuumClass, ClassCreate, ClassUpdate]):
     def __init__(self, client: AsyncClient) -> None:
         super().__init__(
             client,
             collection_path="/api/v1/classes",
             item_path="/api/v1/classes/{id}",
-            model=HubuumClass,
+            list_model=HubuumClass,
+            point_model=HubuumClass,
         )
 
     async def get_by_name(self, name: str) -> HubuumClass:
@@ -297,7 +312,9 @@ class AsyncClassService:
         await self._client.request("DELETE", self._base)
 
 
-class AsyncObjectsService(AsyncResourceService[HubuumObject, ObjectCreate, ObjectUpdate]):
+class AsyncObjectsService(
+    AsyncResourceService[HubuumObject, HubuumObject, ObjectCreate, ObjectUpdate]
+):
     def __init__(self, client: AsyncClient, class_id: ClassId) -> None:
         self.class_id = class_id
         base = f"/api/v1/classes/{_segment(class_id)}"
@@ -305,7 +322,8 @@ class AsyncObjectsService(AsyncResourceService[HubuumObject, ObjectCreate, Objec
             client,
             collection_path=f"{base}/",
             item_path=f"{base}/{{id}}",
-            model=HubuumObject,
+            list_model=HubuumObject,
+            point_model=HubuumObject,
         )
 
     async def get_by_name(self, name: str) -> HubuumObject:
@@ -341,11 +359,14 @@ class AsyncNamedObjectsService:
         self._client = client
         self.class_name = class_name
         base = f"/api/v1/classes/by-name/{_segment(class_name)}/objects"
-        self._service = AsyncResourceService[HubuumObject, ObjectCreate, ObjectUpdate](
+        self._service = AsyncResourceService[
+            HubuumObject, HubuumObject, ObjectCreate, ObjectUpdate
+        ](
             client,
             collection_path=base,
             item_path=f"{base}/by-name/{{id}}",
-            model=HubuumObject,
+            list_model=HubuumObject,
+            point_model=HubuumObject,
         )
 
     async def page(self, query: Query | None = None) -> Page[HubuumObject]:
@@ -495,13 +516,16 @@ class AsyncNamedClassService:
         )
 
 
-class AsyncUsersService(AsyncResourceService[User, UserCreate, UserUpdate]):
+class AsyncUsersService(AsyncResourceService[User, UserPoint, UserCreate, UserUpdate]):
+    """Async user lists with canonical point responses for reads and mutations."""
+
     def __init__(self, client: AsyncClient) -> None:
         super().__init__(
             client,
             collection_path="/api/v1/iam/users",
             item_path="/api/v1/iam/users/{id}",
-            model=User,
+            list_model=User,
+            point_model=UserPoint,
         )
 
     async def get_by_name(self, name: str) -> User:
@@ -511,13 +535,16 @@ class AsyncUsersService(AsyncResourceService[User, UserCreate, UserUpdate]):
         await self._client.request("POST", f"/api/v1/iam/users/{_segment(user_id)}/anonymize")
 
 
-class AsyncGroupsService(AsyncResourceService[Group, GroupCreate, GroupUpdate]):
+class AsyncGroupsService(AsyncResourceService[Group, GroupPoint, GroupCreate, GroupUpdate]):
+    """Async group lists with revision-owned point responses for reads and mutations."""
+
     def __init__(self, client: AsyncClient) -> None:
         super().__init__(
             client,
             collection_path="/api/v1/iam/groups",
             item_path="/api/v1/iam/groups/{id}",
-            model=Group,
+            list_model=Group,
+            point_model=GroupPoint,
         )
 
     async def get_by_name(self, name: str) -> Group:
@@ -525,13 +552,14 @@ class AsyncGroupsService(AsyncResourceService[Group, GroupCreate, GroupUpdate]):
 
     def _members_service(
         self, group_id: GroupId | int
-    ) -> AsyncResourceService[PrincipalMember, BaseModel, BaseModel]:
+    ) -> AsyncResourceService[PrincipalMember, PrincipalMember, BaseModel, BaseModel]:
         path = f"/api/v1/iam/groups/{_segment(group_id)}/members"
         return AsyncResourceService(
             self._client,
             collection_path=path,
             item_path=f"{path}/{{id}}",
-            model=PrincipalMember,
+            list_model=PrincipalMember,
+            point_model=PrincipalMember,
         )
 
     async def members_page(
@@ -568,10 +596,13 @@ class AsyncGroupsService(AsyncResourceService[Group, GroupCreate, GroupUpdate]):
             max_items=max_items,
         )
 
-    async def add_member(self, group_id: GroupId | int, principal_id: PrincipalId | int) -> None:
-        await self._client.request(
+    async def add_member(
+        self, group_id: GroupId | int, principal_id: PrincipalId | int
+    ) -> PrincipalMember:
+        return await self._client.request(
             "POST",
             f"/api/v1/iam/groups/{_segment(group_id)}/members/{_segment(principal_id)}",
+            response_model=PrincipalMember,
         )
 
     async def remove_member(self, group_id: GroupId | int, principal_id: PrincipalId | int) -> None:
@@ -581,83 +612,82 @@ class AsyncGroupsService(AsyncResourceService[Group, GroupCreate, GroupUpdate]):
         )
 
 
-class AsyncTokensService:
-    """Async token metadata visible to the current human user."""
+class _AsyncTokenListService:
+    """Shared async lifecycle-aware token pagination behavior."""
 
-    def __init__(self, client: AsyncClient) -> None:
-        self._service = AsyncResourceService[PrincipalTokenMetadata, BaseModel, BaseModel](
-            client,
-            collection_path="/api/v1/iam/me/tokens",
-            item_path="/api/v1/iam/me/tokens/{id}",
-            model=PrincipalTokenMetadata,
-        )
+    def __init__(self, client: AsyncClient, collection_path: str) -> None:
         self._client = client
+        self._collection_path = collection_path
 
-    async def page(self, query: Query | None = None) -> Page[PrincipalTokenMetadata]:
-        return await self._service.page(query)
+    def _service(self, state: TokenListState) -> _AsyncCursorService[PrincipalTokenMetadata]:
+        return _AsyncCursorService(
+            self._client,
+            collection_path=self._collection_path,
+            model=PrincipalTokenMetadata,
+            fixed_params=(("state", state.value),),
+        )
 
-    async def list(self, query: Query | None = None) -> builtins.list[PrincipalTokenMetadata]:
-        return await self._service.list(query)
+    async def page(
+        self,
+        query: Query | None = None,
+        *,
+        state: TokenListState = TokenListState.ACTIVE,
+    ) -> Page[PrincipalTokenMetadata]:
+        return await self._service(state).page(query)
+
+    async def list(
+        self,
+        query: Query | None = None,
+        *,
+        state: TokenListState = TokenListState.ACTIVE,
+    ) -> builtins.list[PrincipalTokenMetadata]:
+        return await self._service(state).list(query)
 
     async def pages(
         self,
         query: Query | None = None,
         *,
+        state: TokenListState = TokenListState.ACTIVE,
         max_pages: int = 100,
     ) -> AsyncIterator[Page[PrincipalTokenMetadata]]:
-        async for page in self._service.pages(query, max_pages=max_pages):
+        async for page in self._service(state).pages(query, max_pages=max_pages):
             yield page
 
     async def all(
         self,
         query: Query | None = None,
         *,
+        state: TokenListState = TokenListState.ACTIVE,
         max_pages: int = 100,
         max_items: int = 10_000,
     ) -> builtins.list[PrincipalTokenMetadata]:
-        return await self._service.all(query, max_pages=max_pages, max_items=max_items)
+        return await self._service(state).all(query, max_pages=max_pages, max_items=max_items)
+
+
+class AsyncTokensService(_AsyncTokenListService):
+    """Async token metadata visible to the current human user."""
+
+    def __init__(self, client: AsyncClient) -> None:
+        super().__init__(client, "/api/v1/iam/me/tokens")
 
     def for_principal(self, principal_id: PrincipalId | int) -> AsyncPrincipalTokensService:
         return AsyncPrincipalTokensService(self._client, PrincipalId(principal_id))
 
 
-class AsyncPrincipalTokensService:
-    """Async list, mint, and revoke operations for one principal."""
+class AsyncPrincipalTokensService(_AsyncTokenListService):
+    """Async list, inspect, mint, renew, and revoke operations for one principal."""
 
     def __init__(self, client: AsyncClient, principal_id: PrincipalId) -> None:
-        self._client = client
         self.principal_id = principal_id
         self._base = f"/api/v1/iam/principals/{_segment(principal_id)}/tokens"
-        self._service = AsyncResourceService[PrincipalTokenMetadata, NewTokenRequest, BaseModel](
-            client,
-            collection_path=self._base,
-            item_path=f"{self._base}/{{id}}",
-            model=PrincipalTokenMetadata,
+        super().__init__(client, self._base)
+
+    async def get(self, token_id: TokenId | int) -> PrincipalTokenPoint:
+        return await self._client.request(
+            "GET",
+            f"{self._base}/{_segment(token_id)}",
+            response_model=PrincipalTokenPoint,
         )
-
-    async def page(self, query: Query | None = None) -> Page[PrincipalTokenMetadata]:
-        return await self._service.page(query)
-
-    async def list(self, query: Query | None = None) -> builtins.list[PrincipalTokenMetadata]:
-        return await self._service.list(query)
-
-    async def pages(
-        self,
-        query: Query | None = None,
-        *,
-        max_pages: int = 100,
-    ) -> AsyncIterator[Page[PrincipalTokenMetadata]]:
-        async for page in self._service.pages(query, max_pages=max_pages):
-            yield page
-
-    async def all(
-        self,
-        query: Query | None = None,
-        *,
-        max_pages: int = 100,
-        max_items: int = 10_000,
-    ) -> builtins.list[PrincipalTokenMetadata]:
-        return await self._service.all(query, max_pages=max_pages, max_items=max_items)
 
     async def create(self, payload: NewTokenRequest) -> AccessToken:
         response = await self._client.request(
@@ -674,14 +704,30 @@ class AsyncPrincipalTokensService:
             f"{self._base}/{_segment(token_id)}/revoke",
         )
 
+    async def renew(
+        self,
+        token_id: TokenId | int,
+        payload: RenewTokenRequest | None = None,
+    ) -> AccessToken:
+        response = await self._client.request(
+            "POST",
+            f"{self._base}/{_segment(token_id)}/renew",
+            json=payload if payload is not None else RenewTokenRequest(),
+            response_model=LoginResponse,
+        )
+        return AccessToken(response.token, expires_at=response.expires_at)
+
 
 class AsyncClassRelationsService:
     def __init__(self, client: AsyncClient) -> None:
-        self._service = AsyncResourceService[ClassRelation, ClassRelationCreate, BaseModel](
+        self._service = AsyncResourceService[
+            ClassRelation, ClassRelation, ClassRelationCreate, BaseModel
+        ](
             client,
             collection_path="/api/v1/relations/classes",
             item_path="/api/v1/relations/classes/{id}",
-            model=ClassRelation,
+            list_model=ClassRelation,
+            point_model=ClassRelation,
         )
 
     async def list(self, query: Query | None = None) -> builtins.list[ClassRelation]:
@@ -702,11 +748,14 @@ class AsyncClassRelationsService:
 
 class AsyncObjectRelationsService:
     def __init__(self, client: AsyncClient) -> None:
-        self._service = AsyncResourceService[ObjectRelation, ObjectRelationCreate, BaseModel](
+        self._service = AsyncResourceService[
+            ObjectRelation, ObjectRelation, ObjectRelationCreate, BaseModel
+        ](
             client,
             collection_path="/api/v1/relations/objects",
             item_path="/api/v1/relations/objects/{id}",
-            model=ObjectRelation,
+            list_model=ObjectRelation,
+            point_model=ObjectRelation,
         )
 
     async def list(self, query: Query | None = None) -> builtins.list[ObjectRelation]:
