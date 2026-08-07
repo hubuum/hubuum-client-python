@@ -50,6 +50,31 @@ from hubuum_client import (
 pytestmark = pytest.mark.e2e
 
 
+def _conditional_collection_options(collection_id: int, etag: str) -> OpenAPIOptions:
+    return OpenAPIOptions(
+        path_params={"collection_id": collection_id},
+        headers={"If-Match": etag},
+    )
+
+
+def _response_etag(client: Client, path: str) -> str:
+    with client.stream("GET", path) as response:
+        assert response.status_code == 200
+        etag = response.headers.get("etag")
+        assert etag is not None
+        assert b"".join(response.iter_bytes())
+    return etag
+
+
+async def _async_response_etag(client: AsyncClient, path: str) -> str:
+    async with client.stream("GET", path) as response:
+        assert response.status_code == 200
+        etag = response.headers.get("etag")
+        assert etag is not None
+        assert b"".join([chunk async for chunk in response.iter_bytes()])
+    return etag
+
+
 def test_public_config_authentication_and_core_crud(
     client: Client,
     admin_group_id: GroupId,
@@ -130,7 +155,7 @@ def test_public_config_authentication_and_core_crud(
         client.collections.delete(collection.id)
 
 
-def test_stale_if_match_maps_to_precondition_failed(
+def test_sync_etag_preconditions_cover_updates_and_deletes(
     client: Client,
     admin_group_id: GroupId,
     unique_name: str,
@@ -143,33 +168,119 @@ def test_stale_if_match_maps_to_precondition_failed(
         )
     )
     path = f"/api/v1/collections/{collection.id}"
+    deleted = False
     try:
-        with client.stream("GET", path) as response:
-            assert response.status_code == 200
-            stale_etag = response.headers.get("etag")
-            assert stale_etag is not None
-            assert b"".join(response.iter_bytes())
-
-        updated = client.collections.update(
-            collection.id,
-            CollectionUpdate(description="Revision advanced before stale update"),
+        original_etag = _response_etag(client, path)
+        updated = client.openapi.call(
+            "patchApiV1CollectionsByCollectionId",
+            json={"description": "Updated with the current validator"},
+            options=_conditional_collection_options(collection.id, original_etag),
         )
-        assert updated.revision > collection.revision
+        assert isinstance(updated, dict)
+        assert updated["description"] == "Updated with the current validator"
+        updated_revision = updated["revision"]
+        assert isinstance(updated_revision, int)
+        assert updated_revision > collection.revision
 
         with pytest.raises(PreconditionFailedError) as raised:
             client.openapi.call(
                 "patchApiV1CollectionsByCollectionId",
                 json={"description": "This stale update must not be applied"},
-                options=OpenAPIOptions(
-                    path_params={"collection_id": collection.id},
-                    headers={"If-Match": stale_etag},
-                ),
+                options=_conditional_collection_options(collection.id, original_etag),
             )
 
         assert raised.value.status_code == 412
-        assert client.collections.get(collection.id).description == updated.description
+        current_etag = _response_etag(client, path)
+        assert current_etag != original_etag
+
+        with pytest.raises(PreconditionFailedError) as stale_delete:
+            client.openapi.call(
+                "deleteApiV1CollectionsByCollectionId",
+                options=_conditional_collection_options(collection.id, original_etag),
+            )
+        assert stale_delete.value.status_code == 412
+        assert client.collections.get(collection.id).description == updated["description"]
+
+        assert (
+            client.openapi.call(
+                "deleteApiV1CollectionsByCollectionId",
+                options=_conditional_collection_options(collection.id, current_etag),
+            )
+            is None
+        )
+        deleted = True
+        with pytest.raises(NotFoundError):
+            client.collections.get(collection.id)
     finally:
-        client.collections.delete(collection.id)
+        if not deleted:
+            with suppress(APIError):
+                client.collections.delete(collection.id)
+
+
+async def test_async_etag_preconditions_cover_updates_and_deletes(
+    base_url: str,
+    admin_password: str,
+    admin_group_id: GroupId,
+    unique_name: str,
+) -> None:
+    async with AsyncClient(base_url) as client:
+        await client.login(Credentials("admin", admin_password))
+        collection = await client.collections.create(
+            CollectionCreate(
+                name=f"{unique_name}-async-precondition-collection",
+                description="Async precondition mapping e2e collection",
+                group_id=admin_group_id,
+            )
+        )
+        path = f"/api/v1/collections/{collection.id}"
+        deleted = False
+        try:
+            original_etag = await _async_response_etag(client, path)
+            updated = await client.openapi.call(
+                "patchApiV1CollectionsByCollectionId",
+                json={"description": "Updated asynchronously with the current validator"},
+                options=_conditional_collection_options(collection.id, original_etag),
+            )
+            assert isinstance(updated, dict)
+            assert updated["description"] == "Updated asynchronously with the current validator"
+            updated_revision = updated["revision"]
+            assert isinstance(updated_revision, int)
+            assert updated_revision > collection.revision
+
+            with pytest.raises(PreconditionFailedError) as stale_update:
+                await client.openapi.call(
+                    "patchApiV1CollectionsByCollectionId",
+                    json={"description": "This async stale update must not be applied"},
+                    options=_conditional_collection_options(collection.id, original_etag),
+                )
+            assert stale_update.value.status_code == 412
+
+            current_etag = await _async_response_etag(client, path)
+            assert current_etag != original_etag
+            with pytest.raises(PreconditionFailedError) as stale_delete:
+                await client.openapi.call(
+                    "deleteApiV1CollectionsByCollectionId",
+                    options=_conditional_collection_options(collection.id, original_etag),
+                )
+            assert stale_delete.value.status_code == 412
+            assert (await client.collections.get(collection.id)).description == updated[
+                "description"
+            ]
+
+            assert (
+                await client.openapi.call(
+                    "deleteApiV1CollectionsByCollectionId",
+                    options=_conditional_collection_options(collection.id, current_etag),
+                )
+                is None
+            )
+            deleted = True
+            with pytest.raises(NotFoundError):
+                await client.collections.get(collection.id)
+        finally:
+            if not deleted:
+                with suppress(APIError):
+                    await client.collections.delete(collection.id)
 
 
 def test_v009_principal_settings_json_patch(client: Client, unique_name: str) -> None:

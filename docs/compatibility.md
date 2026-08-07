@@ -26,8 +26,9 @@ from resolving to different content later. The same reference is stored in
 The v0.0.9 run passed the complete pinned live-server suite, including public
 probes/configuration/metrics, core CRUD/natural keys, nested object-data queries and JSON Patch, IAM/relations,
 forced cursor traversal, non-administrator authorization and live error
-mapping (including a stale `If-Match` validator for `412`), a complete async
-resource lifecycle, and synchronous and asynchronous scoped-token lifecycles.
+mapping (including successful and stale `If-Match` updates and deletes in both
+runtimes), a complete async resource lifecycle, and synchronous and
+asynchronous scoped-token lifecycles.
 Each token lifecycle mints a nested permission and
 resource scope, verifies revisioned metadata, point lookup, renewal,
 allowed/denied operations, revoked-token selection, and rejection after

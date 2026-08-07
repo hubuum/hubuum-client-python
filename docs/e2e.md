@@ -8,7 +8,8 @@ cursor traversal and metadata, typed nested object-data filters (including
 scalar, numeric, array, structure, null, combined, and network cases),
 natural-key object listing and atomic object-data JSON Patch, IAM membership,
 class and object relations, non-administrator permission boundaries, live
-`400`, `401`, `403`, `404`, and `409` errors, principal-settings JSON Patch,
+`400`, `401`, `403`, `404`, `409`, and `412` errors, successful and stale
+`If-Match` updates and deletes in both runtimes, principal-settings JSON Patch,
 scoped-token mint/list/inspect/renew/use/revoke lifecycles in both runtimes,
 v0.0.9 relation cardinality enforcement, import-v2 timestamp restoration,
 export phase timings and task events, cleanup, and a complete async
