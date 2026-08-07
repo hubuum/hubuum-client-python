@@ -376,6 +376,9 @@ def test_iam_and_relations(client: Client, admin_group_id: GroupId, unique_name:
     group = client.groups.create(
         GroupCreate(groupname=f"{unique_name}-group", description="Python e2e group")
     )
+    assert user.identity_scope_id > 0
+    assert not hasattr(user, "provider_kind")
+    assert not hasattr(group, "last_sync_attempted_at")
     collections = []
     classes = []
     objects: list[HubuumObject] = []

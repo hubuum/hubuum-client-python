@@ -18,7 +18,9 @@ from hubuum_client import (
     ExportRequest,
     ExportScope,
     ExportScopeKind,
+    Group,
     GroupKey,
+    GroupPoint,
     HubuumClass,
     ImportCollectionPermissionInput,
     ImportGraph,
@@ -44,6 +46,7 @@ from hubuum_client import (
     TokenResourceScope,
     TokenScope,
     User,
+    UserPoint,
 )
 from hubuum_client.models import LoginResponse
 
@@ -63,8 +66,8 @@ def test_response_model_decodes_ids_datetimes_and_forward_fields(
         Collection.model_validate(collection_json | {"revision": 0})
 
 
-def test_v009_user_point_shape_uses_stable_identity_scope_id() -> None:
-    user = User.model_validate(
+def test_v009_user_list_and_point_models_keep_provider_metadata_separate() -> None:
+    point = UserPoint.model_validate(
         {
             "id": 21,
             "identity_scope_id": 1,
@@ -77,11 +80,47 @@ def test_v009_user_point_shape_uses_stable_identity_scope_id() -> None:
             "revision": 3,
         }
     )
+    listed = User.model_validate(
+        {
+            "id": 21,
+            "identity_scope": "local",
+            "provider_kind": "local",
+            "provider_managed": False,
+            "name": "alice",
+            "created_at": "2026-08-07T10:00:00Z",
+            "updated_at": "2026-08-07T10:00:00Z",
+            "last_sync_success_at": "2026-08-07T10:01:00Z",
+            "revision": 3,
+        }
+    )
 
-    assert user.identity_scope_id == 1
-    assert user.identity_scope is None
-    assert user.provider_kind is None
-    assert user.revision == 3
+    assert point.identity_scope_id == 1
+    assert "identity_scope" not in UserPoint.model_fields
+    assert "provider_kind" not in UserPoint.model_fields
+    assert "last_sync_success_at" not in UserPoint.model_fields
+    assert not hasattr(point, "provider_kind")
+    assert listed.provider_kind == "local"
+    assert listed.last_sync_success_at == datetime(2026, 8, 7, 10, 1, tzinfo=UTC)
+    assert "identity_scope_id" not in User.model_fields
+
+
+def test_v009_group_point_omits_list_only_sync_state() -> None:
+    common = {
+        "id": 20,
+        "groupname": "ops",
+        "description": "Operations",
+        "identity_scope": "local",
+        "managed_by": "local",
+        "created_at": "2026-08-07T10:00:00Z",
+        "updated_at": "2026-08-07T10:00:00Z",
+        "revision": 2,
+    }
+    point = GroupPoint.model_validate(common)
+    listed = Group.model_validate(common | {"last_sync_attempted_at": "2026-08-07T10:01:00Z"})
+
+    assert "last_sync_attempted_at" not in GroupPoint.model_fields
+    assert not hasattr(point, "last_sync_attempted_at")
+    assert listed.last_sync_attempted_at == datetime(2026, 8, 7, 10, 1, tzinfo=UTC)
 
 
 def test_request_model_is_strict_and_excludes_optional_values() -> None:

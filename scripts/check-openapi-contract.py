@@ -10,7 +10,7 @@ import json
 import sys
 import urllib.request
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeAlias
 from urllib.parse import urlsplit
 
 TARGET_REVISION = "04367a8d6eb38e4356b4e4673269b356f46bbcc3"
@@ -38,6 +38,8 @@ REQUIRED_OPERATIONS = {
     ("get", "/readyz"),
 }
 CLIENT_MANIFEST = Path(__file__).parents[1] / "src" / "hubuum_client" / "_operations.py"
+OperationManifestEntry: TypeAlias = tuple[str, str, tuple[str, ...], tuple[str, ...]]
+OperationManifest: TypeAlias = dict[str, OperationManifestEntry]
 
 
 def _read_source(source: str) -> bytes:
@@ -72,10 +74,8 @@ def _operations(document: dict[str, Any]) -> set[tuple[str, str]]:
     return result
 
 
-def _operation_manifest(
-    document: dict[str, Any],
-) -> dict[str, tuple[str, str, tuple[str, ...], tuple[str, ...]]]:
-    result: dict[str, tuple[str, str, tuple[str, ...], tuple[str, ...]]] = {}
+def _operation_manifest(document: dict[str, Any]) -> OperationManifest:
+    result: OperationManifest = {}
     for path, path_item in document.get("paths", {}).items():
         if not isinstance(path_item, dict):
             continue
@@ -103,7 +103,7 @@ def _operation_manifest(
     return result
 
 
-def _client_manifest() -> dict[str, tuple[str, str, tuple[str, ...], tuple[str, ...]]]:
+def _client_manifest() -> OperationManifest:
     spec = importlib.util.spec_from_file_location("_hubuum_client_operations", CLIENT_MANIFEST)
     if spec is None or spec.loader is None:
         raise ValueError("could not load the client operation manifest")

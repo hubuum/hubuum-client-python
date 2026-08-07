@@ -8,10 +8,11 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
-- Added typed positive resource revisions, v0.0.9 user and membership response
-  shapes, retained-token lifecycle selection, token point lookup and renewal,
-  import-v2 write conditions, and `PreconditionFailedError` for stale `412`
-  responses, with synchronous and asynchronous parity.
+- Added typed positive resource revisions, distinct v0.0.9 list and point
+  response models for users, groups, and tokens, membership response shapes,
+  retained-token lifecycle selection, token point lookup and renewal, import-v2
+  write conditions, and `PreconditionFailedError` for stale `412` responses,
+  with synchronous and asynchronous parity.
 - Added caller-selectable OpenAPI request content types so the new principal
   settings JSON Patch and JSON Merge Patch representations are both usable.
 

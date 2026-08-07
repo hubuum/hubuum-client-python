@@ -78,11 +78,14 @@ OpenAPI check validates every method, path, request media type, and success
 response media type; the live suite concentrates on representative core
 workflows and does not invoke all 202 operations.
 
-## Known contract accommodations
+## Contract-specific response shapes
 
 Hubuum v0.0.9 user lists include scope and provider names, while canonical user
 point responses use the stable `identity_scope_id` and omit provider metadata.
-`User` accepts both documented response forms without inventing absent fields.
+`User` represents list entries and `UserPoint` represents canonical reads and
+mutations, so neither type invents absent fields. Groups follow the same split:
+`Group` includes list-only directory synchronization state, while `GroupPoint`
+models revision-owned point responses without that operational state.
 
 Class point routes now return the canonical class by default and use
 `include=collection` for the expanded representation. `HubuumClass` accepts

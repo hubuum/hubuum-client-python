@@ -265,20 +265,32 @@ def _object_data_patch_payload(
     return result
 
 
-class User(HubuumModel):
+class _UserBase(HubuumModel):
+    """Fields shared by user list and canonical point responses."""
+
     id: UserId
-    identity_scope: str | None = None
-    identity_scope_id: int | None = None
-    provider_kind: str | None = None
     provider_managed: bool
     name: str
     email: str | None = None
     proper_name: str | None = None
     created_at: datetime
     updated_at: datetime
+    revision: ResourceRevision
+
+
+class User(_UserBase):
+    """User metadata returned by collection endpoints."""
+
+    identity_scope: str
+    provider_kind: str
     last_sync_attempted_at: datetime | None = None
     last_sync_success_at: datetime | None = None
-    revision: ResourceRevision
+
+
+class UserPoint(_UserBase):
+    """Canonical revision-owned user returned by point mutations and reads."""
+
+    identity_scope_id: int
 
 
 class UserCreate(RequestModel):
@@ -295,21 +307,25 @@ class UserUpdate(RequestModel):
     proper_name: str | None = None
 
 
-class Group(HubuumModel):
+class GroupPoint(HubuumModel):
+    """Canonical revision-owned group returned by point mutations and reads."""
+
     id: GroupId
     groupname: str
     description: str
-    # List/point responses expose the scope name while lower-level server
-    # representations use the stable identity_scope_id.
-    identity_scope: str | None = None
-    identity_scope_id: int | None = None
+    identity_scope: str
     managed_by: str
     external_key: str | None = None
     created_at: datetime
     updated_at: datetime
+    revision: ResourceRevision
+
+
+class Group(GroupPoint):
+    """Group metadata returned by collection endpoints."""
+
     last_sync_attempted_at: datetime | None = None
     last_sync_success_at: datetime | None = None
-    revision: ResourceRevision
 
 
 class GroupCreate(RequestModel):
@@ -587,8 +603,6 @@ class ImportWriteCondition(RequestModel):
             raise ValueError("if_revision requires expected_revision")
         if self.mode is not ImportWriteMode.IF_REVISION and self.expected_revision is not None:
             raise ValueError("expected_revision is only valid for if_revision")
-        if self.expected_revision is not None and self.expected_revision < 1:
-            raise ValueError("expected_revision must be positive")
         return self
 
 
@@ -922,15 +936,6 @@ class PrincipalTokenMetadata(PrincipalTokenPoint):
     active: bool
     expired: bool
     last_used_at: datetime | None = None
-
-
-class TokenListState(StrEnum):
-    """Retained-token lifecycle subset selected by token list operations."""
-
-    ACTIVE = "active"
-    EXPIRED = "expired"
-    REVOKED = "revoked"
-    ALL = "all"
 
 
 class MeResponse(HubuumModel):

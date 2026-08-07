@@ -90,6 +90,10 @@
     options:
       members: true
 
+::: hubuum_client.TokenListState
+    options:
+      members: true
+
 ## Core models
 
 ::: hubuum_client.Collection
@@ -108,7 +112,11 @@
 
 ::: hubuum_client.User
 
+::: hubuum_client.UserPoint
+
 ::: hubuum_client.Group
+
+::: hubuum_client.GroupPoint
 
 ::: hubuum_client.ClassRelation
 
@@ -149,8 +157,6 @@
 ::: hubuum_client.NewTokenRequest
 
 ::: hubuum_client.RenewTokenRequest
-
-::: hubuum_client.TokenListState
 
 ::: hubuum_client.TokenScope
 

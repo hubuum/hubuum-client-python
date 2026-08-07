@@ -62,6 +62,7 @@ from .models import (
     Group,
     GroupCreate,
     GroupKey,
+    GroupPoint,
     GroupUpdate,
     HubuumClass,
     HubuumObject,
@@ -115,7 +116,6 @@ from .models import (
     TaskLinks,
     TaskProgress,
     TaskStatus,
-    TokenListState,
     TokenResourceKind,
     TokenResourceScope,
     TokenResourceScopeDetails,
@@ -123,11 +123,12 @@ from .models import (
     TokenScopeDetails,
     User,
     UserCreate,
+    UserPoint,
     UserUpdate,
 )
 from .openapi import AsyncOpenAPIOperations, OpenAPIOperations
 from .options import ClientOptions, OpenAPIOptions, RequestOptions
-from .query import DataField, Page, Query, QueryFilter
+from .query import DataField, Page, Query, QueryFilter, TokenListState
 from .streaming import AsyncResponseStream, ResponseStream
 from .types import (
     AccessToken,
@@ -207,6 +208,7 @@ __all__ = [
     "GroupCreate",
     "GroupId",
     "GroupKey",
+    "GroupPoint",
     "GroupUpdate",
     "HubuumClass",
     "HubuumError",
@@ -293,6 +295,7 @@ __all__ = [
     "User",
     "UserCreate",
     "UserId",
+    "UserPoint",
     "UserUpdate",
     "__version__",
 ]

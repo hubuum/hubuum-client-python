@@ -38,11 +38,15 @@ class Credentials:
 
     def __post_init__(self) -> None:
         if len(self.name) > _MAX_LOGIN_NAME_CHARS:
-            raise ValueError("login name must not exceed 255 characters")
+            raise ValueError(f"login name must not exceed {_MAX_LOGIN_NAME_CHARS} characters")
         if len(self.password) > _MAX_LOGIN_PASSWORD_CHARS:
-            raise ValueError("login password must not exceed 4096 characters")
+            raise ValueError(
+                f"login password must not exceed {_MAX_LOGIN_PASSWORD_CHARS} characters"
+            )
         if self.identity_scope is not None and len(self.identity_scope) > _MAX_LOGIN_SCOPE_CHARS:
-            raise ValueError("login identity scope must not exceed 255 characters")
+            raise ValueError(
+                f"login identity scope must not exceed {_MAX_LOGIN_SCOPE_CHARS} characters"
+            )
 
     def __repr__(self) -> str:
         return (

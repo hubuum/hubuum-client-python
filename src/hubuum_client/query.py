@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass, replace
 from datetime import date, datetime
+from enum import StrEnum
 from ipaddress import IPv4Address, IPv4Network, IPv6Address, IPv6Network
 from typing import Generic, TypeVar, overload
 
@@ -14,6 +15,15 @@ T = TypeVar("T")
 FilterValue = QueryValue | date | datetime
 NetworkFilterValue = str | IPv4Address | IPv6Address | IPv4Network | IPv6Network
 WireValue = FilterValue | NetworkFilterValue
+
+
+class TokenListState(StrEnum):
+    """Retained-token lifecycle subset selected by token list operations."""
+
+    ACTIVE = "active"
+    EXPIRED = "expired"
+    REVOKED = "revoked"
+    ALL = "all"
 
 
 def _wire_value(value: WireValue) -> str:

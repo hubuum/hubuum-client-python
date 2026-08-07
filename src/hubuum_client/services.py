@@ -34,6 +34,7 @@ from .models import (
     ExportRequest,
     Group,
     GroupCreate,
+    GroupPoint,
     GroupUpdate,
     HubuumClass,
     HubuumObject,
@@ -55,14 +56,14 @@ from .models import (
     RenewTokenRequest,
     Task,
     TaskEvent,
-    TokenListState,
     User,
     UserCreate,
+    UserPoint,
     UserUpdate,
     _object_data_patch_payload,
 )
 from .options import Params, RequestOptions
-from .query import Page, Query
+from .query import Page, Query, TokenListState
 from .streaming import ResponseStream
 from .types import AccessToken, ClassId, CollectionId, GroupId, PrincipalId, TaskId, TokenId, UserId
 
@@ -70,6 +71,7 @@ if TYPE_CHECKING:
     from .client import Client
 
 ModelT = TypeVar("ModelT", bound=BaseModel)
+PointModelT = TypeVar("PointModelT", bound=BaseModel)
 CreateT = TypeVar("CreateT", bound=BaseModel)
 UpdateT = TypeVar("UpdateT", bound=BaseModel)
 
@@ -155,8 +157,8 @@ class _CursorService(Generic[ModelT]):
         return items[0]
 
 
-class ResourceService(_CursorService[ModelT], Generic[ModelT, CreateT, UpdateT]):
-    """Shared typed CRUD and cursor pagination behavior."""
+class ResourceService(_CursorService[ModelT], Generic[ModelT, PointModelT, CreateT, UpdateT]):
+    """Shared CRUD with independently typed collection and point responses."""
 
     def __init__(
         self,
@@ -164,32 +166,34 @@ class ResourceService(_CursorService[ModelT], Generic[ModelT, CreateT, UpdateT])
         *,
         collection_path: str,
         item_path: str,
-        model: type[ModelT],
+        list_model: type[ModelT],
+        point_model: type[PointModelT],
     ) -> None:
-        super().__init__(client, collection_path=collection_path, model=model)
+        super().__init__(client, collection_path=collection_path, model=list_model)
         self._item_path = item_path
+        self._point_model = point_model
 
-    def get(self, resource_id: object) -> ModelT:
+    def get(self, resource_id: object) -> PointModelT:
         """Return one resource by its path identifier."""
         return self._client.request(
             "GET",
             self._item_path.format(id=_segment(resource_id)),
-            response_model=self._model,
+            response_model=self._point_model,
         )
 
-    def create(self, payload: CreateT) -> ModelT:
+    def create(self, payload: CreateT) -> PointModelT:
         """Create and return a resource from a strict request model."""
         return self._client.request(
-            "POST", self._collection_path, json=payload, response_model=self._model
+            "POST", self._collection_path, json=payload, response_model=self._point_model
         )
 
-    def update(self, resource_id: object, payload: UpdateT) -> ModelT:
+    def update(self, resource_id: object, payload: UpdateT) -> PointModelT:
         """Patch and return one resource by its path identifier."""
         return self._client.request(
             "PATCH",
             self._item_path.format(id=_segment(resource_id)),
             json=payload,
-            response_model=self._model,
+            response_model=self._point_model,
         )
 
     def delete(self, resource_id: object) -> None:
@@ -204,13 +208,16 @@ def _header_int(value: str | None) -> int | None:
         return None
 
 
-class CollectionsService(ResourceService[Collection, CollectionCreate, CollectionUpdate]):
+class CollectionsService(
+    ResourceService[Collection, Collection, CollectionCreate, CollectionUpdate]
+):
     def __init__(self, client: Client) -> None:
         super().__init__(
             client,
             collection_path="/api/v1/collections",
             item_path="/api/v1/collections/{id}",
-            model=Collection,
+            list_model=Collection,
+            point_model=Collection,
         )
 
     def children(self, collection_id: CollectionId | int) -> builtins.list[Collection]:
@@ -233,13 +240,14 @@ class CollectionsService(ResourceService[Collection, CollectionCreate, Collectio
         )
 
 
-class ClassesService(ResourceService[HubuumClass, ClassCreate, ClassUpdate]):
+class ClassesService(ResourceService[HubuumClass, HubuumClass, ClassCreate, ClassUpdate]):
     def __init__(self, client: Client) -> None:
         super().__init__(
             client,
             collection_path="/api/v1/classes",
             item_path="/api/v1/classes/{id}",
-            model=HubuumClass,
+            list_model=HubuumClass,
+            point_model=HubuumClass,
         )
 
     def get_by_name(self, name: str) -> HubuumClass:
@@ -294,7 +302,7 @@ class ClassService:
         self._client.request("DELETE", self._base)
 
 
-class ObjectsService(ResourceService[HubuumObject, ObjectCreate, ObjectUpdate]):
+class ObjectsService(ResourceService[HubuumObject, HubuumObject, ObjectCreate, ObjectUpdate]):
     def __init__(self, client: Client, class_id: ClassId) -> None:
         self.class_id = class_id
         base = f"/api/v1/classes/{_segment(class_id)}"
@@ -302,7 +310,8 @@ class ObjectsService(ResourceService[HubuumObject, ObjectCreate, ObjectUpdate]):
             client,
             collection_path=f"{base}/",
             item_path=f"{base}/{{id}}",
-            model=HubuumObject,
+            list_model=HubuumObject,
+            point_model=HubuumObject,
         )
 
     def get_by_name(self, name: str) -> HubuumObject:
@@ -338,11 +347,12 @@ class NamedObjectsService:
         self._client = client
         self.class_name = class_name
         base = f"/api/v1/classes/by-name/{_segment(class_name)}/objects"
-        self._service = ResourceService[HubuumObject, ObjectCreate, ObjectUpdate](
+        self._service = ResourceService[HubuumObject, HubuumObject, ObjectCreate, ObjectUpdate](
             client,
             collection_path=base,
             item_path=f"{base}/by-name/{{id}}",
-            model=HubuumObject,
+            list_model=HubuumObject,
+            point_model=HubuumObject,
         )
 
     def page(self, query: Query | None = None) -> Page[HubuumObject]:
@@ -478,13 +488,16 @@ class NamedClassService:
         )
 
 
-class UsersService(ResourceService[User, UserCreate, UserUpdate]):
+class UsersService(ResourceService[User, UserPoint, UserCreate, UserUpdate]):
+    """User lists with canonical point responses for reads and mutations."""
+
     def __init__(self, client: Client) -> None:
         super().__init__(
             client,
             collection_path="/api/v1/iam/users",
             item_path="/api/v1/iam/users/{id}",
-            model=User,
+            list_model=User,
+            point_model=UserPoint,
         )
 
     def get_by_name(self, name: str) -> User:
@@ -494,13 +507,16 @@ class UsersService(ResourceService[User, UserCreate, UserUpdate]):
         self._client.request("POST", f"/api/v1/iam/users/{_segment(user_id)}/anonymize")
 
 
-class GroupsService(ResourceService[Group, GroupCreate, GroupUpdate]):
+class GroupsService(ResourceService[Group, GroupPoint, GroupCreate, GroupUpdate]):
+    """Group lists with revision-owned point responses for reads and mutations."""
+
     def __init__(self, client: Client) -> None:
         super().__init__(
             client,
             collection_path="/api/v1/iam/groups",
             item_path="/api/v1/iam/groups/{id}",
-            model=Group,
+            list_model=Group,
+            point_model=GroupPoint,
         )
 
     def get_by_name(self, name: str) -> Group:
@@ -508,13 +524,14 @@ class GroupsService(ResourceService[Group, GroupCreate, GroupUpdate]):
 
     def _members_service(
         self, group_id: GroupId | int
-    ) -> ResourceService[PrincipalMember, BaseModel, BaseModel]:
+    ) -> ResourceService[PrincipalMember, PrincipalMember, BaseModel, BaseModel]:
         path = f"/api/v1/iam/groups/{_segment(group_id)}/members"
         return ResourceService(
             self._client,
             collection_path=path,
             item_path=f"{path}/{{id}}",
-            model=PrincipalMember,
+            list_model=PrincipalMember,
+            point_model=PrincipalMember,
         )
 
     def members_page(
@@ -566,16 +583,17 @@ class GroupsService(ResourceService[Group, GroupCreate, GroupUpdate]):
         )
 
 
-class TokensService:
-    """Token metadata visible to the current human user."""
+class _TokenListService:
+    """Shared lifecycle-aware token pagination behavior."""
 
-    def __init__(self, client: Client) -> None:
+    def __init__(self, client: Client, collection_path: str) -> None:
         self._client = client
+        self._collection_path = collection_path
 
     def _service(self, state: TokenListState) -> _CursorService[PrincipalTokenMetadata]:
         return _CursorService(
             self._client,
-            collection_path="/api/v1/iam/me/tokens",
+            collection_path=self._collection_path,
             model=PrincipalTokenMetadata,
             fixed_params=(("state", state.value),),
         )
@@ -614,61 +632,25 @@ class TokensService:
         max_items: int = 10_000,
     ) -> builtins.list[PrincipalTokenMetadata]:
         return self._service(state).all(query, max_pages=max_pages, max_items=max_items)
+
+
+class TokensService(_TokenListService):
+    """Token metadata visible to the current human user."""
+
+    def __init__(self, client: Client) -> None:
+        super().__init__(client, "/api/v1/iam/me/tokens")
 
     def for_principal(self, principal_id: PrincipalId | int) -> PrincipalTokensService:
         return PrincipalTokensService(self._client, PrincipalId(principal_id))
 
 
-class PrincipalTokensService:
+class PrincipalTokensService(_TokenListService):
     """List, inspect, mint, renew, and revoke tokens for one principal."""
 
     def __init__(self, client: Client, principal_id: PrincipalId) -> None:
-        self._client = client
         self.principal_id = principal_id
         self._base = f"/api/v1/iam/principals/{_segment(principal_id)}/tokens"
-
-    def _service(self, state: TokenListState) -> _CursorService[PrincipalTokenMetadata]:
-        return _CursorService(
-            self._client,
-            collection_path=self._base,
-            model=PrincipalTokenMetadata,
-            fixed_params=(("state", state.value),),
-        )
-
-    def page(
-        self,
-        query: Query | None = None,
-        *,
-        state: TokenListState = TokenListState.ACTIVE,
-    ) -> Page[PrincipalTokenMetadata]:
-        return self._service(state).page(query)
-
-    def list(
-        self,
-        query: Query | None = None,
-        *,
-        state: TokenListState = TokenListState.ACTIVE,
-    ) -> builtins.list[PrincipalTokenMetadata]:
-        return self._service(state).list(query)
-
-    def pages(
-        self,
-        query: Query | None = None,
-        *,
-        state: TokenListState = TokenListState.ACTIVE,
-        max_pages: int = 100,
-    ) -> Iterator[Page[PrincipalTokenMetadata]]:
-        return self._service(state).pages(query, max_pages=max_pages)
-
-    def all(
-        self,
-        query: Query | None = None,
-        *,
-        state: TokenListState = TokenListState.ACTIVE,
-        max_pages: int = 100,
-        max_items: int = 10_000,
-    ) -> builtins.list[PrincipalTokenMetadata]:
-        return self._service(state).all(query, max_pages=max_pages, max_items=max_items)
+        super().__init__(client, self._base)
 
     def get(self, token_id: TokenId | int) -> PrincipalTokenPoint:
         return self._client.request(
@@ -700,7 +682,7 @@ class PrincipalTokensService:
         response = self._client.request(
             "POST",
             f"{self._base}/{_segment(token_id)}/renew",
-            json=payload or RenewTokenRequest(),
+            json=payload if payload is not None else RenewTokenRequest(),
             response_model=LoginResponse,
         )
         return AccessToken(response.token, expires_at=response.expires_at)
@@ -708,11 +690,14 @@ class PrincipalTokensService:
 
 class ClassRelationsService:
     def __init__(self, client: Client) -> None:
-        self._service = ResourceService[ClassRelation, ClassRelationCreate, BaseModel](
+        self._service = ResourceService[
+            ClassRelation, ClassRelation, ClassRelationCreate, BaseModel
+        ](
             client,
             collection_path="/api/v1/relations/classes",
             item_path="/api/v1/relations/classes/{id}",
-            model=ClassRelation,
+            list_model=ClassRelation,
+            point_model=ClassRelation,
         )
 
     def list(self, query: Query | None = None) -> builtins.list[ClassRelation]:
@@ -733,11 +718,14 @@ class ClassRelationsService:
 
 class ObjectRelationsService:
     def __init__(self, client: Client) -> None:
-        self._service = ResourceService[ObjectRelation, ObjectRelationCreate, BaseModel](
+        self._service = ResourceService[
+            ObjectRelation, ObjectRelation, ObjectRelationCreate, BaseModel
+        ](
             client,
             collection_path="/api/v1/relations/objects",
             item_path="/api/v1/relations/objects/{id}",
-            model=ObjectRelation,
+            list_model=ObjectRelation,
+            point_model=ObjectRelation,
         )
 
     def list(self, query: Query | None = None) -> builtins.list[ObjectRelation]:
