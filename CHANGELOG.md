@@ -6,6 +6,17 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Vendored the exact Hubuum v0.0.9 OpenAPI document for local inspection and
+  offline contract validation.
+
+### Changed
+
+- Made the default OpenAPI contract check use the committed document, with
+  explicit opt-in commands to check or refresh it from the immutable upstream
+  revision.
+
 ## [0.0.6] - 2026-08-07
 
 ### Added
