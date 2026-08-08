@@ -43,6 +43,10 @@ environment.
 The client pins the released OpenAPI document at commit
 `04367a8d6eb38e4356b4e4673269b356f46bbcc3`, with SHA-256
 `f4fcadd502ec3329973de7eb879f483ced9de232139057c9c951b89f8088e0dd`.
+The exact document is [committed with the client](openapi.json), so the default
+contract check runs without network access and detects document or client
+manifest drift. An explicit upstream check/update workflow is documented in
+[CONTRIBUTING.md](https://github.com/hubuum/hubuum-client-python/blob/main/CONTRIBUTING.md#openapi-contract-updates).
 It contains 202 operations. The operation manifest includes the six new point
 lookup and token-renewal operations plus every changed request and successful
 response media type. Typed models cover positive resource revisions, canonical

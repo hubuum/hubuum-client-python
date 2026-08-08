@@ -9,6 +9,7 @@ import importlib.util
 import json
 import sys
 import urllib.request
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, TypeAlias
 from urllib.parse import urlsplit
@@ -20,6 +21,8 @@ TARGET_VERSION = "0.0.9"
 TARGET_OPERATION_COUNT = 202
 MAX_SOURCE_BYTES = 10 * 1024 * 1024
 HTTP_METHODS = {"get", "put", "post", "delete", "patch", "head", "options", "trace"}
+REPOSITORY_ROOT = Path(__file__).parents[1]
+LOCAL_OPENAPI = REPOSITORY_ROOT / "docs" / "openapi.json"
 REQUIRED_OPERATIONS = {
     ("post", "/api/v0/auth/login"),
     ("get", "/api/v1/config"),
@@ -37,7 +40,7 @@ REQUIRED_OPERATIONS = {
     ("get", "/healthz"),
     ("get", "/readyz"),
 }
-CLIENT_MANIFEST = Path(__file__).parents[1] / "src" / "hubuum_client" / "_operations.py"
+CLIENT_MANIFEST = REPOSITORY_ROOT / "src" / "hubuum_client" / "_operations.py"
 OperationManifestEntry: TypeAlias = tuple[str, str, tuple[str, ...], tuple[str, ...]]
 OperationManifest: TypeAlias = dict[str, OperationManifestEntry]
 
@@ -59,7 +62,7 @@ def _read_source(source: str) -> bytes:
         final_url = urlsplit(response.geturl())
         if final_url.scheme != "https" or not final_url.netloc:
             raise ValueError("source URL redirected outside HTTPS")
-        payload = response.read(MAX_SOURCE_BYTES + 1)
+        payload = bytes(response.read(MAX_SOURCE_BYTES + 1))
     if len(payload) > MAX_SOURCE_BYTES:
         raise ValueError(f"OpenAPI source exceeds {MAX_SOURCE_BYTES} bytes")
     return payload
@@ -121,7 +124,7 @@ def _client_manifest() -> OperationManifest:
     }
 
 
-def validate(source: str) -> None:
+def validate(source: str) -> bytes:
     payload = _read_source(source)
     digest = hashlib.sha256(payload).hexdigest()
     if digest != TARGET_SHA256:
@@ -157,22 +160,41 @@ def validate(source: str) -> None:
             "client operation manifest mismatch: "
             f"missing={missing_ids}, extra={extra_ids}, changed={changed_ids}"
         )
+    return payload
 
 
-def main() -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "source",
         nargs="?",
-        default=TARGET_URL,
-        help="OpenAPI file or URL; defaults to the immutable v0.0.9 release commit",
+        help="OpenAPI file or HTTPS URL; defaults to the committed docs/openapi.json",
     )
-    args = parser.parse_args()
+    upstream = parser.add_mutually_exclusive_group()
+    upstream.add_argument(
+        "--check-upstream",
+        action="store_true",
+        help="validate the immutable upstream document without changing the committed copy",
+    )
+    upstream.add_argument(
+        "--update",
+        action="store_true",
+        help="replace docs/openapi.json with the validated immutable upstream document",
+    )
+    args = parser.parse_args(argv)
+    if args.source is not None and (args.check_upstream or args.update):
+        parser.error("source cannot be combined with --check-upstream or --update")
+
+    source = TARGET_URL if args.check_upstream or args.update else args.source or str(LOCAL_OPENAPI)
     try:
-        validate(args.source)
+        payload = validate(source)
+        if args.update:
+            LOCAL_OPENAPI.write_bytes(payload)
     except (OSError, ValueError, json.JSONDecodeError) as error:
         print(f"OpenAPI contract validation failed: {error}", file=sys.stderr)
         return 1
+    if args.update:
+        print(f"Updated {LOCAL_OPENAPI.relative_to(REPOSITORY_ROOT)} from {TARGET_URL}.")
     print(
         f"Validated Hubuum {TARGET_VERSION} OpenAPI contract "
         f"({TARGET_OPERATION_COUNT} operations, sha256={TARGET_SHA256})."
