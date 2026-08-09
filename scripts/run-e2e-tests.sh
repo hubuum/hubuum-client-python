@@ -3,6 +3,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+# shellcheck source=scripts/_e2e_helpers.sh
+source "${SCRIPT_DIR}/_e2e_helpers.sh"
 cd "${REPO_ROOT}"
 
 SERVER_IMAGE="${HUBUUM_E2E_SERVER_IMAGE:-ghcr.io/hubuum/hubuum-server:v0.0.9@sha256:1f12baf882b6d3df5b4b2dbdf26aad0793274e57f86a2c186b8e1e68632db5db}"
@@ -108,10 +110,11 @@ container pull "${SERVER_IMAGE}"
 container pull "${POSTGRES_IMAGE}"
 
 container network create "${network_name}" >/dev/null
+postgres_health_command="$(postgres_tcp_health_command "${DB_USER}" "${DB_NAME}")"
 container run -d \
     --name "${db_container}" \
     --network "${network_name}" \
-    --health-cmd "pg_isready -U ${DB_USER} -d ${DB_NAME}" \
+    --health-cmd "${postgres_health_command}" \
     --health-interval 1s \
     --health-timeout 5s \
     --health-retries 60 \
@@ -120,13 +123,7 @@ container run -d \
     -e "POSTGRES_DB=${DB_NAME}" \
     "${POSTGRES_IMAGE}" >/dev/null
 
-while ((SECONDS < deadline)); do
-    if container exec "${db_container}" pg_isready -U "${DB_USER}" -d "${DB_NAME}" >/dev/null 2>&1; then
-        break
-    fi
-    sleep 1
-done
-if ! container exec "${db_container}" pg_isready -U "${DB_USER}" -d "${DB_NAME}" >/dev/null 2>&1; then
+if ! wait_for_healthy_container "${db_container}" "${deadline}"; then
     diagnostics
     echo "PostgreSQL did not become ready within ${STARTUP_TIMEOUT} seconds." >&2
     exit 1

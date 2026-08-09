@@ -34,6 +34,11 @@ The wrapper:
    interpreter;
 8. removes the stack and temporary test environment even when a test fails.
 
+PostgreSQL readiness uses `pg_isready` over TCP at `127.0.0.1` and polls that
+container health state through the configured startup deadline. The temporary
+server used by the official image during database initialization accepts only
+Unix-socket connections, so it cannot be mistaken for the final TCP server.
+
 Set `HUBUUM_E2E_KEEP=1` to retain the stack for diagnosis. The script prints the
 exact resource names before returning. The temporary wheel environment is
 always removed.
