@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.0.7] - 2026-08-29
+
 ### Added
 
 - Vendored the exact Hubuum v0.0.9 OpenAPI document for local inspection and
@@ -217,7 +219,8 @@ All notable changes to this project are documented here. The format follows
   error diagnostics.
 - Redacted login tokens from model representations.
 
-[Unreleased]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.6...HEAD
+[Unreleased]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.7...HEAD
+[0.0.7]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.6...v0.0.7
 [0.0.6]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.3...v0.0.4
