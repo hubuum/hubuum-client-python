@@ -16,6 +16,9 @@ All notable changes to this project are documented here. The format follows
 - Made the default OpenAPI contract check use the committed document, with
   explicit opt-in commands to check or refresh it from the immutable upstream
   revision.
+- Refreshed all locked Python dependencies to their latest compatible releases,
+  including Pydantic 2.13.5, Mypy 2.3.1, and Ruff 0.16.5, and updated the pinned
+  `astral-sh/setup-uv` GitHub Action to 10.0.1.
 
 ## [0.0.6] - 2026-08-07
 
