@@ -21,6 +21,8 @@ All notable changes to this project are documented here. The format follows
 - Refreshed all locked Python dependencies to their latest compatible releases,
   including Pydantic 2.13.5, Mypy 2.3.1, and Ruff 0.16.5, and updated the pinned
   `astral-sh/setup-uv` GitHub Action to 10.0.1.
+- Updated release distribution validation to Twine 7.0.0 for Core Metadata 2.5
+  support.
 
 ### Fixed
 
