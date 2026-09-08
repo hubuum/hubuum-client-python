@@ -66,7 +66,7 @@ def test_response_model_decodes_ids_datetimes_and_forward_fields(
         Collection.model_validate(collection_json | {"revision": 0})
 
 
-def test_v009_user_list_and_point_models_keep_provider_metadata_separate() -> None:
+def test_v0012_user_list_and_point_models_keep_provider_metadata_separate() -> None:
     point = UserPoint.model_validate(
         {
             "id": 21,
@@ -104,7 +104,7 @@ def test_v009_user_list_and_point_models_keep_provider_metadata_separate() -> No
     assert "identity_scope_id" not in User.model_fields
 
 
-def test_v009_group_point_omits_list_only_sync_state() -> None:
+def test_v0012_group_point_omits_list_only_sync_state() -> None:
     common = {
         "id": 20,
         "groupname": "ops",
@@ -183,10 +183,11 @@ def test_class_normalizes_live_embedded_collection() -> None:
         )
 
 
-def test_secret_values_are_redacted_but_can_produce_wire_values() -> None:
+@pytest.mark.parametrize("token_value", ["token-secret", "hbt1.active.versioned-secret"])
+def test_secret_values_are_redacted_but_can_produce_wire_values(token_value: str) -> None:
     credentials = Credentials("alice", "super-secret", "local")
     expiry = datetime(2026, 7, 27, 12, tzinfo=UTC)
-    token = AccessToken("token-secret", expires_at=expiry)
+    token = AccessToken(token_value, expires_at=expiry)
 
     assert "super-secret" not in repr(credentials)
     assert credentials.as_payload() == {
@@ -194,9 +195,9 @@ def test_secret_values_are_redacted_but_can_produce_wire_values() -> None:
         "password": "super-secret",
         "identity_scope": "local",
     }
-    assert "token-secret" not in repr(token)
-    assert "token-secret" not in str(token)
-    assert token.value == "token-secret"
+    assert token_value not in repr(token)
+    assert token_value not in str(token)
+    assert token.value == token_value
     assert token.expires_at == expiry
     assert AccessToken("  token-secret\n").value == "token-secret"
     with pytest.raises(ValueError, match="must not be empty"):
@@ -250,7 +251,7 @@ def test_v005_token_scope_uses_nested_strict_wire_shape() -> None:
         )
 
 
-def test_v009_token_response_shapes_keep_usage_state_off_point_metadata() -> None:
+def test_v0012_token_response_shapes_keep_usage_state_off_point_metadata() -> None:
     common = {
         "id": 7,
         "issued": "2026-07-25T10:00:00Z",
@@ -280,7 +281,7 @@ def test_v009_token_response_shapes_keep_usage_state_off_point_metadata() -> Non
     assert metadata.last_used_at == datetime(2026, 7, 25, 10, 1, tzinfo=UTC)
 
 
-def test_v009_token_metadata_and_aggregate_measures_are_typed() -> None:
+def test_v0012_token_metadata_and_aggregate_measures_are_typed() -> None:
     metadata = PrincipalTokenMetadata.model_validate(
         {
             "id": 7,
@@ -338,7 +339,7 @@ def test_task_status_properties(status: TaskStatus, terminal: bool, successful: 
     assert status.successful is successful
 
 
-def test_v009_import_v2_conditions_and_timestamps_use_wire_names() -> None:
+def test_v0012_import_v2_conditions_and_timestamps_use_wire_names() -> None:
     timestamps = RestoreTimestamps(
         created_at=datetime(2024, 1, 2, 3, 4, 5),
         updated_at=datetime(2024, 1, 2, 3, 4, 6),
@@ -409,7 +410,7 @@ def test_v009_import_v2_conditions_and_timestamps_use_wire_names() -> None:
         )
 
 
-def test_v009_timestamp_and_export_scope_validation_happens_before_io() -> None:
+def test_v0012_timestamp_and_export_scope_validation_happens_before_io() -> None:
     with pytest.raises(ValidationError, match="updated_at must not be earlier"):
         RestoreTimestamps(
             created_at=datetime(2024, 1, 2),

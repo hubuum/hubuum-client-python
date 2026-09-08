@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -118,3 +119,86 @@ fi
     )
 
     assert result.returncode == 0, result.stderr
+
+
+@pytest.mark.skipif(BASH is None, reason="Bash is required to test the e2e wrapper")
+@pytest.mark.parametrize("runtime", ["docker", "podman"])
+@pytest.mark.parametrize("migration_status", [0, 1])
+def test_wrapper_migrates_before_server_start_and_cleans_up(
+    tmp_path: Path, runtime: str, migration_status: int
+) -> None:
+    assert BASH is not None
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    log = tmp_path / "calls"
+    stub = bin_dir / "stub"
+    stub.write_text(
+        f"#!{sys.executable}\n"
+        + r"""
+import os
+import sys
+from pathlib import Path
+
+name = Path(sys.argv[0]).name
+args = sys.argv[1:]
+with Path(os.environ["CALL_LOG"]).open("a") as log:
+    if name in {"docker", "podman"}:
+        if args[0] == "run":
+            role = "migration" if "--migrate" in args else "server" if "-p" in args else "database"
+            log.write(f"run:{role}\n")
+        elif args[0] == "rm":
+            log.write("cleanup:" + " ".join(args[2:]) + "\n")
+if name == "uv":
+    if args[0] == "build":
+        directory = Path(args[args.index("--out-dir") + 1])
+        (directory / "hubuum_client-test.whl").touch()
+    elif args[0] == "venv":
+        python = Path(args[-1]) / "bin" / "python"
+        python.parent.mkdir(parents=True)
+        python.write_text("#!/bin/sh\nexit 0\n")
+        python.chmod(0o755)
+elif name == "curl":
+    print("200")
+elif args[0] == "inspect":
+    print("healthy")
+elif args[0] == "port":
+    print("127.0.0.1:8080")
+elif args[0] == "exec":
+    print("Password for user admin reset to: disposable-test-password")
+elif args[0] == "run" and "--migrate" in args:
+    sys.exit(int(os.environ["MIGRATION_STATUS"]))
+"""
+    )
+    stub.chmod(0o755)
+    for name in (runtime, "uv", "curl"):
+        (bin_dir / name).symlink_to(stub)
+    environment = {
+        key: value for key, value in os.environ.items() if not key.startswith("HUBUUM_E2E_")
+    }
+    environment.update(
+        {
+            "PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}",
+            "HUBUUM_E2E_CONTAINER_RUNTIME": runtime,
+            "CALL_LOG": str(log),
+            "MIGRATION_STATUS": str(migration_status),
+        }
+    )
+    result = subprocess.run(
+        [BASH, str(Path(__file__).parents[2] / "scripts" / "run-e2e-tests.sh")],
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    calls = log.read_text().splitlines()
+    assert result.returncode == migration_status, result.stderr
+    assert calls[:2] == ["run:database", "run:migration"]
+    if migration_status == 0:
+        assert calls[2] == "run:server"
+    else:
+        assert "run:server" not in calls
+        assert "migrations failed" in result.stderr
+    cleanup = next(call for call in calls if call.startswith("cleanup:"))
+    assert "hubuum-python-e2e-migrate-" in cleanup
+    assert "hubuum-python-e2e-db-" in cleanup
+    assert "hubuum-python-e2e-server-" in cleanup

@@ -12,6 +12,7 @@ import httpx
 from pydantic import BaseModel, JsonValue
 
 from ._operations import (
+    CAPABILITY_OPERATION_IDS,
     OPERATIONS,
     PUBLIC_OPERATION_IDS,
     STREAMING_OPERATION_IDS,
@@ -34,7 +35,7 @@ def _operation(operation_id: str) -> OperationSpec:
     try:
         return OPERATIONS[operation_id]
     except KeyError:
-        raise ValueError(f"unknown Hubuum v0.0.9 operationId: {operation_id!r}") from None
+        raise ValueError(f"unknown Hubuum v0.0.12 operationId: {operation_id!r}") from None
 
 
 def _operation_path(
@@ -80,7 +81,7 @@ def _request_options(
     return RequestOptions(
         params=options.params,
         headers=prepared or None,
-        authenticated=operation.operation_id not in PUBLIC_OPERATION_IDS,
+        authenticated=operation.operation_id not in PUBLIC_OPERATION_IDS | CAPABILITY_OPERATION_IDS,
     )
 
 
@@ -111,7 +112,7 @@ def _decode_response(response: httpx.Response, *, accept: str | None) -> OpenAPI
 
 
 class OpenAPIOperations:
-    """Invoke every operation in Hubuum v0.0.9 by its stable OpenAPI operationId."""
+    """Invoke every operation in Hubuum v0.0.12 by its stable OpenAPI operationId."""
 
     def __init__(self, client: Client) -> None:
         self._client = client
@@ -152,15 +153,18 @@ class OpenAPIOperations:
         self,
         operation_id: str,
         *,
+        json: JsonBody = None,
         options: OpenAPIOptions | None = None,
     ) -> Iterator[ResponseStream]:
         operation_options = options or OpenAPIOptions()
         operation = _operation(operation_id)
         if operation_id not in STREAMING_OPERATION_IDS:
             raise ValueError(f"{operation_id} is not a streaming operation")
+        _validate_body(operation, json)
         with self._client.stream(
             operation.method,
             _operation_path(operation, operation_options.path_params),
+            json=json,
             options=_request_options(
                 operation,
                 options=operation_options,
@@ -171,7 +175,7 @@ class OpenAPIOperations:
 
 
 class AsyncOpenAPIOperations:
-    """Asynchronous operation-ID interface for the complete v0.0.9 contract."""
+    """Asynchronous operation-ID interface for the complete v0.0.12 contract."""
 
     def __init__(self, client: AsyncClient) -> None:
         self._client = client
@@ -212,15 +216,18 @@ class AsyncOpenAPIOperations:
         self,
         operation_id: str,
         *,
+        json: JsonBody = None,
         options: OpenAPIOptions | None = None,
     ) -> AsyncIterator[AsyncResponseStream]:
         operation_options = options or OpenAPIOptions()
         operation = _operation(operation_id)
         if operation_id not in STREAMING_OPERATION_IDS:
             raise ValueError(f"{operation_id} is not a streaming operation")
+        _validate_body(operation, json)
         async with self._client.stream(
             operation.method,
             _operation_path(operation, operation_options.path_params),
+            json=json,
             options=_request_options(
                 operation,
                 options=operation_options,

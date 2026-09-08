@@ -6,6 +6,39 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Registered all 204 Hubuum v0.0.12 OpenAPI operations, including structured
+  JSON search and its POST SSE stream, with matching sync/async `json=` support
+  and request-body validation in `openapi.stream()`.
+- Added synchronous and asynchronous live structured-search coverage and
+  regression coverage for asynchronous restore confirmation and
+  capability-authenticated status polling.
+
+### Changed
+
+- Updated the target server, vendored OpenAPI document, operation manifest,
+  documentation, and CI to Hubuum v0.0.12 at release commit
+  `a3928a03451e2a2365b7405f7229dc4857b4fa05` and immutable image digest
+  `sha256:6441ccbe2906d80d0e6ef5e8a9b8e4a7e1afc9c39c8d43d93ac62a5cd0e6e865`.
+- The e2e wrapper now runs a separate migration container before starting the
+  server, as required by v0.0.12, and cleans up migration resources on failure.
+- Documented the changes since v0.0.9: structured and related-object search,
+  bounded graph/export/template work, version 5 backups, queued restores,
+  explicit migrations, and opaque versioned bearer tokens. See the
+  [compatibility guide](docs/compatibility.md#changes-since-v009) for upgrade notes.
+- Refreshed every Python dependency lock: AnyIO 4.15.1, ast-serialize 0.11.0,
+  griffelib 2.3.0, mkdocstrings-python 2.0.8, platformdirs 4.11.7,
+  Ruff 0.16.6, and Zizmor 1.30.0. Updated the Hatchling build requirement to
+  1.32.0. Verified every GitHub Action pin and Twine 7.0.0 against the latest
+  releases; those pins were already current.
+
+### Security
+
+- Restore status polling sends only its restore capability and no bearer token.
+  Restore capabilities are redacted from errors, and request options omit
+  headers and query values from representations.
+
 ## [0.0.7] - 2026-08-29
 
 ### Added

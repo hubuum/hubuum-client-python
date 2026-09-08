@@ -34,6 +34,7 @@ _SENSITIVE_KEY_PARTS = (
     "api_key",
     "apikey",
     "authorization",
+    "capability",
     "cookie",
     "credential",
     "password",

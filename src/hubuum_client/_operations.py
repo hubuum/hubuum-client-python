@@ -1,4 +1,4 @@
-"""Immutable Hubuum v0.0.9 OpenAPI operation manifest."""
+"""Immutable Hubuum v0.0.12 OpenAPI operation manifest."""
 
 from __future__ import annotations
 
@@ -879,6 +879,8 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "/api/v1/restores/{restore_id}/confirm",
         "application/json",
     ),
+    ("postApiV1Search", "POST", "/api/v1/search", "application/json"),
+    ("postApiV1SearchStream", "POST", "/api/v1/search/stream", "application/json"),
     (
         "putApiV1CollectionsByCollectionIdParent",
         "PUT",
@@ -927,7 +929,6 @@ _NO_SUCCESS_RESPONSE_MEDIA = frozenset(
         "deleteApiV1RelationsObjectsByRelationId",
         "deleteApiV1RemoteTargetsByTargetId",
         "getApiV1CollectionsByCollectionIdPermissionsGroupByGroupIdByPermission",
-        "getApiV1SearchStream",
         "postApiV1IamPrincipalsByPrincipalIdTokensByTokenIdRevoke",
         "postApiV1IamUsersByUserIdAnonymize",
     }
@@ -945,12 +946,14 @@ _REQUEST_MEDIA_TYPE_OVERRIDES = {
     ),
 }
 _SUCCESS_RESPONSE_MEDIA_OVERRIDES = {
+    "getApiV1SearchStream": ("text/event-stream",),
+    "postApiV1SearchStream": ("text/event-stream",),
     "getApiV1ExportsByTaskIdOutput": (
         "application/json",
         "text/csv",
         "text/html",
         "text/plain",
-    )
+    ),
 }
 SUPPORTED_OPERATIONS = frozenset((item.method.lower(), item.path) for item in OPERATIONS.values())
 PUBLIC_OPERATION_IDS = frozenset(
@@ -962,4 +965,5 @@ PUBLIC_OPERATION_IDS = frozenset(
         "postApiV0AuthLogin",
     }
 )
-STREAMING_OPERATION_IDS = frozenset({"getApiV1SearchStream"})
+CAPABILITY_OPERATION_IDS = frozenset({"getApiV1RestoresByRestoreIdStatus"})
+STREAMING_OPERATION_IDS = frozenset({"getApiV1SearchStream", "postApiV1SearchStream"})

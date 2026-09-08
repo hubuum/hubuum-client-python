@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TypeAlias
 
 import httpx
@@ -32,8 +32,8 @@ class ClientOptions:
 class RequestOptions:
     """Transport controls for one origin-locked request."""
 
-    params: Params = None
-    headers: Mapping[str, str] | None = None
+    params: Params = field(default=None, repr=False)
+    headers: Mapping[str, str] | None = field(default=None, repr=False)
     authenticated: bool = True
 
 
@@ -42,7 +42,7 @@ class OpenAPIOptions:
     """Path, query, header, and response controls for an OpenAPI operation."""
 
     path_params: Mapping[str, str | int] | None = None
-    params: Params = None
-    headers: Mapping[str, str] | None = None
+    params: Params = field(default=None, repr=False)
+    headers: Mapping[str, str] | None = field(default=None, repr=False)
     accept: str | None = None
     content_type: str | None = None

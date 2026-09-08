@@ -2,7 +2,7 @@
 
 The e2e suite builds the project wheel, installs that artifact into an isolated
 virtual environment, and exercises the installed distribution against a real
-Hubuum v0.0.9 server and PostgreSQL database. It covers public probes, login,
+Hubuum v0.0.12 server and PostgreSQL database. It covers public probes, login,
 public configuration, typed CRUD, natural-key addressing, forced multi-page
 cursor traversal and metadata, typed nested object-data filters (including
 scalar, numeric, array, structure, null, combined, and network cases),
@@ -11,9 +11,10 @@ class and object relations, non-administrator permission boundaries, live
 `400`, `401`, `403`, `404`, `409`, and `412` errors, successful and stale
 `If-Match` updates and deletes in both runtimes, principal-settings JSON Patch,
 scoped-token mint/list/inspect/renew/use/revoke lifecycles in both runtimes,
-v0.0.9 relation cardinality enforcement, import-v2 timestamp restoration,
+v0.0.12 relation cardinality enforcement, import-v2 timestamp restoration,
 export phase timings and task events, cleanup, and a complete async
-create/query/update/patch/delete lifecycle.
+create/query/update/patch/delete lifecycle. Structured JSON and SSE searches
+are also checked in both runtimes.
 
 ## Canonical command
 
@@ -28,7 +29,8 @@ The wrapper:
 2. detects Docker or Podman;
 3. pulls the immutable target server and PostgreSQL images;
 4. creates an isolated network and uniquely named containers;
-5. waits for PostgreSQL and `/readyz`;
+5. waits for PostgreSQL, runs `hubuum-admin --migrate` in a separate
+   container, then starts Hubuum and waits for `/readyz`;
 6. resets the generated local administrator password inside the server;
 7. exports the connection details and runs `tests/e2e` with the isolated
    interpreter;
@@ -41,7 +43,8 @@ Unix-socket connections, so it cannot be mistaken for the final TCP server.
 
 Set `HUBUUM_E2E_KEEP=1` to retain the stack for diagnosis. The script prints the
 exact resource names before returning. The temporary wheel environment is
-always removed.
+always removed. The migration container is included in diagnostics and cleanup;
+a failed migration stops the wrapper before the server starts.
 
 ## Caller-managed server
 
@@ -60,7 +63,7 @@ wheel, but it does not create or remove containers.
 
 | Variable | Purpose | Default |
 | --- | --- | --- |
-| `HUBUUM_E2E_SERVER_IMAGE` | Override the server image | Immutable v0.0.9 tag and digest |
+| `HUBUUM_E2E_SERVER_IMAGE` | Override the server image | Immutable v0.0.12 tag and digest |
 | `HUBUUM_E2E_POSTGRES_IMAGE` | Override PostgreSQL | `postgres:18` |
 | `HUBUUM_E2E_CONTAINER_RUNTIME` | Select `docker` or `podman` | Auto-detected |
 | `HUBUUM_E2E_PYTHON` | Interpreter used for the isolated wheel environment | `python3` |

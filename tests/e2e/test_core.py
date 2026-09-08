@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from contextlib import suppress
 from datetime import datetime
 
@@ -283,7 +284,7 @@ async def test_async_etag_preconditions_cover_updates_and_deletes(
                     await client.collections.delete(collection.id)
 
 
-def test_v009_principal_settings_json_patch(client: Client, unique_name: str) -> None:
+def test_v0012_principal_settings_json_patch(client: Client, unique_name: str) -> None:
     key = f"python_e2e_{unique_name.rsplit('-', 1)[-1]}"
     path = f"/{key}"
     try:
@@ -590,7 +591,7 @@ def test_iam_and_relations(client: Client, admin_group_id: GroupId, unique_name:
         client.users.delete(user.id)
 
 
-def test_v009_import_timestamps_export_timings_and_task_events(
+def test_v0012_import_timestamps_export_timings_and_task_events(
     client: Client,
     unique_name: str,
 ) -> None:
@@ -606,7 +607,7 @@ def test_v009_import_timestamps_export_timings_and_task_events(
                         ImportCollectionInput(
                             ref_="imported-collection",
                             name=collection_name,
-                            description="v0.0.9 restored timestamp e2e collection",
+                            description="v0.0.12 restored timestamp e2e collection",
                             timestamps=RestoreTimestamps(
                                 created_at=restored_created_at,
                                 updated_at=restored_updated_at,
@@ -975,3 +976,82 @@ async def test_async_client_full_resource_lifecycle(
             if hubuum_class is not None:
                 await async_client.classes.delete_by_name(hubuum_class.name)
             await async_client.collections.delete(collection.id)
+
+
+def _collection_search_body(name: str) -> dict[str, object]:
+    return {
+        "version": 1,
+        "target": {"kind": "collection"},
+        "filter": {
+            "op": "field",
+            "predicate": {"field": "name", "operator": "equals", "value": name},
+        },
+        "include_total": True,
+        "limit": 1,
+    }
+
+
+def test_structured_search_json_and_sse(
+    client: Client, admin_group_id: GroupId, unique_name: str
+) -> None:
+    collection = client.collections.create(
+        CollectionCreate(name=unique_name, description="Structured search", group_id=admin_group_id)
+    )
+    try:
+        body = _collection_search_body(unique_name)
+        result = client.openapi.call("postApiV1Search", json=body)
+        assert isinstance(result, dict)
+        assert result["kind"] == "collection"
+        assert result["total"] == 1
+        assert result["next"] is None
+        assert result["results"][0]["resource"]["id"] == collection.id
+        with client.openapi.stream("postApiV1SearchStream", json=body) as response:
+            lines = list(response.iter_lines())
+        assert [line for line in lines if line.startswith("event:")] == [
+            "event: started",
+            "event: result",
+            "event: done",
+        ]
+        events = [
+            json.loads(line.removeprefix("data:")) for line in lines if line.startswith("data:")
+        ]
+        assert events[1]["resource"]["id"] == collection.id
+        assert events[2]["total"] == 1
+    finally:
+        with suppress(APIError):
+            client.collections.delete(collection.id)
+
+
+async def test_async_structured_search_json_and_sse(
+    base_url: str, admin_password: str, admin_group_id: GroupId, unique_name: str
+) -> None:
+    async with AsyncClient(base_url) as client:
+        await client.login(Credentials("admin", admin_password))
+        collection = await client.collections.create(
+            CollectionCreate(
+                name=unique_name, description="Async structured search", group_id=admin_group_id
+            )
+        )
+        try:
+            body = _collection_search_body(unique_name)
+            result = await client.openapi.call("postApiV1Search", json=body)
+            assert isinstance(result, dict)
+            assert result["kind"] == "collection"
+            assert result["total"] == 1
+            assert result["next"] is None
+            assert result["results"][0]["resource"]["id"] == collection.id
+            async with client.openapi.stream("postApiV1SearchStream", json=body) as response:
+                lines = [line async for line in response.iter_lines()]
+            assert [line for line in lines if line.startswith("event:")] == [
+                "event: started",
+                "event: result",
+                "event: done",
+            ]
+            events = [
+                json.loads(line.removeprefix("data:")) for line in lines if line.startswith("data:")
+            ]
+            assert events[1]["resource"]["id"] == collection.id
+            assert events[2]["total"] == 1
+        finally:
+            with suppress(APIError):
+                await client.collections.delete(collection.id)
