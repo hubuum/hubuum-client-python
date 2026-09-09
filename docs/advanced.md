@@ -38,7 +38,7 @@ the attribute is `None` when the header is absent or malformed.
 
 ## Complete OpenAPI operation surface
 
-The Hubuum v0.0.9 OpenAPI contract contains 202 operations. Every operation is
+The Hubuum v0.0.13 OpenAPI contract contains 204 operations. Every operation is
 registered by its exact `operationId`, HTTP method, path template, request
 media types, and authentication policy:
 
@@ -68,7 +68,7 @@ status = client.openapi.call(
 ```
 
 `Idempotency-Key` values are validated before I/O and must contain between 1
-and 255 bytes, matching v0.0.9 task-submission endpoints.
+and 255 bytes, matching v0.0.13 task-submission endpoints.
 
 When an operation accepts multiple request representations, select one through
 `content_type`. Principal settings support JSON Merge Patch by default and RFC
@@ -109,12 +109,71 @@ with client.openapi.stream(
 
 Use `async with` and `async for` for the asynchronous client. The operation
 manifest is compared with the immutable server OpenAPI document in CI,
-including request and successful-response media types; all 202 operations must
+including request and successful-response media types; all 204 operations must
 match exactly.
+
+## Structured search
+
+Use `postApiV1Search` for the version 1 structured-search DSL. The same JSON
+envelope can select collections, classes, objects, audit events, users, groups,
+or service accounts. Object searches can select an exact class and combine
+field predicates with boolean and related-object predicates:
+
+```python
+search = {
+    "version": 1,
+    "target": {"kind": "object", "class": {"name": "Servers"}},
+    "filter": {
+        "op": "field",
+        "predicate": {"field": "name", "operator": "equals", "value": "web-01"},
+    },
+    "include_total": True,
+    "limit": 25,
+}
+page = client.openapi.call("postApiV1Search", json=search)
+
+with client.openapi.stream("postApiV1SearchStream", json=search) as response:
+    for line in response.iter_lines():
+        process_sse_line(line)
+```
+
+The JSON envelope returns tagged `results`, an optional `total`, and a `next`
+cursor. Pass `next` unchanged as the next request's `cursor`, preserving the
+search and authentication context. The SSE form emits `started`, `result`, and
+terminal `done` events; an `error` event signals failure after streaming begins.
+The `done` event carries cursor metadata. Use `await client.openapi.call(...)`
+and `async with client.openapi.stream(..., json=search)` in asynchronous code.
+GET search streams accept no body; POST search streams require one. See the
+[server search reference](https://github.com/hubuum/hubuum/blob/v0.0.13/docs/search_api.md)
+for field, sort, and predicate limits.
+
+## Queued full restores
+
+Hubuum v0.0.13 restore confirmation returns `202 Accepted` when queued, before
+the separate administrator restore executor finishes. Use
+`postApiV1RestoresByRestoreIdConfirm` to confirm a validated stage, then poll
+`getApiV1RestoresByRestoreIdStatus` with the capability returned when staging:
+
+```python
+status = client.openapi.call(
+    "getApiV1RestoresByRestoreIdStatus",
+    options=OpenAPIOptions(
+        path_params={"restore_id": restore_id},
+        headers={"X-Hubuum-Restore-Capability": restore_capability},
+    ),
+)
+```
+
+Repeat with an application-defined deadline and polling interval until status
+is `succeeded` or `failed`. This route sends no bearer token and works with a
+client that has no token; the capability authorizes the read after restored
+state replaces existing tokens. Keep the capability private. It is redacted
+from client error diagnostics and option representations. Full restore stages
+are separate from task IDs and cannot use `client.tasks.wait()`.
 
 ## Scoped tokens
 
-Hubuum v0.0.9 nests token boundaries under one `scope` field. Omit `scope` for
+Hubuum v0.0.13 nests token boundaries under one `scope` field. Omit `scope` for
 an unscoped token; within a scope, permissions and collection/class/object
 resources are independent dimensions:
 
@@ -220,7 +279,7 @@ safety.
 ## Typed imports, exports, and task events
 
 Core import graphs use strict import-v2 request models, including the timestamps
-Hubuum v0.0.9 can restore. `run()` submits the task, waits with a bounded poller, and
+Hubuum v0.0.13 can restore. `run()` submits the task, waits with a bounded poller, and
 collects every per-entity result through guarded cursor pagination:
 
 ```python
@@ -260,7 +319,7 @@ print(result.succeeded, result.failed)
 The Python field `ref_` is serialized as the contract's `ref`. Import graphs,
 object data, result details, and error strings are excluded from model
 representations. Integration-oriented import sections remain strict JSON
-objects so the full v0.0.9 graph can be submitted without representing secret
+objects so the full v0.0.13 graph can be submitted without representing secret
 configuration in diagnostic output. Core resources can use `create_only`,
 unconditional `overwrite`, or `if_revision` per-item write conditions.
 
@@ -290,7 +349,7 @@ Task history is available through `client.tasks.events()`, `event_pages()`, and
 ## Custom extension routes
 
 `request()` remains the lower-level escape hatch for a server extension that is
-not part of the pinned v0.0.9 OpenAPI document:
+not part of the pinned v0.0.13 OpenAPI document:
 
 ```python
 from hubuum_client import RequestOptions
@@ -309,7 +368,7 @@ through `RequestOptions`, and request bodies through `json`. Use
 
 ## Task polling
 
-Imports, exports, backups, restores, and computed-field rebuilds return tasks.
+Imports, exports, backups, and computed-field rebuilds return tasks.
 Once a task ID is known, wait for a terminal state with a bounded poller:
 
 ```python

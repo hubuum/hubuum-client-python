@@ -7,7 +7,7 @@ REPO_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 source "${SCRIPT_DIR}/_e2e_helpers.sh"
 cd "${REPO_ROOT}"
 
-SERVER_IMAGE="${HUBUUM_E2E_SERVER_IMAGE:-ghcr.io/hubuum/hubuum-server:v0.0.9@sha256:1f12baf882b6d3df5b4b2dbdf26aad0793274e57f86a2c186b8e1e68632db5db}"
+SERVER_IMAGE="${HUBUUM_E2E_SERVER_IMAGE:-ghcr.io/hubuum/hubuum-server:v0.0.13@sha256:512562e789d6430875c5075faf832a9669a4f266f7fe9fbf8c1524b49a6476c5}"
 POSTGRES_IMAGE="${HUBUUM_E2E_POSTGRES_IMAGE:-postgres:18}"
 CONTAINER_RUNTIME="${HUBUUM_E2E_CONTAINER_RUNTIME:-}"
 STARTUP_TIMEOUT="${HUBUUM_E2E_TIMEOUT:-300}"
@@ -23,6 +23,8 @@ E2E_PYTHON=""
 network_name=""
 db_container=""
 server_container=""
+migration_container=""
+executor_container=""
 
 container() {
     "${CONTAINER_RUNTIME}" "$@"
@@ -35,8 +37,10 @@ cleanup() {
             echo "  network=${network_name}"
             echo "  database=${db_container}"
             echo "  server=${server_container}"
+            echo "  migration=${migration_container}"
+            echo "  executor=${executor_container}"
         else
-            container rm -f "${server_container}" "${db_container}" >/dev/null 2>&1 || true
+            container rm -f "${executor_container}" "${server_container}" "${migration_container}" "${db_container}" >/dev/null 2>&1 || true
             container network rm "${network_name}" >/dev/null 2>&1 || true
         fi
     fi
@@ -95,10 +99,14 @@ suffix="$(date +%s)-$$-${RANDOM}"
 network_name="hubuum-python-e2e-net-${suffix}"
 db_container="hubuum-python-e2e-db-${suffix}"
 server_container="hubuum-python-e2e-server-${suffix}"
+migration_container="hubuum-python-e2e-migrate-${suffix}"
+executor_container="hubuum-python-e2e-executor-${suffix}"
 
 diagnostics() {
     echo "Hubuum server diagnostics:" >&2
     container logs --tail 150 "${server_container}" >&2 || true
+    echo "Hubuum migration diagnostics:" >&2
+    container logs --tail 80 "${migration_container}" >&2 || true
     echo "PostgreSQL diagnostics:" >&2
     container logs --tail 80 "${db_container}" >&2 || true
 }
@@ -130,6 +138,18 @@ if ! wait_for_healthy_container "${db_container}" "${deadline}"; then
 fi
 
 database_url="postgres://${DB_USER}:${DB_PASSWORD}@${db_container}/${DB_NAME}"
+echo "Applying Hubuum database migrations..."
+if ! container run \
+    --name "${migration_container}" \
+    --network "${network_name}" \
+    --entrypoint /usr/local/bin/hubuum-admin \
+    -e "HUBUUM_DATABASE_URL=${database_url}" \
+    "${SERVER_IMAGE}" --migrate >"${E2E_TEMP_DIR}/migration.log" 2>&1; then
+    diagnostics
+    echo "Hubuum database migrations failed." >&2
+    exit 1
+fi
+
 container run -d \
     --name "${server_container}" \
     --network "${network_name}" \
@@ -173,5 +193,20 @@ fi
 export HUBUUM_E2E_BASE_URL="${base_url}"
 export HUBUUM_E2E_ADMIN_PASSWORD="${admin_password}"
 
-echo "Running Python e2e tests against Hubuum v0.0.9 at ${base_url}"
+echo "Running Python e2e tests against Hubuum v0.0.13 at ${base_url}"
 run_e2e_tests
+
+# Full restores only run against this wrapper's disposable stack. Caller-managed
+# servers return above, before any executor is started or recovery tests run.
+echo "Starting the isolated Hubuum restore executor..."
+container run -d \
+    --name "${executor_container}" \
+    --network "${network_name}" \
+    --entrypoint /usr/local/bin/hubuum-admin \
+    -e "HUBUUM_DATABASE_URL=${database_url}" \
+    "${SERVER_IMAGE}" --restore-executor >/dev/null
+
+echo "Verifying repeated backups and full restores against the disposable stack..."
+HUBUUM_E2E_RECOVERY_SERVER_CONTAINER="${server_container}" \
+HUBUUM_E2E_CONTAINER_RUNTIME="${CONTAINER_RUNTIME}" \
+    "${E2E_PYTHON}" -m pytest -m e2e tests/recovery

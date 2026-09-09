@@ -16,9 +16,11 @@ from hubuum_client import (
     DecodeError,
     ObjectDataPatchOperation,
     OpenAPIOptions,
+    RequestOptions,
     ResponseStream,
 )
 from hubuum_client._operations import (
+    CAPABILITY_OPERATION_IDS,
     OPERATIONS,
     PUBLIC_OPERATION_IDS,
     STREAMING_OPERATION_IDS,
@@ -40,9 +42,9 @@ def _async_client(handler: Callable[[httpx.Request], httpx.Response]) -> AsyncCl
     )
 
 
-def test_manifest_deliberately_covers_all_v009_operations() -> None:
-    assert len(OPERATIONS) == 202
-    assert len(SUPPORTED_OPERATIONS) == 202
+def test_manifest_deliberately_covers_all_v0013_operations() -> None:
+    assert len(OPERATIONS) == 204
+    assert len(SUPPORTED_OPERATIONS) == 204
     assert OPERATIONS["getApiV1SearchStream"].path == "/api/v1/search/stream"
     assert (
         OPERATIONS[
@@ -82,7 +84,7 @@ def test_every_manifest_operation_constructs_its_declared_request(operation_id: 
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.method == operation.method, operation_id
         assert request.url.path == expected_path, operation_id
-        if operation_id in PUBLIC_OPERATION_IDS:
+        if operation_id in PUBLIC_OPERATION_IDS | CAPABILITY_OPERATION_IDS:
             assert "authorization" not in request.headers, operation_id
         else:
             assert request.headers["authorization"] == "Bearer token", operation_id
@@ -93,7 +95,7 @@ def test_every_manifest_operation_constructs_its_declared_request(operation_id: 
     with _client(handler) as client:
         options = OpenAPIOptions(path_params=path_params)
         if operation_id in STREAMING_OPERATION_IDS:
-            with client.openapi.stream(operation_id, options=options) as response:
+            with client.openapi.stream(operation_id, json=body, options=options) as response:
                 assert response.status_code == 204
         else:
             assert client.openapi.call(operation_id, json=body, options=options) is None
@@ -261,7 +263,7 @@ async def test_async_openapi_call_and_stream_match_sync_behavior() -> None:
         return httpx.Response(200, json={"id": 9})
 
     async with _async_client(handler) as client:
-        assert len(client.openapi.operation_ids) == 202
+        assert len(client.openapi.operation_ids) == 204
         assert client.openapi.operation("getApiV1TasksByTaskId").method == "GET"
         result = await client.openapi.call(
             "getApiV1TasksByTaskId",
@@ -310,7 +312,7 @@ def test_openapi_binary_empty_and_operation_metadata() -> None:
     )
 
     with _client(lambda request: next(responses)) as client:
-        assert len(client.openapi.operation_ids) == 202
+        assert len(client.openapi.operation_ids) == 204
         assert client.openapi.operation("getApiV1Config").path == "/api/v1/config"
         assert client.openapi.call("getApiV1Config") == b"\x00\x01"
         assert client.openapi.call("getApiV1Config") is None
@@ -398,3 +400,171 @@ def test_object_data_patch_operation_enforces_rfc_member_shapes_without_losing_n
         ObjectDataPatchOperation(op="remove", path="/old", from_path="/other")
     with pytest.raises(ValueError, match="valid dictionary"):
         ObjectDataPatchOperation.model_validate("not-an-operation")
+
+
+_SEARCH_BODY = {
+    "version": 1,
+    "target": {"kind": "object", "class": {"name": "Servers"}},
+    "filter": {
+        "op": "field",
+        "predicate": {"field": "name", "operator": "equals", "value": "web-01"},
+    },
+}
+
+
+def _structured_search_handler(request: httpx.Request) -> httpx.Response:
+    assert request.method == "POST"
+    assert request.headers["authorization"] == "Bearer token"
+    assert request.headers["content-type"] == "application/json"
+    assert json.loads(request.content) == _SEARCH_BODY
+    if request.url.path == "/api/v1/search/stream":
+        assert request.headers["accept"] == "text/event-stream"
+        return httpx.Response(
+            200,
+            text='event: done\ndata: {"version":1,"kind":"object","next":null}\n\n',
+            headers={"Content-Type": "text/event-stream"},
+        )
+    assert request.url.path == "/api/v1/search"
+    return httpx.Response(200, json={"version": 1, "kind": "object", "results": []})
+
+
+def test_structured_search_json_and_post_stream() -> None:
+    with _client(_structured_search_handler) as client:
+        assert client.openapi.call("postApiV1Search", json=_SEARCH_BODY) == {
+            "version": 1,
+            "kind": "object",
+            "results": [],
+        }
+        with client.openapi.stream("postApiV1SearchStream", json=_SEARCH_BODY) as response:
+            assert list(response.iter_lines()) == [
+                "event: done",
+                'data: {"version":1,"kind":"object","next":null}',
+                "",
+            ]
+
+
+async def test_async_structured_search_json_and_post_stream() -> None:
+    async with _async_client(_structured_search_handler) as client:
+        assert await client.openapi.call("postApiV1Search", json=_SEARCH_BODY) == {
+            "version": 1,
+            "kind": "object",
+            "results": [],
+        }
+        async with client.openapi.stream("postApiV1SearchStream", json=_SEARCH_BODY) as response:
+            assert [line async for line in response.iter_lines()] == [
+                "event: done",
+                'data: {"version":1,"kind":"object","next":null}',
+                "",
+            ]
+
+
+@pytest.mark.parametrize(
+    ("operation_id", "body", "message"),
+    [
+        ("postApiV1SearchStream", None, "requires a request body"),
+        ("getApiV1SearchStream", {}, "does not define a request body"),
+    ],
+)
+def test_stream_validates_body_before_io(
+    operation_id: str, body: dict[str, Any] | None, message: str
+) -> None:
+    with (
+        _client(lambda request: pytest.fail("unexpected request")) as client,
+        pytest.raises(ValueError, match=message),
+        client.openapi.stream(operation_id, json=body),
+    ):
+        pass
+
+
+@pytest.mark.parametrize(
+    ("operation_id", "body", "message"),
+    [
+        ("postApiV1SearchStream", None, "requires a request body"),
+        ("getApiV1SearchStream", {}, "does not define a request body"),
+    ],
+)
+async def test_async_stream_validates_body_before_io(
+    operation_id: str, body: dict[str, Any] | None, message: str
+) -> None:
+    async with _async_client(lambda request: pytest.fail("unexpected request")) as client:
+        with pytest.raises(ValueError, match=message):
+            async with client.openapi.stream(operation_id, json=body):
+                pass
+
+
+_RESTORE_CONFIRM_BODY = {
+    "restore_capability": "private-restore-capability",
+    "sha256": "a" * 64,
+    "confirmation": "REPLACE ALL HUBUUM DATA",
+}
+
+
+def _restore_handler(request: httpx.Request) -> httpx.Response:
+    if request.url.path.endswith("/confirm"):
+        assert json.loads(request.content) == _RESTORE_CONFIRM_BODY
+        assert request.headers["authorization"] == "Bearer token"
+        return httpx.Response(202, json={"id": 7, "status": "confirmed"})
+    capability = request.headers["x-hubuum-restore-capability"]
+    assert request.url.path == "/api/v1/restores/7/status"
+    assert "authorization" not in request.headers
+    return httpx.Response(
+        403,
+        json={"error": "Forbidden", "message": f"Rejected {capability}"},
+        headers={"X-Request-ID": capability},
+    )
+
+
+def _restore_options() -> OpenAPIOptions:
+    return OpenAPIOptions(
+        path_params={"restore_id": 7},
+        headers={"X-Hubuum-Restore-Capability": "private-restore-capability"},
+    )
+
+
+def test_restore_acceptance_and_capability_only_status_redaction() -> None:
+    options = _restore_options()
+    with _client(_restore_handler) as client:
+        assert client.openapi.call(
+            "postApiV1RestoresByRestoreIdConfirm", json=_RESTORE_CONFIRM_BODY, options=options
+        ) == {"id": 7, "status": "confirmed"}
+    with (
+        Client("https://hubuum.test", transport=httpx.MockTransport(_restore_handler)) as client,
+        pytest.raises(APIError) as captured,
+    ):
+        client.openapi.call("getApiV1RestoresByRestoreIdStatus", options=options)
+    assert "private-restore-capability" not in str(captured.value)
+    assert "private-restore-capability" not in repr(captured.value)
+    assert captured.value.message == "Rejected <redacted>"
+    assert captured.value.request_id == "<redacted>"
+    assert "private-restore-capability" not in repr(options)
+
+
+async def test_async_restore_acceptance_and_capability_only_status_redaction() -> None:
+    options = _restore_options()
+    async with _async_client(_restore_handler) as client:
+        assert await client.openapi.call(
+            "postApiV1RestoresByRestoreIdConfirm", json=_RESTORE_CONFIRM_BODY, options=options
+        ) == {"id": 7, "status": "confirmed"}
+    async with AsyncClient(
+        "https://hubuum.test", transport=httpx.MockTransport(_restore_handler)
+    ) as client:
+        with pytest.raises(APIError) as captured:
+            await client.openapi.call("getApiV1RestoresByRestoreIdStatus", options=options)
+    assert "private-restore-capability" not in str(captured.value)
+    assert "private-restore-capability" not in repr(captured.value)
+    assert captured.value.message == "Rejected <redacted>"
+    assert captured.value.request_id == "<redacted>"
+
+
+@pytest.mark.parametrize("options_type", [RequestOptions, OpenAPIOptions])
+def test_request_option_representations_omit_credentials(
+    options_type: type[RequestOptions] | type[OpenAPIOptions],
+) -> None:
+    options = options_type(
+        headers={"X-Hubuum-Restore-Capability": "private-capability"},
+        params={"token": "private-query-token"},
+    )
+    assert "private-capability" not in repr(options)
+    assert "private-query-token" not in repr(options)
+    assert options.headers == {"X-Hubuum-Restore-Capability": "private-capability"}
+    assert options.params == {"token": "private-query-token"}

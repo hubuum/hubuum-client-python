@@ -6,6 +6,48 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Registered all 204 Hubuum v0.0.13 OpenAPI operations, including structured
+  JSON search and its POST SSE stream, with matching sync/async `json=` support
+  and request-body validation in `openapi.stream()`.
+- Added synchronous and asynchronous live structured-search coverage and
+  regression coverage for asynchronous restore confirmation and
+  capability-authenticated status polling.
+- Added a disposable-stack recovery suite covering four consecutive full
+  backup/restore cycles in both sync/async orders, including JSON `null`,
+  resource revisions, post-backup object removal, token invalidation, and
+  password-reset/login recovery. The e2e wrapper runs it with a matching
+  restore executor after the core suite, and excludes caller-managed servers.
+
+### Changed
+
+- Updated the target server, vendored OpenAPI document, operation manifest,
+  documentation, and CI to Hubuum v0.0.13 at release commit
+  `8ecefbf3e3147714014221598d9873ba92e0fdce` and immutable image digest
+  `sha256:512562e789d6430875c5075faf832a9669a4f266f7fe9fbf8c1524b49a6476c5`.
+- The e2e wrapper now runs a separate migration container before starting the
+  server, as required since v0.0.12, and cleans up migration resources on failure.
+- Selected v0.0.13 for the next release because it fixes repeated restore
+  coordination ([server #378](https://github.com/hubuum/hubuum/issues/378)) and
+  PostgreSQL JSON-null restoration. Its 204-operation API and backup version 5
+  format remain unchanged from v0.0.12.
+- Documented the changes since v0.0.9: structured and related-object search,
+  bounded graph/export/template work, version 5 backups, queued restores,
+  explicit migrations, and opaque versioned bearer tokens. See the
+  [compatibility guide](docs/compatibility.md#changes-since-v009) for upgrade notes.
+- Refreshed every Python dependency lock: AnyIO 4.15.1, ast-serialize 0.11.0,
+  griffelib 2.3.0, mkdocstrings-python 2.0.8, platformdirs 4.11.7,
+  Ruff 0.16.6, and Zizmor 1.30.0. Updated the Hatchling build requirement to
+  1.32.0. Verified every GitHub Action pin and Twine 7.0.0 against the latest
+  releases; those pins were already current.
+
+### Security
+
+- Restore status polling sends only its restore capability and no bearer token.
+  Restore capabilities are redacted from errors, and request options omit
+  headers and query values from representations.
+
 ## [0.0.7] - 2026-08-29
 
 ### Added

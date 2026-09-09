@@ -15,7 +15,7 @@ from hubuum_client import (
 )
 
 
-def test_v009_contract_constants_match_validation_script() -> None:
+def test_v0013_contract_constants_match_validation_script() -> None:
     repository_root = Path(__file__).parents[2]
     values = run_path(str(repository_root / "scripts" / "check-openapi-contract.py"))
 
