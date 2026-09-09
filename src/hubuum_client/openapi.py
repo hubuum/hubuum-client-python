@@ -35,7 +35,7 @@ def _operation(operation_id: str) -> OperationSpec:
     try:
         return OPERATIONS[operation_id]
     except KeyError:
-        raise ValueError(f"unknown Hubuum v0.0.12 operationId: {operation_id!r}") from None
+        raise ValueError(f"unknown Hubuum v0.0.13 operationId: {operation_id!r}") from None
 
 
 def _operation_path(
@@ -112,7 +112,7 @@ def _decode_response(response: httpx.Response, *, accept: str | None) -> OpenAPI
 
 
 class OpenAPIOperations:
-    """Invoke every operation in Hubuum v0.0.12 by its stable OpenAPI operationId."""
+    """Invoke every operation in Hubuum v0.0.13 by its stable OpenAPI operationId."""
 
     def __init__(self, client: Client) -> None:
         self._client = client
@@ -175,7 +175,7 @@ class OpenAPIOperations:
 
 
 class AsyncOpenAPIOperations:
-    """Asynchronous operation-ID interface for the complete v0.0.12 contract."""
+    """Asynchronous operation-ID interface for the complete v0.0.13 contract."""
 
     def __init__(self, client: AsyncClient) -> None:
         self._client = client

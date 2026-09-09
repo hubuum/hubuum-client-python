@@ -8,21 +8,30 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
-- Registered all 204 Hubuum v0.0.12 OpenAPI operations, including structured
+- Registered all 204 Hubuum v0.0.13 OpenAPI operations, including structured
   JSON search and its POST SSE stream, with matching sync/async `json=` support
   and request-body validation in `openapi.stream()`.
 - Added synchronous and asynchronous live structured-search coverage and
   regression coverage for asynchronous restore confirmation and
   capability-authenticated status polling.
+- Added a disposable-stack recovery suite covering four consecutive full
+  backup/restore cycles in both sync/async orders, including JSON `null`,
+  resource revisions, post-backup object removal, token invalidation, and
+  password-reset/login recovery. The e2e wrapper runs it with a matching
+  restore executor after the core suite, and excludes caller-managed servers.
 
 ### Changed
 
 - Updated the target server, vendored OpenAPI document, operation manifest,
-  documentation, and CI to Hubuum v0.0.12 at release commit
-  `a3928a03451e2a2365b7405f7229dc4857b4fa05` and immutable image digest
-  `sha256:6441ccbe2906d80d0e6ef5e8a9b8e4a7e1afc9c39c8d43d93ac62a5cd0e6e865`.
+  documentation, and CI to Hubuum v0.0.13 at release commit
+  `8ecefbf3e3147714014221598d9873ba92e0fdce` and immutable image digest
+  `sha256:512562e789d6430875c5075faf832a9669a4f266f7fe9fbf8c1524b49a6476c5`.
 - The e2e wrapper now runs a separate migration container before starting the
-  server, as required by v0.0.12, and cleans up migration resources on failure.
+  server, as required since v0.0.12, and cleans up migration resources on failure.
+- Selected v0.0.13 for the next release because it fixes repeated restore
+  coordination ([server #378](https://github.com/hubuum/hubuum/issues/378)) and
+  PostgreSQL JSON-null restoration. Its 204-operation API and backup version 5
+  format remain unchanged from v0.0.12.
 - Documented the changes since v0.0.9: structured and related-object search,
   bounded graph/export/template work, version 5 backups, queued restores,
   explicit migrations, and opaque versioned bearer tokens. See the

@@ -9,7 +9,7 @@ These instructions apply to the entire repository.
 - `src/hubuum_client/_constants.py` defines the target Hubuum server version and
   immutable test image. Keep those values synchronized with `README.md`,
   `CHANGELOG.md`, `docs/compatibility.md`, the e2e script, and CI.
-- Hubuum server `v0.0.12` and its committed `docs/openapi.json` are the
+- Hubuum server `v0.0.13` and its committed `docs/openapi.json` are the
   authoritative API contract. Do not infer wire fields from Python naming
   preferences when the contract says otherwise.
 - Maintain sync/async capability parity unless a runtime constraint is
@@ -69,10 +69,13 @@ Run the complete live-server suite with:
 ./scripts/run-e2e-tests.sh
 ```
 
-The wrapper starts PostgreSQL and the immutable Hubuum v0.0.12 server image,
+The wrapper starts PostgreSQL and the immutable Hubuum v0.0.13 server image,
 waits for readiness, obtains the generated administrator password, runs the
-tests under `tests/e2e`, and removes its containers and network. Docker and
-Podman are both supported.
+core tests under `tests/e2e`, then starts the matching restore executor and
+runs `tests/recovery` before removing its containers and network. The recovery
+suite performs full restores only on the wrapper-owned disposable stack;
+caller-managed servers run only the core suite. Docker and Podman are both
+supported.
 
 Useful environment variables:
 
@@ -87,7 +90,7 @@ Useful environment variables:
 
 Live tests must use unique resource names, avoid assumptions about global IDs,
 and clean up resources when doing so does not hide the primary failure. Do not
-describe unit tests or an unpinned live run as v0.0.12 compatibility evidence.
+describe unit tests or an unpinned live run as v0.0.13 compatibility evidence.
 
 ## Change discipline
 

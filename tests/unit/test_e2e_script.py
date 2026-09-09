@@ -121,13 +121,7 @@ fi
     assert result.returncode == 0, result.stderr
 
 
-@pytest.mark.skipif(BASH is None, reason="Bash is required to test the e2e wrapper")
-@pytest.mark.parametrize("runtime", ["docker", "podman"])
-@pytest.mark.parametrize("migration_status", [0, 1])
-def test_wrapper_migrates_before_server_start_and_cleans_up(
-    tmp_path: Path, runtime: str, migration_status: int
-) -> None:
-    assert BASH is not None
+def _wrapper_environment(tmp_path: Path, runtime: str) -> tuple[dict[str, str], Path]:
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     log = tmp_path / "calls"
@@ -144,19 +138,28 @@ args = sys.argv[1:]
 with Path(os.environ["CALL_LOG"]).open("a") as log:
     if name in {"docker", "podman"}:
         if args[0] == "run":
-            role = "migration" if "--migrate" in args else "server" if "-p" in args else "database"
+            if "--migrate" in args:
+                role = "migration"
+            elif "--restore-executor" in args:
+                role = "executor"
+            else:
+                role = "server" if "-p" in args else "database"
             log.write(f"run:{role}\n")
         elif args[0] == "rm":
             log.write("cleanup:" + " ".join(args[2:]) + "\n")
-if name == "uv":
+    if name == "python":
+        suite = "recovery" if "tests/recovery" in args else "core"
+        log.write(f"suite:{suite}\n")
+if name == "python":
+    sys.exit(int(os.environ.get(f"{suite.upper()}_TEST_STATUS", "0")))
+elif name == "uv":
     if args[0] == "build":
         directory = Path(args[args.index("--out-dir") + 1])
         (directory / "hubuum_client-test.whl").touch()
     elif args[0] == "venv":
         python = Path(args[-1]) / "bin" / "python"
         python.parent.mkdir(parents=True)
-        python.write_text("#!/bin/sh\nexit 0\n")
-        python.chmod(0o755)
+        python.symlink_to(Path(sys.argv[0]).resolve())
 elif name == "curl":
     print("200")
 elif args[0] == "inspect":
@@ -180,25 +183,79 @@ elif args[0] == "run" and "--migrate" in args:
             "PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}",
             "HUBUUM_E2E_CONTAINER_RUNTIME": runtime,
             "CALL_LOG": str(log),
-            "MIGRATION_STATUS": str(migration_status),
+            "MIGRATION_STATUS": "0",
         }
     )
-    result = subprocess.run(
+    return environment, log
+
+
+def _run_wrapper(environment: dict[str, str]) -> subprocess.CompletedProcess[str]:
+    assert BASH is not None
+    return subprocess.run(
         [BASH, str(Path(__file__).parents[2] / "scripts" / "run-e2e-tests.sh")],
         env=environment,
         capture_output=True,
         text=True,
         check=False,
     )
+
+
+@pytest.mark.skipif(BASH is None, reason="Bash is required to test the e2e wrapper")
+@pytest.mark.parametrize("runtime", ["docker", "podman"])
+@pytest.mark.parametrize("migration_status", [0, 1])
+def test_wrapper_migrates_before_server_start_and_cleans_up(
+    tmp_path: Path, runtime: str, migration_status: int
+) -> None:
+    environment, log = _wrapper_environment(tmp_path, runtime)
+    environment["MIGRATION_STATUS"] = str(migration_status)
+    result = _run_wrapper(environment)
     calls = log.read_text().splitlines()
     assert result.returncode == migration_status, result.stderr
     assert calls[:2] == ["run:database", "run:migration"]
     if migration_status == 0:
-        assert calls[2] == "run:server"
+        assert calls[2:6] == ["run:server", "suite:core", "run:executor", "suite:recovery"]
     else:
         assert "run:server" not in calls
+        assert "run:executor" not in calls
+        assert "suite:recovery" not in calls
         assert "migrations failed" in result.stderr
     cleanup = next(call for call in calls if call.startswith("cleanup:"))
     assert "hubuum-python-e2e-migrate-" in cleanup
     assert "hubuum-python-e2e-db-" in cleanup
     assert "hubuum-python-e2e-server-" in cleanup
+    assert "hubuum-python-e2e-executor-" in cleanup
+
+
+@pytest.mark.skipif(BASH is None, reason="Bash is required to test the e2e wrapper")
+@pytest.mark.parametrize("runtime", ["docker", "podman"])
+def test_wrapper_never_runs_full_restores_on_a_caller_managed_server(
+    tmp_path: Path, runtime: str
+) -> None:
+    environment, log = _wrapper_environment(tmp_path, runtime)
+    environment.update(
+        {"HUBUUM_E2E_BASE_URL": "https://caller.test", "HUBUUM_E2E_ADMIN_PASSWORD": "test-password"}
+    )
+    result = _run_wrapper(environment)
+    assert result.returncode == 0, result.stderr
+    assert log.read_text().splitlines() == ["suite:core"]
+
+
+@pytest.mark.skipif(BASH is None, reason="Bash is required to test the e2e wrapper")
+@pytest.mark.parametrize("runtime", ["docker", "podman"])
+@pytest.mark.parametrize("failing_suite", ["core", "recovery"])
+def test_wrapper_propagates_test_failure_and_removes_recovery_stack(
+    tmp_path: Path, runtime: str, failing_suite: str
+) -> None:
+    environment, log = _wrapper_environment(tmp_path, runtime)
+    environment[f"{failing_suite.upper()}_TEST_STATUS"] = "1"
+    result = _run_wrapper(environment)
+    assert result.returncode == 1
+    calls = log.read_text().splitlines()
+    if failing_suite == "core":
+        assert "run:executor" not in calls
+        assert "suite:recovery" not in calls
+    else:
+        assert "run:executor" in calls
+        assert "suite:recovery" in calls
+    assert calls[-1].startswith("cleanup:")
+    assert "hubuum-python-e2e-executor-" in calls[-1]

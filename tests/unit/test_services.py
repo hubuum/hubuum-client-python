@@ -268,7 +268,7 @@ def test_sync_and_async_services_keep_public_method_parity() -> None:
         assert sync_methods == async_methods
 
 
-def test_sync_v0012_token_service_supports_lifecycle_reads_and_renewal() -> None:
+def test_sync_v0013_token_service_supports_lifecycle_reads_and_renewal() -> None:
     requests: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -363,7 +363,7 @@ def test_sync_v0012_token_service_supports_lifecycle_reads_and_renewal() -> None
     assert requests[-1].url.path == "/api/v1/iam/principals/21/tokens/50/revoke"
 
 
-async def test_async_v0012_token_service_matches_sync_behavior() -> None:
+async def test_async_v0013_token_service_matches_sync_behavior() -> None:
     requests: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -1016,7 +1016,7 @@ def _import_result_json() -> dict[str, Any]:
     }
 
 
-def test_sync_v0012_task_import_and_export_services() -> None:
+def test_sync_v0013_task_import_and_export_services() -> None:
     requests: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -1040,12 +1040,12 @@ def test_sync_v0012_task_import_and_export_services() -> None:
         event = client.tasks.events(40)[0]
         imported = client.imports.run(
             ImportRequest(graph=ImportGraph()),
-            idempotency_key="import-v0012",
+            idempotency_key="import-v0013",
             timeout_seconds=0,
         )
         exported = client.exports.run(
             ExportRequest(scope=ExportScope(kind=ExportScopeKind.COLLECTIONS)),
-            idempotency_key="export-v0012",
+            idempotency_key="export-v0013",
             timeout_seconds=0,
         )
 
@@ -1058,13 +1058,13 @@ def test_sync_v0012_task_import_and_export_services() -> None:
     assert exported.body.endswith("inventory\n")
     submissions = [request for request in requests if request.method == "POST"]
     assert [request.headers["idempotency-key"] for request in submissions] == [
-        "import-v0012",
-        "export-v0012",
+        "import-v0013",
+        "export-v0013",
     ]
     assert json.loads(submissions[0].content) == {"graph": {}, "version": 2}
 
 
-async def test_async_v0012_task_import_and_export_services() -> None:
+async def test_async_v0013_task_import_and_export_services() -> None:
     requests: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -1097,12 +1097,12 @@ async def test_async_v0012_task_import_and_export_services() -> None:
         event = (await client.tasks.events(40))[0]
         imported = await client.imports.run(
             ImportRequest(graph=ImportGraph()),
-            idempotency_key="async-import-v0012",
+            idempotency_key="async-import-v0013",
             timeout_seconds=0,
         )
         exported = await client.exports.run(
             ExportRequest(scope=ExportScope(kind=ExportScopeKind.COLLECTIONS)),
-            idempotency_key="async-export-v0012",
+            idempotency_key="async-export-v0013",
             timeout_seconds=0,
         )
 
@@ -1112,6 +1112,6 @@ async def test_async_v0012_task_import_and_export_services() -> None:
     assert exported.meta.count == 1
     submissions = [request for request in requests if request.method == "POST"]
     assert [request.headers["idempotency-key"] for request in submissions] == [
-        "async-import-v0012",
-        "async-export-v0012",
+        "async-import-v0013",
+        "async-export-v0013",
     ]

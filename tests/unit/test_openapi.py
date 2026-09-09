@@ -42,7 +42,7 @@ def _async_client(handler: Callable[[httpx.Request], httpx.Response]) -> AsyncCl
     )
 
 
-def test_manifest_deliberately_covers_all_v0012_operations() -> None:
+def test_manifest_deliberately_covers_all_v0013_operations() -> None:
     assert len(OPERATIONS) == 204
     assert len(SUPPORTED_OPERATIONS) == 204
     assert OPERATIONS["getApiV1SearchStream"].path == "/api/v1/search/stream"

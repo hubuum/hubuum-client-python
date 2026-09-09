@@ -284,7 +284,7 @@ async def test_async_etag_preconditions_cover_updates_and_deletes(
                     await client.collections.delete(collection.id)
 
 
-def test_v0012_principal_settings_json_patch(client: Client, unique_name: str) -> None:
+def test_v0013_principal_settings_json_patch(client: Client, unique_name: str) -> None:
     key = f"python_e2e_{unique_name.rsplit('-', 1)[-1]}"
     path = f"/{key}"
     try:
@@ -591,7 +591,7 @@ def test_iam_and_relations(client: Client, admin_group_id: GroupId, unique_name:
         client.users.delete(user.id)
 
 
-def test_v0012_import_timestamps_export_timings_and_task_events(
+def test_v0013_import_timestamps_export_timings_and_task_events(
     client: Client,
     unique_name: str,
 ) -> None:
@@ -607,7 +607,7 @@ def test_v0012_import_timestamps_export_timings_and_task_events(
                         ImportCollectionInput(
                             ref_="imported-collection",
                             name=collection_name,
-                            description="v0.0.12 restored timestamp e2e collection",
+                            description="v0.0.13 restored timestamp e2e collection",
                             timestamps=RestoreTimestamps(
                                 created_at=restored_created_at,
                                 updated_at=restored_updated_at,
