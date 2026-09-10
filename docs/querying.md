@@ -50,7 +50,7 @@ objects = client.classes.by_id(class_id).objects.all(query)
 The path is passed as one key per argument. For example,
 `data("network", "address")` selects `data["network"]["address"]` and encodes
 the server value `network,address=...`. Commas and equals signs cannot be used
-in path keys because Hubuum v0.0.13 does not define escaping for those
+in path keys because Hubuum v0.0.14 does not define escaping for those
 delimiters.
 
 Common scalar and textual filters use direct method names:
@@ -155,7 +155,7 @@ is independent of the enclosing membership revision.
 
 ## Exact-name routes
 
-Hubuum v0.0.13 supports explicit natural-key aliases for classes and objects.
+Hubuum v0.0.14 supports explicit natural-key aliases for classes and objects.
 Use the complete name-addressed service when class and object names are already
 known:
 

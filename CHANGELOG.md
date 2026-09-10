@@ -6,16 +6,19 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.0.8] - 2026-09-10
+
 ### Added
 
-- Registered all 204 Hubuum v0.0.13 OpenAPI operations, including structured
+- Registered all 204 Hubuum v0.0.14 OpenAPI operations, including structured
   JSON search and its POST SSE stream, with matching sync/async `json=` support
   and request-body validation in `openapi.stream()`.
 - Added synchronous and asynchronous live structured-search coverage and
   regression coverage for asynchronous restore confirmation and
   capability-authenticated status polling.
-- Added a disposable-stack recovery suite covering four consecutive full
-  backup/restore cycles in both sync/async orders, including JSON `null`,
+- Added a disposable-stack recovery suite covering eight consecutive full
+  backup/restore cycles in both sync/async orders, including history-free
+  restores followed by default backups after further mutations, JSON `null`,
   resource revisions, post-backup object removal, token invalidation, and
   password-reset/login recovery. The e2e wrapper runs it with a matching
   restore executor after the core suite, and excludes caller-managed servers.
@@ -23,15 +26,15 @@ All notable changes to this project are documented here. The format follows
 ### Changed
 
 - Updated the target server, vendored OpenAPI document, operation manifest,
-  documentation, and CI to Hubuum v0.0.13 at release commit
-  `8ecefbf3e3147714014221598d9873ba92e0fdce` and immutable image digest
-  `sha256:512562e789d6430875c5075faf832a9669a4f266f7fe9fbf8c1524b49a6476c5`.
+  documentation, and CI to Hubuum v0.0.14 at release commit
+  `0b0aa17f278496a32cc018cfcac56f34a408ccd6` and immutable image digest
+  `sha256:6c1c8d7316a1f60a02e4505611a44e21030ba678b5b451f5b293a12f2bd87594`.
 - The e2e wrapper now runs a separate migration container before starting the
   server, as required since v0.0.12, and cleans up migration resources on failure.
-- Selected v0.0.13 for the next release because it fixes repeated restore
-  coordination ([server #378](https://github.com/hubuum/hubuum/issues/378)) and
-  PostgreSQL JSON-null restoration. Its 204-operation API and backup version 5
-  format remain unchanged from v0.0.12.
+- Selected v0.0.14 for its recovery fixes, including resource revisions and
+  subsequent backup restorability after history-free restores. Its 204-operation
+  API and backup version 5 format remain unchanged from v0.0.13; install the
+  matching restore executor with the server.
 - Documented the changes since v0.0.9: structured and related-object search,
   bounded graph/export/template work, version 5 backups, queued restores,
   explicit migrations, and opaque versioned bearer tokens. See the
@@ -263,7 +266,8 @@ All notable changes to this project are documented here. The format follows
   error diagnostics.
 - Redacted login tokens from model representations.
 
-[Unreleased]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.7...HEAD
+[Unreleased]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.8...HEAD
+[0.0.8]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.7...v0.0.8
 [0.0.7]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.6...v0.0.7
 [0.0.6]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.4...v0.0.5
