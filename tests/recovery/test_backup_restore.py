@@ -110,7 +110,7 @@ def _check_status(status: Any) -> bool:
     return bool(status["status"] == "succeeded")
 
 
-def _sync_roundtrip(stack: RecoveryStack) -> None:
+def _sync_roundtrip(stack: RecoveryStack, *, include_history: bool | None = None) -> None:
     prefix = f"recovery-sync-{uuid.uuid4().hex}"
     with Client(stack.base_url) as client:
         client.login(Credentials("admin", stack.reset_password()))
@@ -128,13 +128,17 @@ def _sync_roundtrip(stack: RecoveryStack) -> None:
         original = objects.create(
             ObjectCreate(name=prefix, description="Before backup", data={"phase": "before"})
         )
+        original = objects.update(original.id, ObjectUpdate(description="Revised before backup"))
         nullable = objects.create(
             ObjectCreate(name=f"{prefix}-null", description="JSON null", data={})
         )
         nullable = objects.patch_data(nullable.id, [{"op": "replace", "path": "", "value": None}])
         assert nullable.data is None
         task = Task.model_validate(
-            client.openapi.call("postApiV1Backups", json={"include_history": True})
+            client.openapi.call(
+                "postApiV1Backups",
+                json={} if include_history is None else {"include_history": include_history},
+            )
         )
         completed = client.tasks.wait(task.id, timeout_seconds=90, poll_interval=0.2)
         assert completed.status.successful
@@ -144,7 +148,7 @@ def _sync_roundtrip(stack: RecoveryStack) -> None:
         )
         assert isinstance(backup, dict)
         assert backup["backup_version"] == 5
-        assert backup["history"] is not None
+        assert (backup.get("history") is not None) is (include_history is not False)
         objects.update(original.id, ObjectUpdate(data={"phase": "after"}))
         objects.update(nullable.id, ObjectUpdate(data={"phase": "after"}))
         extra = objects.create(
@@ -184,9 +188,11 @@ def _sync_roundtrip(stack: RecoveryStack) -> None:
         assert restored_null.revision == nullable.revision
         with pytest.raises(NotFoundError):
             objects.get(extra.id)
+        mutated = objects.update(restored.id, ObjectUpdate(data={"phase": "after restore"}))
+        assert mutated.revision == original.revision + 1
 
 
-async def _async_roundtrip(stack: RecoveryStack) -> None:
+async def _async_roundtrip(stack: RecoveryStack, *, include_history: bool | None = None) -> None:
     prefix = f"recovery-async-{uuid.uuid4().hex}"
     async with AsyncClient(stack.base_url) as client:
         await client.login(Credentials("admin", await asyncio.to_thread(stack.reset_password)))
@@ -201,6 +207,9 @@ async def _async_roundtrip(stack: RecoveryStack) -> None:
         original = await objects.create(
             ObjectCreate(name=prefix, description="Before backup", data={"phase": "before"})
         )
+        original = await objects.update(
+            original.id, ObjectUpdate(description="Revised before backup")
+        )
         nullable = await objects.create(
             ObjectCreate(name=f"{prefix}-null", description="JSON null", data={})
         )
@@ -209,7 +218,10 @@ async def _async_roundtrip(stack: RecoveryStack) -> None:
         )
         assert nullable.data is None
         task = Task.model_validate(
-            await client.openapi.call("postApiV1Backups", json={"include_history": True})
+            await client.openapi.call(
+                "postApiV1Backups",
+                json={} if include_history is None else {"include_history": include_history},
+            )
         )
         completed = await client.tasks.wait(task.id, timeout_seconds=90, poll_interval=0.2)
         assert completed.status.successful
@@ -219,7 +231,7 @@ async def _async_roundtrip(stack: RecoveryStack) -> None:
         )
         assert isinstance(backup, dict)
         assert backup["backup_version"] == 5
-        assert backup["history"] is not None
+        assert (backup.get("history") is not None) is (include_history is not False)
         await objects.update(original.id, ObjectUpdate(data={"phase": "after"}))
         await objects.update(nullable.id, ObjectUpdate(data={"phase": "after"}))
         extra = await objects.create(
@@ -259,13 +271,18 @@ async def _async_roundtrip(stack: RecoveryStack) -> None:
         assert restored_null.revision == nullable.revision
         with pytest.raises(NotFoundError):
             await objects.get(extra.id)
+        mutated = await objects.update(restored.id, ObjectUpdate(data={"phase": "after restore"}))
+        assert mutated.revision == original.revision + 1
 
 
 @pytest.mark.parametrize("async_first", [False, True], ids=["sync-then-async", "async-then-sync"])
-def test_repeated_full_restores(recovery_stack: RecoveryStack, async_first: bool) -> None:
+@pytest.mark.parametrize("include_history", [True, False], ids=["history", "history-free"])
+def test_repeated_full_restores(
+    recovery_stack: RecoveryStack, async_first: bool, include_history: bool
+) -> None:
     if async_first:
-        asyncio.run(_async_roundtrip(recovery_stack))
+        asyncio.run(_async_roundtrip(recovery_stack, include_history=include_history))
         _sync_roundtrip(recovery_stack)
     else:
-        _sync_roundtrip(recovery_stack)
+        _sync_roundtrip(recovery_stack, include_history=include_history)
         asyncio.run(_async_roundtrip(recovery_stack))

@@ -536,7 +536,7 @@ class ExportJsonResponse(HubuumModel):
 class RestoreTimestamps(RequestModel):
     """Original UTC timestamps restored by an authorized import.
 
-    Hubuum v0.0.13 accepts timezone-free ISO 8601 values and interprets them as
+    Hubuum v0.0.14 accepts timezone-free ISO 8601 values and interprets them as
     UTC. The update timestamp must not precede the creation timestamp.
     """
 
@@ -718,7 +718,7 @@ class ImportGraph(RequestModel):
     """Complete import graph with typed core resources.
 
     Identity and integration sections remain JSON-object sequences so the
-    complete v0.0.13 graph is accepted without exposing unstable or
+    complete v0.0.14 graph is accepted without exposing unstable or
     secret-bearing integration configuration in representations. Core
     collection, class, object, relation, and collection-permission sections
     are fully typed.
@@ -1009,7 +1009,7 @@ class ImportTaskDetails(HubuumModel):
 
 
 class ExportTaskDetails(HubuumModel):
-    """Export output state and v0.0.13 phase-duration measurements."""
+    """Export output state and v0.0.14 phase-duration measurements."""
 
     output_url: str = Field(repr=False)
     output_available: bool
@@ -1037,7 +1037,7 @@ class BackupTaskDetails(HubuumModel):
 
 
 class TaskDetails(HubuumModel):
-    """Kind-specific task metadata exposed by Hubuum v0.0.13."""
+    """Kind-specific task metadata exposed by Hubuum v0.0.14."""
 
     import_: ImportTaskDetails | None = Field(default=None, alias="import")
     export: ExportTaskDetails | None = None

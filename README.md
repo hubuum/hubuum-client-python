@@ -12,7 +12,7 @@ resource IDs, immutable queries, cursor pagination, structured errors, and a
 contract-checked interface for all 204 operations in the server's OpenAPI
 surface.
 
-The unreleased client targets Hubuum server **v0.0.13**. Compatibility is tested against
+Client **0.0.8** targets Hubuum server **v0.0.14**. Compatibility is tested against
 the tag-and-digest server image recorded in the
 [compatibility matrix](docs/compatibility.md), including repeated full restores
 and JSON-null recovery in both runtimes.
@@ -89,7 +89,7 @@ Credentials and bearer tokens have redacted representations. TLS certificate
 validation is enabled by default; disabling it is an explicit client option and
 should be limited to disposable development systems.
 
-Hubuum v0.0.13 reports the authoritative expiry for newly issued tokens. After
+Hubuum v0.0.14 reports the authoritative expiry for newly issued tokens. After
 login or token minting, it is available as `client.token.expires_at` or
 `created_token.expires_at`. The unauthenticated public configuration reports
 the default and maximum accepted lifetimes:
@@ -121,7 +121,7 @@ Structured JSON and SSE search are available through `openapi.call()` and
 The [upgrade notes](docs/compatibility.md#changes-since-v009) cover the server
 changes since v0.0.9, including explicit migrations and queued restores.
 
-Every v0.0.13 OpenAPI operation is registered by its stable `operationId`:
+Every v0.0.14 OpenAPI operation is registered by its stable `operationId`:
 
 ```python
 from hubuum_client import OpenAPIOptions

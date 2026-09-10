@@ -1,7 +1,7 @@
 # Hubuum client for Python
 
 `hubuum-client` is a small, modern interface to the Hubuum REST API. The
-unreleased client targets Hubuum server v0.0.13 and gives synchronous and asynchronous
+0.0.8 client targets Hubuum server v0.0.14 and gives synchronous and asynchronous
 applications the same typed resource model.
 
 ```python
@@ -48,7 +48,7 @@ measures, task events, import v2, and exports. Health, readiness, and public
 configuration are available before authentication.
 
 The `openapi` service deliberately registers every operation in the immutable
-v0.0.13 specification. Administrative domains that do not yet
+v0.0.14 specification. Administrative domains that do not yet
 have dedicated Pydantic resources are invoked by `operationId` and return
 standard typed JSON, text, or byte values. CI compares that manifest with the
 authoritative server contract so an endpoint cannot silently fall out of

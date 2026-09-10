@@ -607,7 +607,7 @@ def test_v0013_import_timestamps_export_timings_and_task_events(
                         ImportCollectionInput(
                             ref_="imported-collection",
                             name=collection_name,
-                            description="v0.0.13 restored timestamp e2e collection",
+                            description="v0.0.14 restored timestamp e2e collection",
                             timestamps=RestoreTimestamps(
                                 created_at=restored_created_at,
                                 updated_at=restored_updated_at,
