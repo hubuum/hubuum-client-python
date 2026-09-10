@@ -36,9 +36,9 @@ All notable changes to this project are documented here. The format follows
   bounded graph/export/template work, version 5 backups, queued restores,
   explicit migrations, and opaque versioned bearer tokens. See the
   [compatibility guide](docs/compatibility.md#changes-since-v009) for upgrade notes.
-- Refreshed every Python dependency lock: AnyIO 4.15.1, ast-serialize 0.11.0,
-  griffelib 2.3.0, mkdocstrings-python 2.0.8, platformdirs 4.11.7,
-  Ruff 0.16.6, and Zizmor 1.30.0. Updated the Hatchling build requirement to
+- Refreshed every Python dependency lock: AnyIO 4.15.1, ast-serialize 0.11.1,
+  griffelib 2.3.0, mkdocstrings-python 2.0.8, platformdirs 4.11.8,
+  Ruff 0.16.6, and Zizmor 1.30.1. Updated the Hatchling build requirement to
   1.32.0. Verified every GitHub Action pin and Twine 7.0.0 against the latest
   releases; those pins were already current.
 
