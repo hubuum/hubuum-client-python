@@ -11,6 +11,8 @@ from typing import Generic, TypeVar, overload
 
 from .types import FilterOperator, QueryValue
 
+_MAX_SCHEMA_PAGE_LIMIT = 100
+
 T = TypeVar("T")
 FilterValue = QueryValue | date | datetime
 NetworkFilterValue = str | IPv4Address | IPv6Address | IPv4Network | IPv6Network
@@ -310,3 +312,20 @@ class Page(Sequence[T], Generic[T]):
     @property
     def has_next(self) -> bool:
         return self.next_cursor is not None
+
+
+@dataclass(frozen=True, slots=True)
+class SchemaPageOptions:
+    """Numeric continuation controls for schema revisions and object compliance."""
+
+    after: int = 0
+    limit: int = 50
+
+    def __post_init__(self) -> None:
+        if self.after < 0:
+            raise ValueError("after must be non-negative")
+        if not 1 <= self.limit <= _MAX_SCHEMA_PAGE_LIMIT:
+            raise ValueError("limit must be between 1 and 100")
+
+    def as_params(self) -> list[tuple[str, QueryValue | None]]:
+        return [("after", str(self.after)), ("limit", str(self.limit))]

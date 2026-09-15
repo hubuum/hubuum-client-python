@@ -415,3 +415,16 @@ def decode_json(response: httpx.Response) -> Any:
             status_code=response.status_code,
             reason=str(error),
         ) from error
+
+
+def decode_html(response: httpx.Response) -> str:
+    """Read a retained HTML report without accepting an unexpected response format."""
+    content_type = response.headers.get("content-type", "").partition(";")[0].strip().lower()
+    if content_type != "text/html":
+        raise DecodeError(
+            response.request.method,
+            safe_response_url(response),
+            response.status_code,
+            "expected a text/html response",
+        )
+    return response.text

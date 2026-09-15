@@ -7,7 +7,7 @@
       "name": "MIT",
       "identifier": "MIT"
     },
-    "version": "0.0.14"
+    "version": "0.0.15"
   },
   "servers": [
     {
@@ -5714,6 +5714,1164 @@
           },
           "412": {
             "description": "Precondition failed because If-Match does not match the current resource revision."
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/classes/{class_id}/schema": {
+      "get": {
+        "tags": [
+          "schema evolution"
+        ],
+        "summary": "Get Api V1 Classes By Class Id Schema",
+        "description": "Auto-generated documentation for GET /api/v1/classes/{class_id}/schema.",
+        "operationId": "getApiV1ClassesByClassIdSchema",
+        "parameters": [
+          {
+            "name": "class_id",
+            "in": "path",
+            "description": "Class ID",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/HubuumClassID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Administrator class compliance report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassSchemaResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid schema, policy or bounded request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Class, revision or task not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Stale revision, incompatible activation or invalid lifecycle transition",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/classes/{class_id}/schema/objects": {
+      "get": {
+        "tags": [
+          "schema evolution"
+        ],
+        "summary": "Get Api V1 Classes By Class Id Schema Objects",
+        "description": "Auto-generated documentation for GET /api/v1/classes/{class_id}/schema/objects.",
+        "operationId": "getApiV1ClassesByClassIdSchemaObjects",
+        "parameters": [
+          {
+            "name": "class_id",
+            "in": "path",
+            "description": "Class ID",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/HubuumClassID"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "Last inspected object ID",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "1 to 100 candidates",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Effective active-revision compliance",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ComplianceStatus"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized compliance page; totals and hidden objects are omitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchemaCompliancePage"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/classes/{class_id}/schema/revisions": {
+      "get": {
+        "tags": [
+          "schema evolution"
+        ],
+        "summary": "Get Api V1 Classes By Class Id Schema Revisions",
+        "description": "Auto-generated documentation for GET /api/v1/classes/{class_id}/schema/revisions.",
+        "operationId": "getApiV1ClassesByClassIdSchemaRevisions",
+        "parameters": [
+          {
+            "name": "class_id",
+            "in": "path",
+            "description": "Class ID",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/HubuumClassID"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "Last schema revision; defaults to zero",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "1 to 100 revisions; defaults to 50",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bounded immutable schema revision list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SchemaRevisionResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid schema, policy or bounded request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Class, revision or task not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Stale revision, incompatible activation or invalid lifecycle transition",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "schema evolution"
+        ],
+        "summary": "Post Api V1 Classes By Class Id Schema Revisions",
+        "description": "Auto-generated documentation for POST /api/v1/classes/{class_id}/schema/revisions.",
+        "operationId": "postApiV1ClassesByClassIdSchemaRevisions",
+        "parameters": [
+          {
+            "name": "class_id",
+            "in": "path",
+            "description": "Class ID",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/HubuumClassID"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SchemaStageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Stage an immutable schema revision without activation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchemaRevisionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid schema, policy or bounded request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Class, revision or task not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Stale revision, incompatible activation or invalid lifecycle transition",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/classes/{class_id}/schema/revisions/{revision}": {
+      "get": {
+        "tags": [
+          "schema evolution"
+        ],
+        "summary": "Get Api V1 Classes By Class Id Schema Revisions By Revision",
+        "description": "Auto-generated documentation for GET /api/v1/classes/{class_id}/schema/revisions/{revision}.",
+        "operationId": "getApiV1ClassesByClassIdSchemaRevisionsByRevision",
+        "parameters": [
+          {
+            "name": "class_id",
+            "in": "path",
+            "description": "Class ID",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/HubuumClassID"
+            }
+          },
+          {
+            "name": "revision",
+            "in": "path",
+            "description": "Positive immutable identity",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/SchemaRevision"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Read an exact schema revision",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchemaRevisionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid schema, policy or bounded request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Class, revision or task not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Stale revision, incompatible activation or invalid lifecycle transition",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "schema evolution"
+        ],
+        "summary": "Delete Api V1 Classes By Class Id Schema Revisions By Revision",
+        "description": "Auto-generated documentation for DELETE /api/v1/classes/{class_id}/schema/revisions/{revision}.",
+        "operationId": "deleteApiV1ClassesByClassIdSchemaRevisionsByRevision",
+        "parameters": [
+          {
+            "name": "class_id",
+            "in": "path",
+            "description": "Class ID",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/HubuumClassID"
+            }
+          },
+          {
+            "name": "revision",
+            "in": "path",
+            "description": "Positive immutable identity",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/SchemaRevision"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Abandon a staged revision; active and retired documents remain immutable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchemaRevisionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid schema, policy or bounded request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Class, revision or task not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Stale revision, incompatible activation or invalid lifecycle transition",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/classes/{class_id}/schema/revisions/{revision}/activate": {
+      "post": {
+        "tags": [
+          "schema evolution"
+        ],
+        "summary": "Post Api V1 Classes By Class Id Schema Revisions By Revision Activate",
+        "description": "Auto-generated documentation for POST /api/v1/classes/{class_id}/schema/revisions/{revision}/activate.",
+        "operationId": "postApiV1ClassesByClassIdSchemaRevisionsByRevisionActivate",
+        "parameters": [
+          {
+            "name": "class_id",
+            "in": "path",
+            "description": "Class ID",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/HubuumClassID"
+            }
+          },
+          {
+            "name": "revision",
+            "in": "path",
+            "description": "Positive immutable identity",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/SchemaRevision"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SchemaActivationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Explicit activation; reject_incompatible requires an exact current impact proof for nonempty classes; allow_pending additionally requires administrator access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchemaActivationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid schema, policy or bounded request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Class, revision or task not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Stale revision, incompatible activation or invalid lifecycle transition",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/classes/{class_id}/schema/revisions/{revision}/impact": {
+      "post": {
+        "tags": [
+          "schema evolution"
+        ],
+        "summary": "Post Api V1 Classes By Class Id Schema Revisions By Revision Impact",
+        "description": "Auto-generated documentation for POST /api/v1/classes/{class_id}/schema/revisions/{revision}/impact.",
+        "operationId": "postApiV1ClassesByClassIdSchemaRevisionsByRevisionImpact",
+        "parameters": [
+          {
+            "name": "class_id",
+            "in": "path",
+            "description": "Class ID",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/HubuumClassID"
+            }
+          },
+          {
+            "name": "revision",
+            "in": "path",
+            "description": "Positive immutable identity",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/SchemaRevision"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Queue bounded impact analysis; advisory results cannot authorize strict activation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchemaWorkResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid schema, policy or bounded request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Class, revision or task not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Stale revision, incompatible activation or invalid lifecycle transition",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Report exceeds the 16 MiB assembly budget; saved work is retained",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/classes/{class_id}/schema/revisions/{revision}/revalidate": {
+      "post": {
+        "tags": [
+          "schema evolution"
+        ],
+        "summary": "Post Api V1 Classes By Class Id Schema Revisions By Revision Revalidate",
+        "description": "Auto-generated documentation for POST /api/v1/classes/{class_id}/schema/revisions/{revision}/revalidate.",
+        "operationId": "postApiV1ClassesByClassIdSchemaRevisionsByRevisionRevalidate",
+        "parameters": [
+          {
+            "name": "class_id",
+            "in": "path",
+            "description": "Class ID",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/HubuumClassID"
+            }
+          },
+          {
+            "name": "revision",
+            "in": "path",
+            "description": "Positive immutable identity",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/SchemaRevision"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Queue deduplicated revalidation of the active revision",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchemaWorkResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid schema, policy or bounded request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Class, revision or task not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Stale revision, incompatible activation or invalid lifecycle transition",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/classes/{class_id}/schema/tasks/{task_id}": {
+      "get": {
+        "tags": [
+          "schema evolution"
+        ],
+        "summary": "Get Api V1 Classes By Class Id Schema Tasks By Task Id",
+        "description": "Auto-generated documentation for GET /api/v1/classes/{class_id}/schema/tasks/{task_id}.",
+        "operationId": "getApiV1ClassesByClassIdSchemaTasksByTaskId",
+        "parameters": [
+          {
+            "name": "class_id",
+            "in": "path",
+            "description": "Class ID",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/HubuumClassID"
+            }
+          },
+          {
+            "name": "task_id",
+            "in": "path",
+            "description": "Positive immutable identity",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TaskID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Administrator report with complete grouped impact mismatches and exact/advisory population boundary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchemaWorkResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid schema, policy or bounded request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Class, revision or task not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Stale revision, incompatible activation or invalid lifecycle transition",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Report exceeds the 16 MiB assembly budget; saved work is retained",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "schema evolution"
+        ],
+        "summary": "Delete Api V1 Classes By Class Id Schema Tasks By Task Id",
+        "description": "Auto-generated documentation for DELETE /api/v1/classes/{class_id}/schema/tasks/{task_id}.",
+        "operationId": "deleteApiV1ClassesByClassIdSchemaTasksByTaskId",
+        "parameters": [
+          {
+            "name": "class_id",
+            "in": "path",
+            "description": "Class ID",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/HubuumClassID"
+            }
+          },
+          {
+            "name": "task_id",
+            "in": "path",
+            "description": "Positive immutable identity",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TaskID"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cancel schema work atomically; completed batches remain and later batch commits are fenced",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchemaWorkResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid schema, policy or bounded request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Class, revision or task not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Stale revision, incompatible activation or invalid lifecycle transition",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Report exceeds the 16 MiB assembly budget; saved work is retained",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/classes/{class_id}/schema/tasks/{task_id}/report": {
+      "get": {
+        "tags": [
+          "schema evolution"
+        ],
+        "summary": "Get Api V1 Classes By Class Id Schema Tasks By Task Id Report",
+        "description": "Auto-generated documentation for GET /api/v1/classes/{class_id}/schema/tasks/{task_id}/report.",
+        "operationId": "getApiV1ClassesByClassIdSchemaTasksByTaskIdReport",
+        "parameters": [
+          {
+            "name": "class_id",
+            "in": "path",
+            "description": "Class ID",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/HubuumClassID"
+            }
+          },
+          {
+            "name": "task_id",
+            "in": "path",
+            "description": "Source impact analysis",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TaskID"
+            }
+          },
+          {
+            "name": "download",
+            "in": "query",
+            "description": "Download the retained HTML",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Same retained HTML without reanalysis or rerendering",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Source analysis access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Analysis or retained report not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "schema evolution"
+        ],
+        "summary": "Post Api V1 Classes By Class Id Schema Tasks By Task Id Report",
+        "description": "Auto-generated documentation for POST /api/v1/classes/{class_id}/schema/tasks/{task_id}/report.",
+        "operationId": "postApiV1ClassesByClassIdSchemaTasksByTaskIdReport",
+        "parameters": [
+          {
+            "name": "class_id",
+            "in": "path",
+            "description": "Class ID",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/HubuumClassID"
+            }
+          },
+          {
+            "name": "task_id",
+            "in": "path",
+            "description": "Source impact analysis",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TaskID"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SchemaRepairReportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Generated and retained complete HTML rendering of saved findings",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid URL, layout or rendering budget",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Source analysis or template access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Impact analysis not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Complete report exceeds assembly or output limit; previous report is retained",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -18992,7 +20150,7 @@
           {
             "name": "kind",
             "in": "query",
-            "description": "Optional task kind filter (import|export|backup|reindex|remote_call)",
+            "description": "Optional task kind filter (import|export|backup|reindex|remote_call|schema_validation; schema tasks require administrator access)",
             "required": true,
             "schema": {
               "type": "string"
@@ -19172,6 +20330,114 @@
           },
           "404": {
             "description": "Task not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/tasks/{task_id}/cancel": {
+      "post": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Post Api V1 Tasks By Task Id Cancel",
+        "description": "Auto-generated documentation for POST /api/v1/tasks/{task_id}/cancel.",
+        "operationId": "postApiV1TasksByTaskIdCancel",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "description": "Task ID",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TaskID"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskCancelRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Terminal task; repeated requests return the same state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Durable cancellation requested; executor cleanup is pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid cancellation reason or status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Cancellation is not authorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Expected status no longer matches",
             "content": {
               "application/json": {
                 "schema": {
@@ -19511,12 +20777,17 @@
       "BackupConfig": {
         "type": "object",
         "required": [
+          "max_capture_rows",
           "output_retention_hours",
           "max_active_tasks_per_user",
           "max_output_bytes"
         ],
         "properties": {
           "max_active_tasks_per_user": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "max_capture_rows": {
             "type": "integer",
             "minimum": 0
           },
@@ -19573,7 +20844,7 @@
       },
       "BackupHistory": {
         "type": "object",
-        "description": "Privileged, restore-only logical snapshots. Backup version 5 identifies\nsections by stable Hubuum resources rather than PostgreSQL tables. Each\nstorage adapter explicitly maps its persistence layout to these versioned\nsections. These are disaster-recovery internals, not portable import data.",
+        "description": "Privileged, restore-only logical snapshots. Backup version 6 identifies\nsections by stable Hubuum resources rather than PostgreSQL tables. Each\nstorage adapter explicitly maps its persistence layout to these versioned\nsections. These are disaster-recovery internals, not portable import data.",
         "required": [
           "sections"
         ],
@@ -19732,6 +21003,27 @@
           },
           "name": {
             "type": "string"
+          }
+        }
+      },
+      "ClassSchemaResponse": {
+        "type": "object",
+        "required": [
+          "active",
+          "counts",
+          "object_epoch"
+        ],
+        "properties": {
+          "active": {
+            "$ref": "#/components/schemas/SchemaRevisionResponse"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/SchemaComplianceCounts"
+          },
+          "object_epoch": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
           }
         }
       },
@@ -19999,6 +21291,15 @@
             "$ref": "#/components/schemas/ResourceRevision"
           }
         }
+      },
+      "ComplianceStatus": {
+        "type": "string",
+        "enum": [
+          "valid",
+          "invalid",
+          "pending",
+          "not_required"
+        ]
       },
       "ComputedFieldDefinition": {
         "type": "object",
@@ -23821,6 +25122,17 @@
               "null"
             ]
           },
+          "schema_activation": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ImportSchemaActivation",
+                "description": "Explicit activation of an already staged revision, committed with this import item."
+              }
+            ]
+          },
           "timestamps": {
             "oneOf": [
               {
@@ -25260,6 +26572,37 @@
           }
         }
       },
+      "ImportSchemaActivation": {
+        "type": "object",
+        "description": "Administrator-selected schema activation applied atomically during import.",
+        "required": [
+          "revision",
+          "expected_active_revision",
+          "policy"
+        ],
+        "properties": {
+          "expected_active_revision": {
+            "$ref": "#/components/schemas/SchemaRevision"
+          },
+          "impact_task_id": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TaskID"
+              }
+            ]
+          },
+          "policy": {
+            "$ref": "#/components/schemas/SchemaActivationPolicy"
+          },
+          "revision": {
+            "$ref": "#/components/schemas/SchemaRevision"
+          }
+        },
+        "additionalProperties": false
+      },
       "ImportTaskDetails": {
         "type": "object",
         "required": [
@@ -26537,6 +27880,40 @@
           "unavailable"
         ]
       },
+      "ObjectComplianceResponse": {
+        "type": "object",
+        "required": [
+          "object_id",
+          "object_revision",
+          "active_schema",
+          "status"
+        ],
+        "properties": {
+          "active_schema": {
+            "$ref": "#/components/schemas/SchemaReference"
+          },
+          "evidence": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ObjectSchemaEvidence"
+              }
+            ]
+          },
+          "object_id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "object_revision": {
+            "$ref": "#/components/schemas/ResourceRevision"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ComplianceStatus"
+          }
+        }
+      },
       "ObjectDataPatchDocument": {
         "type": "array",
         "items": {
@@ -26728,6 +28105,30 @@
         "format": "int32",
         "description": "Maximum number of object relations allowed for one object on one side of a class relation.",
         "minimum": 1
+      },
+      "ObjectSchemaEvidence": {
+        "type": "object",
+        "required": [
+          "schema",
+          "object_revision",
+          "valid",
+          "validated_at"
+        ],
+        "properties": {
+          "object_revision": {
+            "$ref": "#/components/schemas/ResourceRevision"
+          },
+          "schema": {
+            "$ref": "#/components/schemas/SchemaReference"
+          },
+          "valid": {
+            "type": "boolean"
+          },
+          "validated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
       },
       "ObjectsByClass": {
         "type": "object",
@@ -28475,6 +29876,7 @@
       "RunningConfig": {
         "type": "object",
         "required": [
+          "schema_validation",
           "server",
           "database",
           "tasks",
@@ -28521,6 +29923,9 @@
           "restores": {
             "$ref": "#/components/schemas/RestoreConfig"
           },
+          "schema_validation": {
+            "$ref": "#/components/schemas/SchemaValidationConfig"
+          },
           "secrets": {
             "$ref": "#/components/schemas/SecretSourceConfig"
           },
@@ -28534,6 +29939,829 @@
             "$ref": "#/components/schemas/TracingConfig"
           }
         }
+      },
+      "SchemaActivationPolicy": {
+        "type": "string",
+        "enum": [
+          "reject_incompatible",
+          "allow_pending"
+        ]
+      },
+      "SchemaActivationRequest": {
+        "type": "object",
+        "required": [
+          "expected_active_revision",
+          "policy"
+        ],
+        "properties": {
+          "expected_active_revision": {
+            "$ref": "#/components/schemas/SchemaRevision"
+          },
+          "impact_task_id": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TaskID"
+              }
+            ]
+          },
+          "policy": {
+            "$ref": "#/components/schemas/SchemaActivationPolicy"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SchemaActivationResponse": {
+        "type": "object",
+        "required": [
+          "active"
+        ],
+        "properties": {
+          "active": {
+            "$ref": "#/components/schemas/SchemaRevisionResponse"
+          },
+          "dependent_rebuild_task_id": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TaskID"
+              }
+            ]
+          },
+          "task_id": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TaskID"
+              }
+            ]
+          }
+        }
+      },
+      "SchemaActualValue": {
+        "oneOf": [
+          {
+            "type": "string",
+            "enum": [
+              "null"
+            ]
+          },
+          {
+            "type": "string",
+            "enum": [
+              "boolean"
+            ]
+          },
+          {
+            "type": "string",
+            "enum": [
+              "number"
+            ]
+          },
+          {
+            "type": "object",
+            "required": [
+              "string"
+            ],
+            "properties": {
+              "string": {
+                "type": "object",
+                "required": [
+                  "characters"
+                ],
+                "properties": {
+                  "characters": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "array"
+            ],
+            "properties": {
+              "array": {
+                "type": "object",
+                "required": [
+                  "items"
+                ],
+                "properties": {
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "object"
+            ],
+            "properties": {
+              "object": {
+                "type": "object",
+                "required": [
+                  "properties"
+                ],
+                "properties": {
+                  "properties": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "description": "Context deliberately includes types and sizes, never actual scalar values."
+      },
+      "SchemaComplianceCounts": {
+        "type": "object",
+        "required": [
+          "valid",
+          "invalid",
+          "pending",
+          "not_required"
+        ],
+        "properties": {
+          "invalid": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "not_required": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "pending": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "valid": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "SchemaCompliancePage": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ObjectComplianceResponse"
+            }
+          },
+          "next_after": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Resume after the last inspected candidate, including hidden candidates."
+          }
+        }
+      },
+      "SchemaDiagnosticOmission": {
+        "type": "string",
+        "enum": [
+          "actual_value_redacted",
+          "instance_path_redacted_or_too_long",
+          "schema_constraint_unavailable_or_too_large"
+        ]
+      },
+      "SchemaDiagnosticSnapshotResponse": {
+        "type": "object",
+        "required": [
+          "object_revision",
+          "inspected_at",
+          "diagnostics"
+        ],
+        "properties": {
+          "diagnostics": {
+            "$ref": "#/components/schemas/SchemaDiagnostics"
+          },
+          "inspected_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "object_revision": {
+            "$ref": "#/components/schemas/ResourceRevision"
+          }
+        }
+      },
+      "SchemaDiagnostics": {
+        "type": "object",
+        "description": "Diagnostics belong to one inspected snapshot, never to current object data.",
+        "required": [
+          "issues",
+          "truncated"
+        ],
+        "properties": {
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SchemaIssue"
+            }
+          },
+          "truncated": {
+            "type": "boolean",
+            "description": "At least one further issue exists; the unvisited remainder is not counted."
+          }
+        }
+      },
+      "SchemaExpectedValue": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "value",
+              "status"
+            ],
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "available"
+                ]
+              },
+              "value": {}
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "status"
+            ],
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "omitted"
+                ]
+              }
+            }
+          }
+        ],
+        "description": "Distinguishes an expected JSON null from an omitted schema constraint."
+      },
+      "SchemaFailure": {
+        "type": "object",
+        "description": "One failure, containing only a keyword and bounded schema-owned metadata.",
+        "required": [
+          "keyword"
+        ],
+        "properties": {
+          "keyword": {
+            "type": "string"
+          },
+          "missing_property": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "schema_path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "SchemaFailureGroup": {
+        "type": "object",
+        "required": [
+          "reason",
+          "objects",
+          "samples"
+        ],
+        "properties": {
+          "objects": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "reason": {
+            "$ref": "#/components/schemas/SchemaFailure"
+          },
+          "samples": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "All object IDs in this group, in scan order; the field name is retained for compatibility.\nOlder reports may contain only samples. Values and instance paths are omitted."
+          }
+        }
+      },
+      "SchemaImpactCounts": {
+        "type": "object",
+        "description": "Disjoint outcomes; counts sum to examined objects, including unknown comparisons.",
+        "required": [
+          "newly_invalid",
+          "newly_valid",
+          "still_invalid",
+          "still_valid",
+          "newly_required_valid",
+          "no_longer_required",
+          "unchanged_not_required",
+          "uninspectable"
+        ],
+        "properties": {
+          "newly_invalid": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Previously valid or not required, now invalid.",
+            "minimum": 0
+          },
+          "newly_required_valid": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Previously not required, now valid under enforced validation.",
+            "minimum": 0
+          },
+          "newly_valid": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Previously invalid, now valid.",
+            "minimum": 0
+          },
+          "no_longer_required": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "still_invalid": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "still_valid": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "unchanged_not_required": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "uninspectable": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Either policy could not be inspected, or the object changed before commit.",
+            "minimum": 0
+          }
+        }
+      },
+      "SchemaImpactFindingResponse": {
+        "type": "object",
+        "required": [
+          "object_id",
+          "reason"
+        ],
+        "properties": {
+          "object_id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/SchemaFailure"
+          },
+          "snapshot": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SchemaDiagnosticSnapshotResponse"
+              }
+            ]
+          }
+        }
+      },
+      "SchemaImpactReadiness": {
+        "type": "string",
+        "enum": [
+          "compatible",
+          "incompatible",
+          "inconclusive"
+        ]
+      },
+      "SchemaImpactResponse": {
+        "type": "object",
+        "required": [
+          "baseline",
+          "counts",
+          "failures",
+          "ungrouped_failures"
+        ],
+        "properties": {
+          "baseline": {
+            "$ref": "#/components/schemas/SchemaReference"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/SchemaImpactCounts"
+          },
+          "failures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SchemaFailureGroup"
+            },
+            "description": "Every committed mismatched object, grouped by its first failure without a group limit."
+          },
+          "findings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SchemaImpactFindingResponse"
+            },
+            "description": "Saved diagnostics, object revision and inspection time. Older findings have no snapshot."
+          },
+          "ungrouped_failures": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Failures omitted by older capped reports; zero for newly started analyses.\nRerun an older analysis to obtain its complete object lists.",
+            "minimum": 0
+          }
+        }
+      },
+      "SchemaIssue": {
+        "type": "object",
+        "description": "JSON Pointers use zero-based array indexes; an empty pointer means the root.",
+        "required": [
+          "reason",
+          "message",
+          "expected",
+          "actual",
+          "alternative",
+          "omissions"
+        ],
+        "properties": {
+          "actual": {
+            "$ref": "#/components/schemas/SchemaActualValue"
+          },
+          "alternative": {
+            "type": "boolean",
+            "description": "A failed alternative is explanatory, not an independently required repair."
+          },
+          "expected": {
+            "$ref": "#/components/schemas/SchemaExpectedValue"
+          },
+          "instance_path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "omissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SchemaDiagnosticOmission"
+            }
+          },
+          "reason": {
+            "$ref": "#/components/schemas/SchemaFailure"
+          }
+        }
+      },
+      "SchemaObjectUrlTemplate": {
+        "type": "string",
+        "description": "Absolute frontend URL containing exactly one `{object_id}` placeholder.",
+        "example": "https://inventory.example/objects/{object_id}"
+      },
+      "SchemaReference": {
+        "type": "object",
+        "description": "A dependency on one exact schema document; resource revisions are unrelated.",
+        "required": [
+          "class_id",
+          "revision"
+        ],
+        "properties": {
+          "class_id": {
+            "$ref": "#/components/schemas/HubuumClassID"
+          },
+          "revision": {
+            "$ref": "#/components/schemas/SchemaRevision"
+          }
+        }
+      },
+      "SchemaRepairReportRequest": {
+        "type": "object",
+        "required": [
+          "object_url_template"
+        ],
+        "properties": {
+          "object_url_template": {
+            "$ref": "#/components/schemas/SchemaObjectUrlTemplate"
+          },
+          "template_id": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExportTemplateID",
+                "description": "Optional stored HTML layout. It must render `report_content` exactly once."
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "SchemaRevision": {
+        "type": "integer",
+        "format": "int64",
+        "description": "Database-owned positive resource revision.",
+        "minimum": 1
+      },
+      "SchemaRevisionResponse": {
+        "type": "object",
+        "required": [
+          "class_id",
+          "revision",
+          "validate_schema",
+          "status",
+          "created_at"
+        ],
+        "properties": {
+          "activated_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "activation_policy": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SchemaActivationPolicy"
+              }
+            ]
+          },
+          "class_id": {
+            "$ref": "#/components/schemas/HubuumClassID"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created_by": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "json_schema": {},
+          "revision": {
+            "$ref": "#/components/schemas/SchemaRevision"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SchemaRevisionStatus"
+          },
+          "validate_schema": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SchemaRevisionStatus": {
+        "type": "string",
+        "enum": [
+          "staged",
+          "active",
+          "retired",
+          "abandoned"
+        ]
+      },
+      "SchemaStageRequest": {
+        "type": "object",
+        "required": [
+          "validate_schema"
+        ],
+        "properties": {
+          "json_schema": {},
+          "validate_schema": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SchemaValidationConfig": {
+        "type": "object",
+        "required": [
+          "max_schema_bytes",
+          "max_expanded_work",
+          "max_instance_bytes",
+          "max_instance_work"
+        ],
+        "properties": {
+          "max_expanded_work": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "max_instance_bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "max_instance_work": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "max_schema_bytes": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "SchemaWorkKind": {
+        "type": "string",
+        "enum": [
+          "impact",
+          "revalidation"
+        ]
+      },
+      "SchemaWorkResponse": {
+        "type": "object",
+        "required": [
+          "task_id",
+          "target",
+          "kind",
+          "status",
+          "start_epoch",
+          "upper_bound",
+          "cursor",
+          "examined",
+          "valid",
+          "invalid",
+          "not_required",
+          "uninspectable",
+          "stale",
+          "invalid_samples",
+          "elapsed_millis",
+          "batches",
+          "created_at"
+        ],
+        "properties": {
+          "batches": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "current_active_schema": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SchemaReference"
+              }
+            ]
+          },
+          "current_epoch": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "minimum": 0
+          },
+          "cursor": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "elapsed_millis": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "end_epoch": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "minimum": 0
+          },
+          "examined": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "impact": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SchemaImpactResponse"
+              }
+            ]
+          },
+          "invalid": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "invalid_samples": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "description": "Up to 20 summary IDs; impact.failures contains all committed mismatches."
+          },
+          "kind": {
+            "$ref": "#/components/schemas/SchemaWorkKind"
+          },
+          "not_required": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "readiness": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SchemaImpactReadiness",
+                "description": "Recomputed when this report is read; activation rechecks the same boundaries."
+              }
+            ]
+          },
+          "stale": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "start_epoch": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "status": {
+            "$ref": "#/components/schemas/SchemaWorkStatus"
+          },
+          "target": {
+            "$ref": "#/components/schemas/SchemaReference"
+          },
+          "task_id": {
+            "$ref": "#/components/schemas/TaskID"
+          },
+          "uninspectable": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "upper_bound": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "valid": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "SchemaWorkStatus": {
+        "type": "string",
+        "enum": [
+          "running",
+          "failed",
+          "complete",
+          "cancelled",
+          "superseded"
+        ]
       },
       "SecretSourceConfig": {
         "type": "object",
@@ -29557,12 +31785,42 @@
         ],
         "description": "One resource catalog selected by a structured search request.\n\nObject searches may optionally be constrained to one exact class. All\nother target variants are property-free tagged objects."
       },
+      "TaskCancelRequest": {
+        "type": "object",
+        "description": "An idempotent stop request. The optional expected status protects queued-only withdrawals.",
+        "properties": {
+          "expected_status": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TaskStatus"
+              }
+            ]
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 512
+          }
+        },
+        "additionalProperties": false
+      },
       "TaskConfig": {
         "type": "object",
         "required": [
           "workers",
           "poll_interval_ms",
           "lease_seconds",
+          "import_execution_timeout_seconds",
+          "export_execution_timeout_seconds",
+          "backup_execution_timeout_seconds",
+          "reindex_execution_timeout_seconds",
+          "remote_call_execution_timeout_seconds",
+          "schema_validation_execution_timeout_seconds",
           "heartbeat_seconds",
           "recovery_interval_seconds",
           "computed_reindex_batch_size",
@@ -29571,8 +31829,18 @@
           "remote_call_max_active_per_user"
         ],
         "properties": {
+          "backup_execution_timeout_seconds": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
           "computed_reindex_batch_size": {
             "type": "integer",
+            "minimum": 0
+          },
+          "export_execution_timeout_seconds": {
+            "type": "integer",
+            "format": "int64",
             "minimum": 0
           },
           "export_max_active_per_user": {
@@ -29580,6 +31848,11 @@
             "minimum": 0
           },
           "heartbeat_seconds": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "import_execution_timeout_seconds": {
             "type": "integer",
             "format": "int64",
             "minimum": 0
@@ -29603,8 +31876,23 @@
             "format": "int64",
             "minimum": 0
           },
+          "reindex_execution_timeout_seconds": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "remote_call_execution_timeout_seconds": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
           "remote_call_max_active_per_user": {
             "type": "integer",
+            "minimum": 0
+          },
+          "schema_validation_execution_timeout_seconds": {
+            "type": "integer",
+            "format": "int64",
             "minimum": 0
           },
           "workers": {
@@ -29696,7 +31984,8 @@
           "export",
           "backup",
           "reindex",
-          "remote_call"
+          "remote_call",
+          "schema_validation"
         ]
       },
       "TaskLinks": {
@@ -29882,9 +32171,19 @@
           }
         }
       },
+      "TaskRemoteSideEffectState": {
+        "type": "string",
+        "description": "Conservative dispatch evidence. An in-flight request can already have\naffected the remote system even when no HTTP response was received.",
+        "enum": [
+          "not_sent",
+          "possibly_sent",
+          "legacy_unknown"
+        ]
+      },
       "TaskResponse": {
         "type": "object",
         "required": [
+          "unattempted_items",
           "id",
           "kind",
           "status",
@@ -29893,6 +32192,26 @@
           "links"
         ],
         "properties": {
+          "cancel_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "cancel_requested_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "cancel_requested_by": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time"
@@ -29906,6 +32225,13 @@
                 "$ref": "#/components/schemas/TaskDetails"
               }
             ]
+          },
+          "execution_deadline_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
           },
           "finished_at": {
             "type": [
@@ -29926,6 +32252,16 @@
           },
           "progress": {
             "$ref": "#/components/schemas/TaskProgress"
+          },
+          "remote_side_effect_state": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TaskRemoteSideEffectState"
+              }
+            ]
           },
           "request_redacted_at": {
             "type": [
@@ -29956,6 +32292,17 @@
               "string",
               "null"
             ]
+          },
+          "terminal_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "unattempted_items": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Items without a committed result; authoritative for a terminal task."
           }
         }
       },

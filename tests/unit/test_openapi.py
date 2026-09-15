@@ -43,8 +43,8 @@ def _async_client(handler: Callable[[httpx.Request], httpx.Response]) -> AsyncCl
 
 
 def test_manifest_deliberately_covers_all_target_operations() -> None:
-    assert len(OPERATIONS) == 204
-    assert len(SUPPORTED_OPERATIONS) == 204
+    assert len(OPERATIONS) == 218
+    assert len(SUPPORTED_OPERATIONS) == 218
     assert OPERATIONS["getApiV1SearchStream"].path == "/api/v1/search/stream"
     assert (
         OPERATIONS[
@@ -263,7 +263,7 @@ async def test_async_openapi_call_and_stream_match_sync_behavior() -> None:
         return httpx.Response(200, json={"id": 9})
 
     async with _async_client(handler) as client:
-        assert len(client.openapi.operation_ids) == 204
+        assert len(client.openapi.operation_ids) == 218
         assert client.openapi.operation("getApiV1TasksByTaskId").method == "GET"
         result = await client.openapi.call(
             "getApiV1TasksByTaskId",
@@ -312,7 +312,7 @@ def test_openapi_binary_empty_and_operation_metadata() -> None:
     )
 
     with _client(lambda request: next(responses)) as client:
-        assert len(client.openapi.operation_ids) == 204
+        assert len(client.openapi.operation_ids) == 218
         assert client.openapi.operation("getApiV1Config").path == "/api/v1/config"
         assert client.openapi.call("getApiV1Config") == b"\x00\x01"
         assert client.openapi.call("getApiV1Config") is None

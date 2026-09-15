@@ -21,6 +21,7 @@ from .types import (
     ObjectRelationId,
     PrincipalId,
     ResourceRevision,
+    SchemaRevision,
     TaskEventId,
     TaskId,
     TokenId,
@@ -536,7 +537,7 @@ class ExportJsonResponse(HubuumModel):
 class RestoreTimestamps(RequestModel):
     """Original UTC timestamps restored by an authorized import.
 
-    Hubuum v0.0.14 accepts timezone-free ISO 8601 values and interprets them as
+    Hubuum v0.0.15 accepts timezone-free ISO 8601 values and interprets them as
     UTC. The update timestamp must not precede the creation timestamp.
     """
 
@@ -618,6 +619,223 @@ class ImportCollectionInput(RequestModel):
     condition: ImportWriteCondition | None = None
 
 
+SchemaActualValue: TypeAlias = Literal["null", "boolean", "number"] | dict[str, dict[str, int]]
+"""Redacted diagnostic context: scalar type names or container type/size metadata."""
+
+
+class ComplianceStatus(StrEnum):
+    VALID = "valid"
+    INVALID = "invalid"
+    PENDING = "pending"
+    NOT_REQUIRED = "not_required"
+
+
+class SchemaActivationPolicy(StrEnum):
+    REJECT_INCOMPATIBLE = "reject_incompatible"
+    ALLOW_PENDING = "allow_pending"
+
+
+class SchemaRevisionStatus(StrEnum):
+    STAGED = "staged"
+    ACTIVE = "active"
+    RETIRED = "retired"
+    ABANDONED = "abandoned"
+
+
+class SchemaWorkKind(StrEnum):
+    IMPACT = "impact"
+    REVALIDATION = "revalidation"
+
+
+class SchemaWorkStatus(StrEnum):
+    RUNNING = "running"
+    FAILED = "failed"
+    COMPLETE = "complete"
+    CANCELLED = "cancelled"
+    SUPERSEDED = "superseded"
+
+
+class SchemaImpactReadiness(StrEnum):
+    COMPATIBLE = "compatible"
+    INCOMPATIBLE = "incompatible"
+    INCONCLUSIVE = "inconclusive"
+
+
+class SchemaDiagnosticOmission(StrEnum):
+    ACTUAL_VALUE_REDACTED = "actual_value_redacted"
+    INSTANCE_PATH_REDACTED_OR_TOO_LONG = "instance_path_redacted_or_too_long"
+    SCHEMA_CONSTRAINT_UNAVAILABLE_OR_TOO_LARGE = "schema_constraint_unavailable_or_too_large"
+
+
+class SchemaReference(HubuumModel):
+    class_id: ClassId
+    revision: SchemaRevision
+
+
+class SchemaStageRequest(RequestModel):
+    json_schema: JsonValue = Field(default=None, repr=False)
+    validate_schema: bool
+
+
+class SchemaActivationRequest(RequestModel):
+    expected_active_revision: SchemaRevision
+    impact_task_id: TaskId | None = None
+    policy: SchemaActivationPolicy
+
+
+class ImportSchemaActivation(RequestModel):
+    expected_active_revision: SchemaRevision
+    impact_task_id: TaskId | None = None
+    policy: SchemaActivationPolicy
+    revision: SchemaRevision
+
+
+class SchemaRepairReportRequest(RequestModel):
+    object_url_template: str = Field(repr=False)
+    template_id: int | None = Field(default=None, ge=1)
+
+
+class SchemaRevisionResponse(HubuumModel):
+    activated_at: datetime | None = None
+    activation_policy: SchemaActivationPolicy | None = None
+    class_id: ClassId
+    created_at: datetime
+    created_by: int | None = None
+    json_schema: JsonValue = Field(default=None, repr=False)
+    revision: SchemaRevision
+    status: SchemaRevisionStatus
+    validate_schema: bool
+
+
+class SchemaActivationResponse(HubuumModel):
+    active: SchemaRevisionResponse
+    dependent_rebuild_task_id: TaskId | None = None
+    task_id: TaskId | None = None
+
+
+class ObjectSchemaEvidence(HubuumModel):
+    object_revision: ResourceRevision
+    schema_: SchemaReference = Field(alias="schema")
+    valid: bool
+    validated_at: datetime
+
+
+class ObjectComplianceResponse(HubuumModel):
+    active_schema: SchemaReference
+    evidence: ObjectSchemaEvidence | None = None
+    object_id: ObjectId
+    object_revision: ResourceRevision
+    status: ComplianceStatus
+
+
+class SchemaComplianceCounts(HubuumModel):
+    invalid: int
+    not_required: int
+    pending: int
+    valid: int
+
+
+class SchemaCompliancePage(HubuumModel):
+    items: tuple[ObjectComplianceResponse, ...]
+    next_after: int | None = None
+
+
+class ClassSchemaResponse(HubuumModel):
+    active: SchemaRevisionResponse
+    counts: SchemaComplianceCounts
+    object_epoch: int
+
+
+class SchemaFailure(HubuumModel):
+    keyword: str
+    missing_property: str | None = Field(default=None, repr=False)
+    schema_path: str | None = Field(default=None, repr=False)
+
+
+class SchemaFailureGroup(HubuumModel):
+    objects: int
+    reason: SchemaFailure
+    samples: tuple[ObjectId, ...]
+
+
+class SchemaImpactCounts(HubuumModel):
+    newly_invalid: int
+    newly_required_valid: int
+    newly_valid: int
+    no_longer_required: int
+    still_invalid: int
+    still_valid: int
+    unchanged_not_required: int
+    uninspectable: int
+
+
+class SchemaExpectedValue(HubuumModel):
+    """Use status to distinguish an available JSON null from an omitted constraint."""
+
+    status: Literal["available", "omitted"]
+    value: JsonValue = Field(default=None, repr=False)
+
+
+class SchemaIssue(HubuumModel):
+    actual: SchemaActualValue = Field(repr=False)
+    alternative: bool
+    expected: SchemaExpectedValue = Field(repr=False)
+    instance_path: str | None = Field(default=None, repr=False)
+    message: str = Field(repr=False)
+    omissions: tuple[SchemaDiagnosticOmission, ...]
+    reason: SchemaFailure
+
+
+class SchemaDiagnostics(HubuumModel):
+    issues: tuple[SchemaIssue, ...]
+    truncated: bool
+
+
+class SchemaDiagnosticSnapshotResponse(HubuumModel):
+    diagnostics: SchemaDiagnostics
+    inspected_at: datetime
+    object_revision: ResourceRevision
+
+
+class SchemaImpactFindingResponse(HubuumModel):
+    object_id: ObjectId
+    reason: SchemaFailure
+    snapshot: SchemaDiagnosticSnapshotResponse | None = None
+
+
+class SchemaImpactResponse(HubuumModel):
+    baseline: SchemaReference
+    counts: SchemaImpactCounts
+    failures: tuple[SchemaFailureGroup, ...]
+    findings: tuple[SchemaImpactFindingResponse, ...] = ()
+    ungrouped_failures: int
+
+
+class SchemaWorkResponse(HubuumModel):
+    batches: int
+    created_at: datetime
+    current_active_schema: SchemaReference | None = None
+    current_epoch: int | None = None
+    cursor: int
+    elapsed_millis: int
+    end_epoch: int | None = None
+    examined: int
+    impact: SchemaImpactResponse | None = None
+    invalid: int
+    invalid_samples: tuple[ObjectId, ...]
+    kind: SchemaWorkKind
+    not_required: int
+    readiness: SchemaImpactReadiness | None = None
+    stale: int
+    start_epoch: int
+    status: SchemaWorkStatus
+    target: SchemaReference
+    task_id: TaskId
+    uninspectable: int
+    upper_bound: int
+    valid: int
+
+
 class ImportClassInput(RequestModel):
     """Class definition in a Hubuum import graph."""
 
@@ -630,6 +848,7 @@ class ImportClassInput(RequestModel):
     collection_key: CollectionKey | None = None
     timestamps: RestoreTimestamps | None = None
     condition: ImportWriteCondition | None = None
+    schema_activation: ImportSchemaActivation | None = None
 
 
 class ImportObjectInput(RequestModel):
@@ -718,7 +937,7 @@ class ImportGraph(RequestModel):
     """Complete import graph with typed core resources.
 
     Identity and integration sections remain JSON-object sequences so the
-    complete v0.0.14 graph is accepted without exposing unstable or
+    complete v0.0.15 graph is accepted without exposing unstable or
     secret-bearing integration configuration in representations. Core
     collection, class, object, relation, and collection-permission sections
     are fully typed.
@@ -978,6 +1197,22 @@ class TaskKind(StrEnum):
     BACKUP = "backup"
     REINDEX = "reindex"
     REMOTE_CALL = "remote_call"
+    SCHEMA_VALIDATION = "schema_validation"
+
+
+class TaskRemoteSideEffectState(StrEnum):
+    """Conservative dispatch evidence; cancellation cannot undo a remote side effect."""
+
+    NOT_SENT = "not_sent"
+    POSSIBLY_SENT = "possibly_sent"
+    LEGACY_UNKNOWN = "legacy_unknown"
+
+
+class TaskCancelRequest(RequestModel):
+    """Idempotent cancellation, optionally conditional on the current task status."""
+
+    expected_status: TaskStatus | None = None
+    reason: str | None = Field(default=None, max_length=512, repr=False)
 
 
 class TaskProgress(HubuumModel):
@@ -1009,7 +1244,7 @@ class ImportTaskDetails(HubuumModel):
 
 
 class ExportTaskDetails(HubuumModel):
-    """Export output state and v0.0.14 phase-duration measurements."""
+    """Export output state and v0.0.15 phase-duration measurements."""
 
     output_url: str = Field(repr=False)
     output_available: bool
@@ -1037,7 +1272,7 @@ class BackupTaskDetails(HubuumModel):
 
 
 class TaskDetails(HubuumModel):
-    """Kind-specific task metadata exposed by Hubuum v0.0.14."""
+    """Kind-specific task metadata exposed by Hubuum v0.0.15."""
 
     import_: ImportTaskDetails | None = Field(default=None, alias="import")
     export: ExportTaskDetails | None = None
@@ -1056,6 +1291,13 @@ class Task(HubuumModel):
     submitted_by: PrincipalId | None = None
     summary: str | None = Field(default=None, repr=False)
     request_redacted_at: datetime | None = None
+    cancel_requested_at: datetime | None = None
+    cancel_requested_by: PrincipalId | None = None
+    cancel_reason: str | None = Field(default=None, repr=False)
+    execution_deadline_at: datetime | None = None
+    remote_side_effect_state: TaskRemoteSideEffectState | None = None
+    terminal_reason: str | None = Field(default=None, repr=False)
+    unattempted_items: int = 0
     progress: TaskProgress
     links: TaskLinks = Field(repr=False)
     details: TaskDetails | None = Field(default=None, repr=False)

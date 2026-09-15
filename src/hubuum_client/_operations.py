@@ -1,4 +1,4 @@
-"""Immutable Hubuum v0.0.14 OpenAPI operation manifest."""
+"""Immutable Hubuum v0.0.15 OpenAPI operation manifest."""
 
 from __future__ import annotations
 
@@ -56,6 +56,18 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "deleteApiV1ClassesByClassIdRelationsByRelationId",
         "DELETE",
         "/api/v1/classes/{class_id}/relations/{relation_id}",
+        None,
+    ),
+    (
+        "deleteApiV1ClassesByClassIdSchemaRevisionsByRevision",
+        "DELETE",
+        "/api/v1/classes/{class_id}/schema/revisions/{revision}",
+        None,
+    ),
+    (
+        "deleteApiV1ClassesByClassIdSchemaTasksByTaskId",
+        "DELETE",
+        "/api/v1/classes/{class_id}/schema/tasks/{task_id}",
         None,
     ),
     (
@@ -259,6 +271,37 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "getApiV1ClassesByClassIdRelationsByRelationId",
         "GET",
         "/api/v1/classes/{class_id}/relations/{relation_id}",
+        None,
+    ),
+    ("getApiV1ClassesByClassIdSchema", "GET", "/api/v1/classes/{class_id}/schema", None),
+    (
+        "getApiV1ClassesByClassIdSchemaObjects",
+        "GET",
+        "/api/v1/classes/{class_id}/schema/objects",
+        None,
+    ),
+    (
+        "getApiV1ClassesByClassIdSchemaRevisions",
+        "GET",
+        "/api/v1/classes/{class_id}/schema/revisions",
+        None,
+    ),
+    (
+        "getApiV1ClassesByClassIdSchemaRevisionsByRevision",
+        "GET",
+        "/api/v1/classes/{class_id}/schema/revisions/{revision}",
+        None,
+    ),
+    (
+        "getApiV1ClassesByClassIdSchemaTasksByTaskId",
+        "GET",
+        "/api/v1/classes/{class_id}/schema/tasks/{task_id}",
+        None,
+    ),
+    (
+        "getApiV1ClassesByClassIdSchemaTasksByTaskIdReport",
+        "GET",
+        "/api/v1/classes/{class_id}/schema/tasks/{task_id}/report",
         None,
     ),
     ("getApiV1ClassesByClassIdTrailing", "GET", "/api/v1/classes/{class_id}/", None),
@@ -735,6 +778,36 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "application/json",
     ),
     (
+        "postApiV1ClassesByClassIdSchemaRevisions",
+        "POST",
+        "/api/v1/classes/{class_id}/schema/revisions",
+        "application/json",
+    ),
+    (
+        "postApiV1ClassesByClassIdSchemaRevisionsByRevisionActivate",
+        "POST",
+        "/api/v1/classes/{class_id}/schema/revisions/{revision}/activate",
+        "application/json",
+    ),
+    (
+        "postApiV1ClassesByClassIdSchemaRevisionsByRevisionImpact",
+        "POST",
+        "/api/v1/classes/{class_id}/schema/revisions/{revision}/impact",
+        None,
+    ),
+    (
+        "postApiV1ClassesByClassIdSchemaRevisionsByRevisionRevalidate",
+        "POST",
+        "/api/v1/classes/{class_id}/schema/revisions/{revision}/revalidate",
+        None,
+    ),
+    (
+        "postApiV1ClassesByClassIdSchemaTasksByTaskIdReport",
+        "POST",
+        "/api/v1/classes/{class_id}/schema/tasks/{task_id}/report",
+        "application/json",
+    ),
+    (
         "postApiV1ClassesByClassIdTrailing",
         "POST",
         "/api/v1/classes/{class_id}/",
@@ -881,6 +954,7 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
     ),
     ("postApiV1Search", "POST", "/api/v1/search", "application/json"),
     ("postApiV1SearchStream", "POST", "/api/v1/search/stream", "application/json"),
+    ("postApiV1TasksByTaskIdCancel", "POST", "/api/v1/tasks/{task_id}/cancel", "application/json"),
     (
         "putApiV1CollectionsByCollectionIdParent",
         "PUT",
@@ -946,6 +1020,8 @@ _REQUEST_MEDIA_TYPE_OVERRIDES = {
     ),
 }
 _SUCCESS_RESPONSE_MEDIA_OVERRIDES = {
+    "getApiV1ClassesByClassIdSchemaTasksByTaskIdReport": ("text/html",),
+    "postApiV1ClassesByClassIdSchemaTasksByTaskIdReport": ("text/html",),
     "getApiV1SearchStream": ("text/event-stream",),
     "postApiV1SearchStream": ("text/event-stream",),
     "getApiV1ExportsByTaskIdOutput": (

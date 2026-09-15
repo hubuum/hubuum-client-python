@@ -4,6 +4,7 @@
 
 | Python client | Hubuum server contract | Status | End-to-end evidence |
 | --- | --- | --- | --- |
+| Unreleased | [`v0.0.15`](https://github.com/hubuum/hubuum/tree/v0.0.15) | Verified | 16 core and 4 recovery tests passed locally on 2026-09-15 (Python 3.11.12, Podman, Linux AMD64 server) |
 | 0.0.8 | [`v0.0.14`](https://github.com/hubuum/hubuum/tree/v0.0.14) | Verified | [14 core and 4 recovery tests passed on 2026-09-10](https://github.com/hubuum/hubuum-client-python/actions/runs/34446685036) (Python 3.11, Docker, Linux AMD64 server) |
 | 0.0.6 | [`v0.0.9`](https://github.com/hubuum/hubuum/tree/v0.0.9) | Verified | [Pinned e2e passed on 2026-08-07](https://github.com/hubuum/hubuum-client-python/actions/runs/31214164409) |
 | 0.0.5 | [`v0.0.8`](https://github.com/hubuum/hubuum/tree/v0.0.8) | Verified | Pinned e2e passed locally on 2026-08-05 |
@@ -17,44 +18,61 @@ client/server pair. The current server target is selected by tag and locked to
 an immutable multi-platform image:
 
 ```text
-ghcr.io/hubuum/hubuum-server:v0.0.14@sha256:6c1c8d7316a1f60a02e4505611a44e21030ba678b5b451f5b293a12f2bd87594
+ghcr.io/hubuum/hubuum-server:v0.0.15@sha256:36af667dbc9e221a40448496d4a87e168c999d0834df4b69177345ff3d36e821
 ```
 
 The tag identifies the supported server release; the digest prevents that tag
 from resolving to different content later. The same reference is stored in
 `src/hubuum_client/_constants.py`, the e2e wrapper, and CI.
 
-## v0.0.14 target
+## v0.0.15 target
 
 The client pins the released OpenAPI document at commit
-`0b0aa17f278496a32cc018cfcac56f34a408ccd6`, with SHA-256
-`1031559ee003e555192755dbb3c6f92e3ae4409e3e8e4cca9689081b760ece2a`.
+`4bb889c66a5e2a1dfc86d1b6beac7495912fd02e`, with SHA-256
+`d654d5e18aee32e998cb47ce1da5dadbc5fe83ff22a260192ba125b201c3649b`.
 The exact document is [committed with the client](openapi.json), so the default
 contract check runs without network access and detects document or client
 manifest drift. An explicit upstream check/update workflow is documented in
 [CONTRIBUTING.md](https://github.com/hubuum/hubuum-client-python/blob/main/CONTRIBUTING.md#openapi-contract-updates).
 
-All 204 operations are registered, up from 202 in v0.0.9. No operations were
-removed. The two additions are structured JSON search (`postApiV1Search`) and
-structured SSE search (`postApiV1SearchStream`), introduced in v0.0.10. Both
-synchronous and asynchronous `openapi.stream()` now accept `json=` so the POST
-stream can send the same version 1 request envelope as ordinary structured
-search. The manifest also records the corrected `text/event-stream` response
-media type for the existing GET search stream.
+All 218 operations are registered, up from 204 in v0.0.14, with no removals.
+The 14 additions cover schema revision staging, activation and abandonment,
+impact and revalidation tasks, compliance pages, retained HTML repair reports,
+and generic task cancellation. Typed services support these operations in both
+runtimes; see [schema evolution](schema.md). Imports accept the exact nested
+`schema_activation` policy, and typed tasks include the new `schema_validation`
+kind, cancellation/deadline metadata, unattempted item counts, and conservative
+remote-dispatch state.
 
-The v0.0.14 OpenAPI document differs from v0.0.13 only in its version field;
-there are no operation or schema changes. History-free restores preserve
-resource revisions and establish temporal snapshots so subsequent default
-backups remain restorable, including after further mutations. The release also
-fixes memory backup membership provenance and retained history, makes memory
-restores atomic, and validates backup snapshots before reporting success.
+### Server upgrade considerations
 
-Existing version 5 backups remain readable, including history-free artifacts.
-No database migration is added in v0.0.14. The server certifies application
-upgrade and rollback from v0.0.13 while retaining the migrated database. Install
-matching v0.0.14 server, administrator, and template worker binaries, including
-the separate restore executor; see the
-[release notes](https://github.com/hubuum/hubuum/releases/tag/v0.0.14).
+- Schema-policy PATCH and legacy import overwrites on nonempty classes now
+  return `409 Conflict`. Stage a revision, request impact, and explicitly
+  activate it. Strict activation rechecks the active revision and population;
+  administrator-only `allow_pending` activation can proceed without proof.
+- Backup format **6** replaces format 5 and retains schema revisions, state,
+  evidence, and history. Restore older artifacts with their matching server
+  release, migrate the database, and create a format 6 backup. No automatic
+  artifact converter is provided. Portable imports remain version 2.
+- Drain old workers, apply the release migrations, and start matching API,
+  administrator, restore-executor, and worker binaries. Existing enforced
+  objects begin pending; request revalidation after migration.
+- JSON Schema admission and validation have shared document, expansion,
+  object-size, and work budgets. Stored schemas are rechecked when used.
+  Simplify unsupported references, patterns, or excessive expansion before
+  resuming writes; see the [server validation limits](https://github.com/hubuum/hubuum/blob/v0.0.15/docs/json_schema_validation.md).
+- JSON impact reports can return `413` above the 16 MiB assembly budget.
+  HTML reports have separate assembly and output limits. Failed generation
+  retains the previous HTML and saved findings.
+- Restart in-progress string-sorted pagination after upgrading locale-collated
+  databases: v0.0.15 consistently uses byte ordering. External authorization
+  traversal now bounds candidate loading and policy checks at 10,000 candidates.
+- Cancellation may return `202` while cleanup continues. Poll the task until
+  terminal; cancellation does not reverse committed imports or remote effects.
+
+See the [v0.0.15 release notes](https://github.com/hubuum/hubuum/releases/tag/v0.0.15)
+for the complete server migration and authorization changes. Updating this
+Python package does not migrate a server installation.
 
 ## Changes since v0.0.9
 
@@ -63,7 +81,7 @@ the separate restore executor; see the
   pagination. Object searches support exact class selectors and related-object
   predicates. Existing object-list routes also accept named `related.<alias>`
   filter groups. See the [v0.0.10 release notes](https://github.com/hubuum/hubuum/releases/tag/v0.0.10)
-  and [search API](https://github.com/hubuum/hubuum/blob/v0.0.14/docs/search_api.md).
+  and [search API](https://github.com/hubuum/hubuum/blob/v0.0.15/docs/search_api.md).
 - Graph responses describe a complete bounded neighborhood, not a cursor page.
   `limit` is a safety bound, and `include_total` has no effect. v0.0.12 bounds
   traversal depth and generated work, external-policy export scans, and template
@@ -74,10 +92,8 @@ the separate restore executor; see the
   a restore replaces token state. Capability values are redacted from client
   diagnostics. The server requires a separate `hubuum-admin --restore-executor`
   process for web restores.
-- Full backups use version 5 logical sections, introduced in v0.0.10. Operators
-  upgrading from v0.0.9 or older must first upgrade to v0.0.10 or v0.0.11 and
-  create a version 5 backup. Older backup formats are not converted in place.
-  Portable client imports continue to use import version 2.
+- Full backups used version 5 logical sections starting in v0.0.10; v0.0.15
+  moves to format 6 as described above. Portable imports remain version 2.
 - Containers no longer apply migrations during startup. Run
   `hubuum-admin --migrate` before API or worker processes. The e2e wrapper now
   does this in a separate container using the same pinned image, with failure
@@ -101,7 +117,7 @@ Updating this Python package does not migrate a server installation.
 
 ## Meaning of compatibility
 
-For this project, targeting server v0.0.14 means:
+For this project, targeting server v0.0.15 means:
 
 - authentication, public probes, client configuration, typed CRUD, natural keys,
   nested object-data filtering, JSON Patch, IAM, relations, forced multi-page
@@ -110,21 +126,23 @@ For this project, targeting server v0.0.14 means:
   `400`, `401`, `403`, `404`, `409`, and `412`, token lifecycle operations,
   principal-settings JSON Patch, relation cardinality, import-v2 timestamps,
   export durations, and task events;
-- structured JSON and SSE search are exercised in both runtimes;
+- structured JSON and SSE search, schema impact/repair/activation, import
+  activation, and terminal task cancellation are exercised in both runtimes;
 - the disposable stack runs eight consecutive full backup/restore cycles,
   covering sync-then-async and async-then-sync order without restarting the
-  server or executor. Version 5 backups include and omit history; restored
+  server or executor. Version 6 backups include and omit history; restored
   objects retain data, JSON `null`, and revisions, post-backup objects disappear, old tokens
   are rejected, and login works after an administrator password reset. Default
   backups after history-free restores and further mutations remain restorable;
+  enforced class schemas also survive full restores;
 - every method, path, request media type, and successful response media type
-  matches the 204-operation manifest;
+  matches the 218-operation manifest;
 - request models follow the wire contract, while response models tolerate
   additive fields.
 
 The live suite imports the built wheel in an isolated environment. Contract
 completeness and live behavioral coverage are separate claims: representative
-workflows are tested, not all 204 operations. Full restore tests run after the
+workflows are tested, not all 218 operations. Full restore tests run after the
 core suite and only against the wrapper-owned disposable stack in the default
 `single` database role mode. Caller-managed servers never run this recovery
 suite. Administrative features such as backups, restores, computed fields,
@@ -142,7 +160,7 @@ stable `collection_id` from the expansion when needed.
 ## Forward compatibility
 
 Runs against Hubuum `main`, a release candidate, or an overridden image can
-identify drift early. They do not replace the immutable v0.0.14 e2e run or
+identify drift early. They do not replace the immutable v0.0.15 e2e run or
 change a released client's declared target. Breaking server changes require a
 new compatibility row, changelog entry, and successful evidence for the new
 tag-and-digest image.
