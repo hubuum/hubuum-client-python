@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Raise `DecodeError` with safe request context for malformed named permissions
+  and related-resource responses in both synchronous and asynchronous clients,
+  including arrays containing non-object items.
+
 ### Added
 
 - Typed synchronous and asynchronous class schema services for revision staging,

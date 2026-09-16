@@ -417,6 +417,32 @@ def decode_json(response: httpx.Response) -> Any:
         ) from error
 
 
+def decode_json_object(response: httpx.Response) -> dict[str, object]:
+    """Decode an object response without retaining malformed response data."""
+    value = decode_json(response)
+    if not isinstance(value, dict):
+        raise DecodeError(
+            response.request.method,
+            safe_response_url(response),
+            response.status_code,
+            "expected a JSON object",
+        )
+    return value
+
+
+def decode_json_object_list(response: httpx.Response) -> list[dict[str, object]]:
+    """Decode an array of objects with the shared malformed-response contract."""
+    value = decode_json(response)
+    if not isinstance(value, list) or not all(isinstance(item, dict) for item in value):
+        raise DecodeError(
+            response.request.method,
+            safe_response_url(response),
+            response.status_code,
+            "expected a JSON array of objects",
+        )
+    return value
+
+
 def decode_html(response: httpx.Response) -> str:
     """Read a retained HTML report without accepting an unexpected response format."""
     content_type = response.headers.get("content-type", "").partition(";")[0].strip().lower()

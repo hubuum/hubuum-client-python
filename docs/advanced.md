@@ -15,8 +15,10 @@ to useful subclasses:
 | 429 | `RateLimitError` |
 
 Other failed HTTP responses raise `APIError`. Network and TLS failures raise
-`TransportError`; successful responses that violate a typed model raise
-`DecodeError`.
+`TransportError`; successful responses that violate a typed model or an expected
+JSON object/array shape raise `DecodeError`. This includes named class permissions
+and related class, object, relation, and graph reads. Decode errors include the
+request method, query-free URL, and HTTP status without the malformed body.
 
 ```python
 from hubuum_client import NotFoundError

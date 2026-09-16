@@ -16,6 +16,8 @@ from pydantic import BaseModel, ValidationError
 from ._transport import (
     decode_content_type,
     decode_html,
+    decode_json_object,
+    decode_json_object_list,
     decode_model,
     safe_response_url,
     validation_error_reason,
@@ -1186,10 +1188,8 @@ def _json_object(
     *,
     params: Params = None,
 ) -> dict[str, object]:
-    value = client.request("GET", path, options=RequestOptions(params=params))
-    if not isinstance(value, dict):
-        raise TypeError("expected a JSON object")
-    return value
+    response = client._request_response("GET", path, options=RequestOptions(params=params))
+    return decode_json_object(response)
 
 
 def _json_object_list(
@@ -1198,10 +1198,8 @@ def _json_object_list(
     *,
     params: Params = None,
 ) -> builtins.list[dict[str, object]]:
-    value = client.request("GET", path, options=RequestOptions(params=params))
-    if not isinstance(value, list) or not all(isinstance(item, dict) for item in value):
-        raise TypeError("expected a JSON array of objects")
-    return value
+    response = client._request_response("GET", path, options=RequestOptions(params=params))
+    return decode_json_object_list(response)
 
 
 def _model_page(
