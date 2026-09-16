@@ -1107,15 +1107,27 @@ class AsyncImportsService:
             query, max_pages=max_pages, max_items=max_items
         )
 
-    async def run(
+    # Preserve the existing keyword API while matching all_results()'s bounds.
+    async def run(  # noqa: PLR0913
         self,
         payload: ImportRequest,
         *,
         idempotency_key: str | None = None,
         timeout_seconds: float = 300.0,
         poll_interval: float = 0.5,
+        max_pages: int = 100,
+        max_items: int = 10_000,
     ) -> ImportRunResult:
-        """Submit, await, and collect all outcomes for one import task."""
+        """Submit, await, and collect outcomes within the result page and item bounds.
+
+        Both bounds must be positive and are validated before submission. A result
+        limit failure does not undo the import; retrieve the existing task's
+        outcomes with all_results() and larger bounds instead of resubmitting.
+        """
+        if max_pages < 1:
+            raise ValueError("max_pages must be at least 1")
+        if max_items < 1:
+            raise ValueError("max_items must be at least 1")
         submitted = await self.submit(payload, idempotency_key=idempotency_key)
         task = await self._client.tasks.wait(
             submitted.id,
@@ -1126,7 +1138,9 @@ class AsyncImportsService:
             raise TaskUnsuccessfulError(int(task.id), task.status.value)
         return ImportRunResult(
             task=task,
-            results=tuple(await self.all_results(task.id)),
+            results=tuple(
+                await self.all_results(task.id, max_pages=max_pages, max_items=max_items)
+            ),
         )
 
     def _results_service(self, task_id: TaskId | int) -> _AsyncCursorService[ImportTaskResult]:
