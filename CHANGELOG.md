@@ -6,6 +6,32 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Typed synchronous and asynchronous class schema services for revision staging,
+  impact analysis with retained diagnostics, explicit activation, revalidation,
+  compliance pages, abandonment, cancellation, and retained HTML repair reports.
+- Task cancellation with optional expected-status checks, cancellation/deadline
+  metadata, remote side-effect accounting, and the `schema_validation` task kind.
+- Strict import `schema_activation` input and regression coverage for both
+  runtimes, including the live schema repair workflow and format 6 restores.
+
+### Changed
+
+- Target Hubuum v0.0.15 at release commit
+  `4bb889c66a5e2a1dfc86d1b6beac7495912fd02e`, with its immutable OpenAPI document
+  and multi-platform image digest
+  `sha256:36af667dbc9e221a40448496d4a87e168c999d0834df4b69177345ff3d36e821`.
+  Register all 218 operations, including the 14 new schema and cancellation routes.
+- Document staged schema-policy updates on nonempty classes, format 6 backup
+  migration, coordinated worker upgrades, validation/report budgets, and changed
+  string cursor ordering. Portable imports remain version 2.
+- Refresh all Python dependencies with `uv lock --upgrade`: ast-serialize
+  0.11.2, coverage 7.16.1, pymdown-extensions 12.0, Ruff 0.16.7, and urllib3 2.8.0.
+  Existing direct dependency bounds accept the latest stable releases, including
+  HTTPX 0.28.1 and Pydantic 2.13.5. Update the pinned `astral-sh/setup-uv` action
+  to v10.1.0; other workflow pins are current. The Dependabot queue was empty.
+
 ## [0.0.8] - 2026-09-10
 
 ### Added

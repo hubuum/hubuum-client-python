@@ -68,6 +68,52 @@
     options:
       members: true
 
+## Schema services
+
+::: hubuum_client.services.ClassSchemaService
+    options:
+      members: true
+
+::: hubuum_client.async_services.AsyncClassSchemaService
+    options:
+      members: true
+
+::: hubuum_client.SchemaPageOptions
+
+::: hubuum_client.SchemaStageRequest
+
+::: hubuum_client.SchemaActivationRequest
+
+::: hubuum_client.SchemaActivationPolicy
+
+::: hubuum_client.SchemaRepairReportRequest
+
+::: hubuum_client.SchemaRevisionResponse
+
+::: hubuum_client.SchemaActivationResponse
+
+::: hubuum_client.ClassSchemaResponse
+
+::: hubuum_client.SchemaCompliancePage
+
+::: hubuum_client.ObjectComplianceResponse
+
+::: hubuum_client.ObjectSchemaEvidence
+
+::: hubuum_client.SchemaWorkResponse
+
+::: hubuum_client.SchemaImpactResponse
+
+::: hubuum_client.SchemaDiagnostics
+
+::: hubuum_client.SchemaIssue
+
+::: hubuum_client.ImportSchemaActivation
+
+::: hubuum_client.TaskCancelRequest
+
+::: hubuum_client.TaskRemoteSideEffectState
+
 ## Queries
 
 ::: hubuum_client.Query

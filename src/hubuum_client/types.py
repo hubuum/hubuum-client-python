@@ -26,6 +26,8 @@ TaskEventId = NewType("TaskEventId", int)
 TokenId = NewType("TokenId", int)
 ImportResultId = NewType("ImportResultId", int)
 ResourceRevision: TypeAlias = Annotated[int, Field(ge=1)]
+SchemaRevision: TypeAlias = Annotated[int, Field(ge=1)]
+"""Immutable schema identity within a class, independent of resource revisions."""
 
 
 @dataclass(frozen=True, slots=True, repr=False)

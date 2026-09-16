@@ -122,7 +122,13 @@ def _sync_roundtrip(stack: RecoveryStack, *, include_history: bool | None = None
             )
         )
         cls = client.classes.create(
-            ClassCreate(name=prefix, collection_id=collection.id, description="Recovery regression")
+            ClassCreate(
+                name=prefix,
+                collection_id=collection.id,
+                description="Recovery regression",
+                json_schema={"type": ["object", "null"]},
+                validate_schema=True,
+            )
         )
         objects = client.classes.by_id(cls.id).objects
         original = objects.create(
@@ -147,7 +153,7 @@ def _sync_roundtrip(stack: RecoveryStack, *, include_history: bool | None = None
             options=OpenAPIOptions(path_params={"task_id": task.id}),
         )
         assert isinstance(backup, dict)
-        assert backup["backup_version"] == 5
+        assert backup["backup_version"] == 6
         assert (backup.get("history") is not None) is (include_history is not False)
         objects.update(original.id, ObjectUpdate(data={"phase": "after"}))
         objects.update(nullable.id, ObjectUpdate(data={"phase": "after"}))
@@ -180,6 +186,7 @@ def _sync_roundtrip(stack: RecoveryStack, *, include_history: bool | None = None
         with pytest.raises(AuthenticationError):
             client.me()
         client.login(Credentials("admin", stack.reset_password()))
+        assert client.classes.by_id(cls.id).schema.get().active.json_schema == cls.json_schema
         restored = objects.get(original.id)
         assert restored.data == original.data
         assert restored.revision == original.revision
@@ -201,7 +208,13 @@ async def _async_roundtrip(stack: RecoveryStack, *, include_history: bool | None
             CollectionCreate(name=prefix, description="Recovery regression", group_id=group.id)
         )
         cls = await client.classes.create(
-            ClassCreate(name=prefix, collection_id=collection.id, description="Recovery regression")
+            ClassCreate(
+                name=prefix,
+                collection_id=collection.id,
+                description="Recovery regression",
+                json_schema={"type": ["object", "null"]},
+                validate_schema=True,
+            )
         )
         objects = client.classes.by_id(cls.id).objects
         original = await objects.create(
@@ -230,7 +243,7 @@ async def _async_roundtrip(stack: RecoveryStack, *, include_history: bool | None
             options=OpenAPIOptions(path_params={"task_id": task.id}),
         )
         assert isinstance(backup, dict)
-        assert backup["backup_version"] == 5
+        assert backup["backup_version"] == 6
         assert (backup.get("history") is not None) is (include_history is not False)
         await objects.update(original.id, ObjectUpdate(data={"phase": "after"}))
         await objects.update(nullable.id, ObjectUpdate(data={"phase": "after"}))
@@ -263,6 +276,9 @@ async def _async_roundtrip(stack: RecoveryStack, *, include_history: bool | None
         with pytest.raises(AuthenticationError):
             await client.me()
         await client.login(Credentials("admin", await asyncio.to_thread(stack.reset_password)))
+        assert (
+            await client.classes.by_id(cls.id).schema.get()
+        ).active.json_schema == cls.json_schema
         restored = await objects.get(original.id)
         assert restored.data == original.data
         assert restored.revision == original.revision

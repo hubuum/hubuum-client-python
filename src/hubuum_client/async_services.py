@@ -16,6 +16,7 @@ from pydantic import BaseModel, ValidationError
 
 from ._transport import (
     decode_content_type,
+    decode_html,
     decode_model,
     safe_response_url,
     validation_error_reason,
@@ -25,10 +26,12 @@ from .models import (
     ClassCreate,
     ClassRelation,
     ClassRelationCreate,
+    ClassSchemaResponse,
     ClassUpdate,
     Collection,
     CollectionCreate,
     CollectionUpdate,
+    ComplianceStatus,
     ExportContentType,
     ExportJsonResponse,
     ExportOutput,
@@ -55,7 +58,15 @@ from .models import (
     PrincipalTokenPoint,
     RenderedExport,
     RenewTokenRequest,
+    SchemaActivationRequest,
+    SchemaActivationResponse,
+    SchemaCompliancePage,
+    SchemaRepairReportRequest,
+    SchemaRevisionResponse,
+    SchemaStageRequest,
+    SchemaWorkResponse,
     Task,
+    TaskCancelRequest,
     TaskEvent,
     User,
     UserCreate,
@@ -64,9 +75,19 @@ from .models import (
     _object_data_patch_payload,
 )
 from .options import Params, RequestOptions
-from .query import Page, Query, TokenListState
+from .query import Page, Query, SchemaPageOptions, TokenListState
 from .streaming import AsyncResponseStream
-from .types import AccessToken, ClassId, CollectionId, GroupId, PrincipalId, TaskId, TokenId, UserId
+from .types import (
+    AccessToken,
+    ClassId,
+    CollectionId,
+    GroupId,
+    PrincipalId,
+    SchemaRevision,
+    TaskId,
+    TokenId,
+    UserId,
+)
 
 if TYPE_CHECKING:
     from .async_client import AsyncClient
@@ -294,6 +315,10 @@ class AsyncClassService:
         self._base = f"/api/v1/classes/{_segment(class_id)}"
 
     @property
+    def schema(self) -> AsyncClassSchemaService:
+        return AsyncClassSchemaService(self._client, self.class_id)
+
+    @property
     def objects(self) -> AsyncObjectsService:
         return AsyncObjectsService(self._client, self.class_id)
 
@@ -310,6 +335,132 @@ class AsyncClassService:
 
     async def delete(self) -> None:
         await self._client.request("DELETE", self._base)
+
+
+class AsyncClassSchemaService:
+    """Stage, inspect, and explicitly activate one class's schema revisions."""
+
+    def __init__(self, client: AsyncClient, class_id: ClassId) -> None:
+        self._client = client
+        self._base = f"/api/v1/classes/{_segment(class_id)}/schema"
+
+    async def get(self) -> ClassSchemaResponse:
+        """Return the active schema and administrator compliance counts."""
+        return await self._client.request("GET", self._base, response_model=ClassSchemaResponse)
+
+    async def revisions(
+        self, options: SchemaPageOptions | None = None
+    ) -> builtins.list[SchemaRevisionResponse]:
+        """Read one bounded revision page; resume after its last revision."""
+        response = await self._client._request_response(
+            "GET",
+            f"{self._base}/revisions",
+            options=RequestOptions(params=(options or SchemaPageOptions()).as_params()),
+        )
+        return _decode_model_list(response, SchemaRevisionResponse)
+
+    async def revision(self, revision: SchemaRevision) -> SchemaRevisionResponse:
+        """Read one immutable schema revision."""
+        return await self._client.request(
+            "GET",
+            f"{self._base}/revisions/{_segment(revision)}",
+            response_model=SchemaRevisionResponse,
+        )
+
+    async def stage(self, payload: SchemaStageRequest) -> SchemaRevisionResponse:
+        """Stage a policy without changing active validation."""
+        return await self._client.request(
+            "POST",
+            f"{self._base}/revisions",
+            json=payload,
+            response_model=SchemaRevisionResponse,
+        )
+
+    async def abandon(self, revision: SchemaRevision) -> SchemaRevisionResponse:
+        """Abandon a staged revision."""
+        return await self._client.request(
+            "DELETE",
+            f"{self._base}/revisions/{_segment(revision)}",
+            response_model=SchemaRevisionResponse,
+        )
+
+    async def impact(self, revision: SchemaRevision) -> SchemaWorkResponse:
+        """Queue an impact analysis against the current object population."""
+        return await self._client.request(
+            "POST",
+            f"{self._base}/revisions/{_segment(revision)}/impact",
+            response_model=SchemaWorkResponse,
+        )
+
+    async def activate(
+        self, revision: SchemaRevision, payload: SchemaActivationRequest
+    ) -> SchemaActivationResponse:
+        """Activate with an explicit policy and expected active schema revision."""
+        return await self._client.request(
+            "POST",
+            f"{self._base}/revisions/{_segment(revision)}/activate",
+            json=payload,
+            response_model=SchemaActivationResponse,
+        )
+
+    async def revalidate(self, revision: SchemaRevision) -> SchemaWorkResponse:
+        """Queue revalidation of the active revision without changing object data."""
+        return await self._client.request(
+            "POST",
+            f"{self._base}/revisions/{_segment(revision)}/revalidate",
+            response_model=SchemaWorkResponse,
+        )
+
+    async def objects(
+        self, options: SchemaPageOptions | None = None, *, status: ComplianceStatus | None = None
+    ) -> SchemaCompliancePage:
+        """Read authorized evidence; resume with next_after even after an empty page."""
+        params = (options or SchemaPageOptions()).as_params()
+        if status is not None:
+            params.append(("status", status.value))
+        return await self._client.request(
+            "GET",
+            f"{self._base}/objects",
+            response_model=SchemaCompliancePage,
+            options=RequestOptions(params=params),
+        )
+
+    async def work(self, task_id: TaskId | int) -> SchemaWorkResponse:
+        """Read saved diagnostics and current readiness for a schema task."""
+        return await self._client.request(
+            "GET",
+            f"{self._base}/tasks/{_segment(task_id)}",
+            response_model=SchemaWorkResponse,
+        )
+
+    async def cancel(self, task_id: TaskId | int) -> SchemaWorkResponse:
+        """Cancel schema work while retaining already committed findings."""
+        return await self._client.request(
+            "DELETE",
+            f"{self._base}/tasks/{_segment(task_id)}",
+            response_model=SchemaWorkResponse,
+        )
+
+    async def generate_report(
+        self, task_id: TaskId | int, payload: SchemaRepairReportRequest
+    ) -> str:
+        """Generate and retain HTML from saved diagnostics."""
+        response = await self._client._request_response(
+            "POST",
+            f"{self._base}/tasks/{_segment(task_id)}/report",
+            json=payload,
+            options=RequestOptions(headers={"Accept": "text/html"}),
+        )
+        return decode_html(response)
+
+    async def report(self, task_id: TaskId | int, *, download: bool = False) -> str:
+        """Read retained HTML, optionally requesting an attachment response."""
+        response = await self._client._request_response(
+            "GET",
+            f"{self._base}/tasks/{_segment(task_id)}/report",
+            options=RequestOptions(params={"download": download}, headers={"Accept": "text/html"}),
+        )
+        return decode_html(response)
 
 
 class AsyncObjectsService(
@@ -814,6 +965,15 @@ class AsyncTasksService:
         """Return a task by numeric ID."""
         return await self._client.request(
             "GET", f"/api/v1/tasks/{_segment(task_id)}", response_model=Task
+        )
+
+    async def cancel(self, task_id: TaskId | int, payload: TaskCancelRequest | None = None) -> Task:
+        """Request cancellation; 202 means cleanup is pending, so use wait() for completion."""
+        return await self._client.request(
+            "POST",
+            f"/api/v1/tasks/{_segment(task_id)}/cancel",
+            json=payload if payload is not None else TaskCancelRequest(),
+            response_model=Task,
         )
 
     async def events_page(
