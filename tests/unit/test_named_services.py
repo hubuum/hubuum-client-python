@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import json
 from collections.abc import Callable
 from typing import Any
@@ -264,13 +265,13 @@ async def test_async_named_service_input_validation_happens_before_io() -> None:
 def test_named_services_reject_unexpected_json_shapes() -> None:
     with (
         _client(lambda request: httpx.Response(200, json={})) as client,
-        pytest.raises(TypeError, match="array of objects"),
+        pytest.raises(DecodeError, match="array of objects"),
     ):
         client.classes.by_name("Hosts").permissions()
 
     with (
         _client(lambda request: httpx.Response(200, json=[])) as client,
-        pytest.raises(TypeError, match="JSON object"),
+        pytest.raises(DecodeError, match="JSON object"),
     ):
         client.classes.by_name("Hosts").related_graph()
 
@@ -295,11 +296,11 @@ def test_named_services_reject_unexpected_json_shapes() -> None:
 
 async def test_async_named_services_reject_unexpected_json_shapes() -> None:
     async with _async_client(lambda request: httpx.Response(200, json={})) as client:
-        with pytest.raises(TypeError, match="array of objects"):
+        with pytest.raises(DecodeError, match="array of objects"):
             await client.classes.by_name("Hosts").permissions()
 
     async with _async_client(lambda request: httpx.Response(200, json=[])) as client:
-        with pytest.raises(TypeError, match="JSON object"):
+        with pytest.raises(DecodeError, match="JSON object"):
             await client.classes.by_name("Hosts").related_graph()
 
     async with _async_client(
@@ -315,3 +316,60 @@ async def test_async_named_services_reject_unexpected_json_shapes() -> None:
     async with _async_client(lambda request: httpx.Response(200, json={})) as client:
         with pytest.raises(DecodeError, match="JSON array"):
             await client.classes.by_name("Hosts").object_aggregates(params={"group_by": "name"})
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+@pytest.mark.parametrize("body", [None, "private-body", 42, [{"id": 1}, "private-body"]])
+@pytest.mark.parametrize(
+    ("view", "object_name"),
+    [
+        ("permissions", None),
+        ("related_classes", None),
+        ("related_relations", None),
+        ("related_graph", None),
+        ("related_objects", "host"),
+        ("related_relations", "host"),
+        ("related_graph", "host"),
+    ],
+)
+async def test_named_response_shape_errors_have_safe_context(
+    asynchronous: bool, body: object, view: str, object_name: str | None
+) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.params["filter"] == "private-query"
+        return httpx.Response(
+            200, content=json.dumps(body), headers={"Content-Type": "application/json"}
+        )
+
+    client = _async_client(handler) if asynchronous else _client(handler)
+    try:
+        selected = client.classes.by_name("Hosts")
+        method = getattr(selected if object_name is None else selected.objects, view)
+        params = {"filter": "private-query"}
+        args = () if object_name is None else (object_name,)
+        if asynchronous:
+            with pytest.raises(DecodeError) as raised:
+                await method(*args, params=params)
+        else:
+            with pytest.raises(DecodeError) as raised:
+                method(*args, params=params)
+
+        error = raised.value
+        expected_path = "/api/v1/classes/by-name/Hosts"
+        if object_name is not None:
+            expected_path += "/objects/by-name/host"
+        expected_path += "/permissions" if view == "permissions" else "/" + view.replace("_", "/")
+        assert error.method == "GET"
+        assert error.url == "https://hubuum.test" + expected_path
+        assert error.status_code == 200
+        assert error.reason == (
+            "expected a JSON object"
+            if view == "related_graph"
+            else "expected a JSON array of objects"
+        )
+        assert "private-query" not in str(error)
+        assert "private-body" not in repr(error)
+    finally:
+        closed = client.close()
+        if inspect.isawaitable(closed):
+            await closed
