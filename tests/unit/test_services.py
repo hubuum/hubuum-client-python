@@ -3,8 +3,9 @@ from __future__ import annotations
 import asyncio
 import inspect
 import json
+from collections.abc import Awaitable
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, TypedDict, TypeVar
 
 import httpx
 import pytest
@@ -47,6 +48,7 @@ from hubuum_client import (
     RequestOptions,
     ResultCardinalityError,
     TaskId,
+    TaskUnsuccessfulError,
     TokenId,
     TokenListState,
     TokenResourceKind,
@@ -89,6 +91,19 @@ from hubuum_client.services import (
     TokensService,
     UsersService,
 )
+
+T = TypeVar("T")
+
+
+class _ImportRunBounds(TypedDict, total=False):
+    max_pages: int
+    max_items: int
+
+
+async def _resolve(value: T | Awaitable[T]) -> T:
+    if inspect.isawaitable(value):
+        return await value
+    return value
 
 
 def _group_json() -> dict[str, Any]:
@@ -1115,3 +1130,117 @@ async def test_async_v0013_task_import_and_export_services() -> None:
         "async-import-v0013",
         "async-export-v0013",
     ]
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+@pytest.mark.parametrize("status", ["succeeded", "partially_succeeded"])
+@pytest.mark.parametrize(
+    ("bounds", "pagination", "expected_error"),
+    [
+        ({"max_pages": 101, "max_items": 10_001}, (10_001, 100), None),
+        ({}, (10_001, 100), "max_pages=100"),
+        ({}, (10_001, 200), "max_items=10000"),
+        ({"max_pages": 1}, (2, 1), "max_pages=1"),
+        ({"max_items": 1}, (2, 2), "max_items=1"),
+        ({"max_pages": 2, "max_items": 2}, (2, 1), None),
+    ],
+)
+async def test_import_run_result_bounds(
+    asynchronous: bool,
+    status: str,
+    bounds: _ImportRunBounds,
+    pagination: tuple[int, int],
+    expected_error: str | None,
+) -> None:
+    total, page_size = pagination
+    submissions = 0
+    status_reads = 0
+    task = _task_json(status)
+    failed = int(status == "partially_succeeded")
+    task["progress"].update(
+        total_items=total,
+        processed_items=total,
+        success_items=total - failed,
+        failed_items=failed,
+    )
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal submissions, status_reads
+        if request.url.path == "/api/v1/imports" and request.method == "POST":
+            submissions += 1
+            return httpx.Response(202, json=task)
+        if request.url.path == "/api/v1/tasks/40":
+            status_reads += 1
+            return httpx.Response(200, json=task)
+        assert request.url.path == "/api/v1/imports/40/results"
+        start = int(request.url.params.get("cursor", "0"))
+        end = min(start + page_size, total)
+        rows = [
+            _import_result_json()
+            | {"id": index + 1, "outcome": "failed" if index < failed else "succeeded"}
+            for index in range(start, end)
+        ]
+        headers = {"X-Next-Cursor": str(end)} if end < total else {}
+        return httpx.Response(200, json=rows, headers=headers)
+
+    cls = AsyncClient if asynchronous else Client
+    client = cls("https://hubuum.test", token="token", transport=httpx.MockTransport(handler))
+    try:
+        payload = ImportRequest(graph=ImportGraph())
+        if expected_error is not None:
+            with pytest.raises(RuntimeError, match=expected_error):
+                await _resolve(client.imports.run(payload, **bounds))
+        else:
+            result = await _resolve(client.imports.run(payload, **bounds))
+            assert result.task.status.value == status
+            assert len(result.results) == total
+            assert [row.id for row in result.results] == list(range(1, total + 1))
+            assert result.succeeded == total - failed
+            assert result.failed == failed
+        assert submissions == 1
+        assert status_reads == 1
+    finally:
+        await _resolve(client.close())
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+@pytest.mark.parametrize("bound", ["max_pages", "max_items"])
+@pytest.mark.parametrize("value", [0, -1])
+async def test_import_run_rejects_invalid_bounds_before_submission(
+    asynchronous: bool, bound: str, value: int
+) -> None:
+    def unexpected(request: httpx.Request) -> httpx.Response:
+        pytest.fail(f"unexpected request: {request.method} {request.url}")
+
+    cls = AsyncClient if asynchronous else Client
+    client = cls("https://hubuum.test", token="token", transport=httpx.MockTransport(unexpected))
+    try:
+        bounds: _ImportRunBounds = (
+            {"max_pages": value} if bound == "max_pages" else {"max_items": value}
+        )
+        with pytest.raises(ValueError, match=f"{bound} must be at least 1"):
+            await _resolve(client.imports.run(ImportRequest(graph=ImportGraph()), **bounds))
+    finally:
+        await _resolve(client.close())
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+@pytest.mark.parametrize("status", ["failed", "cancelled"])
+async def test_import_run_keeps_unsuccessful_task_handling(asynchronous: bool, status: str) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path in {"/api/v1/imports", "/api/v1/tasks/40"}
+        return httpx.Response(200, json=_task_json(status))
+
+    cls = AsyncClient if asynchronous else Client
+    client = cls("https://hubuum.test", token="token", transport=httpx.MockTransport(handler))
+    try:
+        with pytest.raises(TaskUnsuccessfulError) as raised:
+            await _resolve(
+                client.imports.run(
+                    ImportRequest(graph=ImportGraph()), max_pages=101, max_items=10_001
+                )
+            )
+        assert raised.value.task_id == 40
+        assert raised.value.status == status
+    finally:
+        await _resolve(client.close())

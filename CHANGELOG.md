@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Allow synchronous and asynchronous `imports.run()` callers to configure
+  result `max_pages` and `max_items` for large imports, retaining the bounded
+  defaults and rejecting invalid limits before submission.
+
 ### Added
 
 - Typed synchronous and asynchronous class schema services for revision staging,

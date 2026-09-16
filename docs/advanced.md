@@ -280,7 +280,7 @@ safety.
 
 Core import graphs use strict import-v2 request models, including the timestamps
 Hubuum v0.0.15 can restore. `run()` submits the task, waits with a bounded poller, and
-collects every per-entity result through guarded cursor pagination:
+collects per-entity results through guarded cursor pagination:
 
 ```python
 from datetime import datetime
@@ -315,6 +315,21 @@ result = client.imports.run(
 )
 print(result.succeeded, result.failed)
 ```
+
+Result collection defaults to at most **100 pages** and **10,000 items**. For
+larger imports, set `max_pages` and `max_items` explicitly on `run()`; both must
+be positive and are checked before the import is submitted:
+
+```python
+result = client.imports.run(request, max_pages=1_000, max_items=100_000)
+```
+
+The asynchronous client accepts the same controls with `await`. Exceeding a
+result bound raises `RuntimeError` after the server has completed the import;
+it does not roll back committed changes. Retrieve the existing task's results
+with `client.imports.all_results(task_id, max_pages=..., max_items=...)` instead
+of resubmitting the import. To retain the task ID independently of result
+collection, use `submit()`, `client.tasks.wait()`, and `all_results()` separately.
 
 The Python field `ref_` is serialized as the contract's `ref`. Import graphs,
 object data, result details, and error strings are excluded from model
