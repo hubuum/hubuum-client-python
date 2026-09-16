@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Make the e2e readiness unit tests use a fully simulated clock, preventing
+  intermittent timeout failures when Bash's wall clock crosses a second.
+
 ### Added
 
 - Typed synchronous and asynchronous class schema services for revision staging,
