@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Maintenance
+
+- Refresh locked dependencies: IDNA 3.20, platformdirs 4.11.11,
+  pymdown-extensions 12.0.1, and Ruff 0.16.8.
+
 ### Added
 
 - Typed synchronous and asynchronous class schema services for revision staging,
