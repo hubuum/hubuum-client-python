@@ -7,7 +7,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Annotated, NewType, TypeAlias
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 
 _MAX_LOGIN_NAME_CHARS = 255
 _MAX_LOGIN_PASSWORD_CHARS = 4_096
@@ -24,10 +24,16 @@ PrincipalId = NewType("PrincipalId", int)
 TaskId = NewType("TaskId", int)
 TaskEventId = NewType("TaskEventId", int)
 TokenId = NewType("TokenId", int)
+CredentialApprovalId = NewType("CredentialApprovalId", int)
+RestoreJobId = NewType("RestoreJobId", int)
 ImportResultId = NewType("ImportResultId", int)
 ResourceRevision: TypeAlias = Annotated[int, Field(ge=1)]
 SchemaRevision: TypeAlias = Annotated[int, Field(ge=1)]
 """Immutable schema identity within a class, independent of resource revisions."""
+
+
+class CredentialApprovalSecret(SecretStr):
+    """Single-use approval with redacted string, repr, and JSON serialization."""
 
 
 @dataclass(frozen=True, slots=True, repr=False)

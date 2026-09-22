@@ -37,8 +37,10 @@ from hubuum_client import (
     SchemaRevision,
     SchemaRevisionResponse,
     SchemaStageRequest,
+    SchemaWorkKind,
     SchemaWorkResponse,
     TaskKind,
+    TaskQuery,
     TaskStatus,
 )
 
@@ -219,6 +221,21 @@ async def _inspect_candidate(
     )
     assert completed.kind is TaskKind.SCHEMA_VALIDATION
     assert completed.status is TaskStatus.SUCCEEDED
+    discovered = await _resolve(
+        api.tasks.all(
+            TaskQuery(
+                class_id=cls.id,
+                schema_revision=staged.revision,
+                schema_work_kind=SchemaWorkKind.IMPACT,
+                terminal=True,
+            ).limit(1)
+        )
+    )
+    task = next(task for task in discovered if task.id == impact.task_id)
+    assert task.details is not None
+    assert task.details.schema_validation is not None
+    assert task.details.schema_validation.schema_revision == staged.revision
+    assert task.details.schema_validation.results_url is not None
     impact = await _resolve(schema.work(impact.task_id))
     assert impact.readiness is SchemaImpactReadiness.INCOMPATIBLE
     assert impact.impact is not None
