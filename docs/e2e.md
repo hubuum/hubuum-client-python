@@ -116,3 +116,6 @@ token, import, and restore mutations. It verifies bearer-only rejection,
 approval consumption and replay rejection, credential-import dry runs with
 idempotent admission, and retained task discovery through paginated and
 resource-filtered reads in both runtimes.
+Discovery uses the submitted task's server timestamp to exclude unrelated
+history, including on caller-managed servers, without relying on clock agreement
+between the client and server.

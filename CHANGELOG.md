@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Remove credential-bearing inputs, messages, and nested exception context from
+  approval request validation errors, including structured and JSON diagnostics.
+- Classify reauthentication failures before redaction so passwords overlapping
+  the server's reason code do not suppress `ReauthenticationRequiredError`.
+- Bound live task discovery to the submitted task's server timestamp so
+  caller-managed servers with extensive task history do not exhaust pagination.
+
 ### Maintenance
 
 - Refresh locked dependencies: IDNA 3.20, platformdirs 4.11.11,

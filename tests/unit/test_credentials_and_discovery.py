@@ -4,6 +4,8 @@ import inspect
 import json
 from collections.abc import Awaitable
 from datetime import UTC, datetime
+from pathlib import Path
+from runpy import run_path
 from typing import Any, TypeVar
 
 import httpx
@@ -11,6 +13,7 @@ import pytest
 from pydantic import ValidationError
 
 from hubuum_client import (
+    APIError,
     AsyncClient,
     Client,
     ConfirmRestoreOperation,
@@ -507,5 +510,217 @@ async def test_malformed_approval_does_not_retain_secret_in_exception_chain(
         assert SECRET not in str(caught.value)
         assert caught.value.__cause__ is None
         assert caught.value.__context__ is None
+    finally:
+        await _resolve(client.close())
+
+
+@pytest.mark.parametrize("validation", ["constructor", "python", "json", "strings"])
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"password": "actor-secret"},
+        {"password": {"raw": "actor-secret"}, "operation": {"kind": "create_user"}},
+        {"password": "actor-secret", "operation": {"kind": "discriminator-secret"}},
+        {
+            "password": "actor-secret",
+            "operation": {"kind": "create_user", "user": {"password": "new-password-secret"}},
+        },
+        {
+            "password": "actor-secret",
+            "operation": {
+                "kind": "import_credentials",
+                "import": {
+                    "graph": {"principals": [{"password_hash": "hash-secret"}]},
+                    "version": "invalid",
+                },
+            },
+        },
+        {
+            "password": "actor-secret",
+            "operation": {
+                "kind": "confirm_restore",
+                "restore_id": "12",
+                "confirmation": {"restore_capability": "restore-secret"},
+            },
+        },
+        {
+            "password": "actor-secret",
+            "extra-secret": "extra-value-secret",
+            "operation": {
+                "kind": "create_user",
+                "user": {"name": "human", "password": "new-password-secret"},
+            },
+        },
+    ],
+    ids=[
+        "missing-operation",
+        "invalid-password",
+        "invalid-discriminator",
+        "nested-user",
+        "nested-import",
+        "nested-restore",
+        "unknown-field",
+    ],
+)
+def test_approval_validation_errors_discard_secret_inputs(
+    validation: str,
+    payload: dict[str, Any],
+) -> None:
+    validators = {
+        "constructor": lambda: CredentialApprovalRequest(**payload),
+        "python": lambda: CredentialApprovalRequest.model_validate(payload),
+        "json": lambda: CredentialApprovalRequest.model_validate_json(json.dumps(payload)),
+        "strings": lambda: CredentialApprovalRequest.model_validate_strings(payload),
+    }
+    with pytest.raises(ValidationError) as caught:
+        validators[validation]()
+    error = caught.value
+    for diagnostic in (str(error), repr(error), repr(error.errors()), error.json()):
+        assert "-secret" not in diagnostic
+    assert error.__cause__ is None
+    assert error.__context__ is None
+    assert all(item["input"] == "<redacted>" for item in error.errors())
+    assert all("ctx" not in item for item in error.errors())
+    assert all(item["loc"] in {(), ("operation",), ("password",)} for item in error.errors())
+
+
+def test_approval_validation_errors_strip_nested_exception_context() -> None:
+    # RestoreTimestamps raises ValueError through a model validator, producing
+    # a ctx.error object as well as the rejected credential-bearing import.
+    with pytest.raises(ValidationError) as caught:
+        CredentialApprovalRequest.model_validate(
+            {
+                "password": "actor-secret",
+                "operation": {
+                    "kind": "import_credentials",
+                    "import": {
+                        "graph": {
+                            "collections": [
+                                {
+                                    "name": "collection",
+                                    "description": "",
+                                    "timestamps": {
+                                        "created_at": "2026-09-23T12:00:00",
+                                        "updated_at": "2026-09-22T12:00:00",
+                                    },
+                                }
+                            ],
+                            "principals": [{"password_hash": "hash-secret"}],
+                        },
+                    },
+                },
+            }
+        )
+    assert "value_error" in {item["type"] for item in caught.value.errors()}
+    assert all("ctx" not in item for item in caught.value.errors())
+    assert "-secret" not in caught.value.json()
+    assert caught.value.__context__ is None
+
+
+def test_approval_json_parser_errors_discard_original_document() -> None:
+    with pytest.raises(ValidationError) as caught:
+        CredentialApprovalRequest.model_validate_json('{"password":"actor-secret",')
+    assert caught.value.errors()[0]["type"] == "json_invalid"
+    assert caught.value.errors()[0]["input"] == "<redacted>"
+    assert "actor-secret" not in caught.value.json()
+    assert caught.value.__context__ is None
+
+
+def test_valid_approval_validation_preserves_wire_payload() -> None:
+    payload = {
+        "password": "actor-secret",
+        "operation": {
+            "kind": "create_user",
+            "user": {"name": "human", "password": "new-password-secret"},
+        },
+    }
+    assert CredentialApprovalRequest.model_validate_json(json.dumps(payload)).payload() == payload
+    assert CredentialApprovalRequest.model_validate(payload).payload() == payload
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+@pytest.mark.parametrize("password", ["authentication", "reauthentication_required"])
+@pytest.mark.parametrize("status", [403, 401])
+async def test_reauthentication_classification_precedes_secret_redaction(
+    asynchronous: bool,
+    password: str,
+    status: int,
+) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert json.loads(request.content) == {"password": password}
+        return httpx.Response(
+            status,
+            json={
+                "error": "Forbidden",
+                "reason": "reauthentication_required",
+                "message": f"rejected {password}",
+            },
+        )
+
+    cls = AsyncClient if asynchronous else Client
+    client = cls("https://hubuum.test", token="session", transport=httpx.MockTransport(handler))
+    try:
+        with pytest.raises(APIError) as caught:
+            await _resolve(client.users.update(7, UserUpdate(password=password)))
+        error = caught.value
+        assert isinstance(error, ReauthenticationRequiredError) is (status == 403)
+        expected_reason = "reauthentication_required".replace(password, "<redacted>")
+        assert error.reason == expected_reason
+        assert error.response_body["reason"] == expected_reason
+        assert password not in str(error)
+        assert password not in repr(error.__dict__)
+    finally:
+        await _resolve(client.close())
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+@pytest.mark.parametrize(
+    "created_at", ["2026-09-22T12:00:00.123456", "2026-09-22T14:00:00.123456+02:00"]
+)
+async def test_live_discovery_excludes_large_existing_task_history(
+    asynchronous: bool,
+    created_at: str,
+) -> None:
+    live_tests = run_path(
+        str(Path(__file__).parents[1] / "e2e" / "test_credentials_and_discovery.py")
+    )
+    query = live_tests["_discovery_query"](Task.model_validate({**TASK, "created_at": created_at}))
+    # More old matching tasks than all()'s 100-page guard, plus newer matches.
+    history = [{**TASK, "id": i, "created_at": "2026-09-22T11:00:00Z"} for i in range(150)]
+    target = {**TASK, "id": 150, "created_at": "2026-09-22T12:00:00.123456Z"}
+    later = {**TASK, "id": 151, "created_at": "2026-09-22T12:00:00.123457Z"}
+    calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        params = request.url.params
+        matches = [*history, target, later]
+        for bound, lower in (("created_after", True), ("created_before", False)):
+            if bound in params:
+                timestamp = datetime.fromisoformat(params[bound])
+                assert timestamp.utcoffset() is not None
+                matches = [
+                    item
+                    for item in matches
+                    if (
+                        datetime.fromisoformat(str(item["created_at"])) >= timestamp
+                        if lower
+                        else datetime.fromisoformat(str(item["created_at"])) < timestamp
+                    )
+                ]
+        offset = int(params.get("cursor", "0"))
+        page = matches[offset : offset + 1]
+        headers = {"X-Total-Count": str(len(matches))}
+        if offset + 1 < len(matches):
+            headers["X-Next-Cursor"] = str(offset + 1)
+        return httpx.Response(200, json=page, headers=headers)
+
+    cls = AsyncClient if asynchronous else Client
+    client = cls("https://hubuum.test", token="session", transport=httpx.MockTransport(handler))
+    try:
+        tasks = await _resolve(client.tasks.all(query.limit(1).include_total().sort("id.asc")))
+        assert [task.id for task in tasks] == [150]
+        assert calls == 1
     finally:
         await _resolve(client.close())

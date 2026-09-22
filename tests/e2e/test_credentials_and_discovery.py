@@ -3,6 +3,7 @@ from __future__ import annotations
 import inspect
 import sys
 from collections.abc import Awaitable
+from datetime import UTC, timedelta
 from typing import TypeVar
 
 import pytest
@@ -17,6 +18,7 @@ from hubuum_client import (
     ImportRequest,
     ReauthenticationRequiredError,
     RequestOptions,
+    Task,
     TaskKind,
     TaskQuery,
     TaskStatus,
@@ -42,6 +44,22 @@ async def _user_etag(api: Client | AsyncClient, user_id: int) -> str:
             return response.headers["etag"]
     with api.stream("GET", path) as response:
         return response.headers["etag"]
+
+
+def _discovery_query(task: Task) -> TaskQuery:
+    # Use the server's timestamp, avoiding clock skew and unrelated task history.
+    created_at = task.created_at
+    if created_at.tzinfo is None:
+        created_at = created_at.replace(tzinfo=UTC)
+    return TaskQuery(
+        kind=(TaskKind.IMPORT,),
+        status=(TaskStatus.SUCCEEDED,),
+        terminal=True,
+        import_dry_run=True,
+        submitted_by=task.submitted_by,
+        created_after=created_at,
+        created_before=created_at + timedelta(microseconds=1),
+    )
 
 
 @pytest.mark.parametrize("asynchronous", [False, True])
@@ -150,13 +168,7 @@ async def test_credential_import_dry_run_and_task_discovery(
         )
         assert repeated.id == result.task.id
         assert (await _resolve(api.credential_approvals.get(approval.record.id))).consumed_at
-        query = TaskQuery(
-            kind=(TaskKind.IMPORT,),
-            status=(TaskStatus.SUCCEEDED,),
-            terminal=True,
-            import_dry_run=True,
-            submitted_by=(await _resolve(api.me())).principal.principal_id,
-        )
+        query = _discovery_query(result.task)
         tasks = await _resolve(api.tasks.all(query.limit(1).include_total().sort("id.asc")))
         selected = next(task for task in tasks if task.id == result.task.id)
         assert selected.details is not None

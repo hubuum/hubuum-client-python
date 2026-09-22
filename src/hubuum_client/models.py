@@ -9,7 +9,16 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Annotated, Any, Literal, Self, TypeAlias, TypeVar
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    JsonValue,
+    ModelWrapValidatorHandler,
+    ValidationError,
+    model_validator,
+)
+from pydantic_core import InitErrorDetails, PydanticCustomError
 
 from .types import (
     ClassId,
@@ -1177,6 +1186,43 @@ class CredentialApprovalRequest(RequestModel):
 
     password: str = Field(repr=False)
     operation: CredentialOperation = Field(repr=False)
+
+    @classmethod
+    def _safe_validation_error(cls, error: ValidationError) -> ValidationError:
+        # Nested inputs, messages, context, and even unknown field names can
+        # contain credentials. Retain only error codes and known root fields.
+        details: list[InitErrorDetails] = [
+            {
+                "type": PydanticCustomError(item["type"], "Invalid credential approval input"),
+                "loc": item["loc"][:1]
+                if item["loc"] and item["loc"][0] in cls.model_fields
+                else (),
+                "input": "<redacted>",
+            }
+            for item in error.errors(include_input=False, include_context=False, include_url=False)
+        ]
+        return ValidationError.from_exception_data(cls.__name__, details, hide_input=True)
+
+    @model_validator(mode="wrap")
+    @classmethod
+    def _validate_without_secret_inputs(
+        cls, value: Any, handler: ModelWrapValidatorHandler[Self]
+    ) -> Self:
+        try:
+            return handler(value)
+        except ValidationError as error:
+            safe_error = cls._safe_validation_error(error)
+        # Raising outside the handler avoids retaining the original exception.
+        raise safe_error
+
+    @classmethod
+    def model_validate_json(cls, json_data: str | bytes | bytearray, **kwargs: Any) -> Self:
+        """Validate JSON without retaining credentials in JSON-parser errors."""
+        try:
+            return super().model_validate_json(json_data, **kwargs)
+        except ValidationError as error:
+            safe_error = cls._safe_validation_error(error)
+        raise safe_error
 
     def payload(self) -> dict[str, Any]:
         # Defaulted discriminator values must survive exclude_unset serialization.

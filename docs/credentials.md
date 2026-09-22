@@ -111,9 +111,11 @@ is admitted; executor failure does not make it reusable. Continue the existing
 ## Errors and evidence
 
 `ReauthenticationRequiredError` is a subclass of `PermissionDeniedError` and
-means HTTP 403 with `reason == "reauthentication_required"`. Other permission
-failures remain `PermissionDeniedError`; `APIError.reason` exposes the stable
-server reason. The client does not retry or prompt for a password automatically.
+means HTTP 403 with the server reason `reauthentication_required`. Classification
+uses the original reason before redaction. Other permission failures remain
+`PermissionDeniedError`; `APIError.reason` exposes a redacted server reason, which
+may be altered when a submitted secret overlaps the code. Use the exception type
+for recovery. The client does not retry or prompt for a password automatically.
 An approval-creation 401 means authentication failed; a 429 follows the normal
 rate-limit handling. Do not parse human-readable error messages.
 
@@ -130,6 +132,12 @@ headers, password fields, and echoed secrets are redacted from client errors;
 transport and model-decoding errors do not chain exceptions containing raw
 requests or responses. A completed restore invalidates unused approvals while
 preserving local evidence; backups do not transfer approval authority.
+
+Invalid `CredentialApprovalRequest` inputs produce sanitized Pydantic validation
+errors. Their `errors()` and `json()` diagnostics retain error codes and known
+top-level fields, with generic messages and redacted inputs; nested context and
+the original validation exception are discarded. Successful validation preserves
+the exact wire payload, including passwords needed for the approved operation.
 
 See the [server client and rollout guide](https://github.com/hubuum/hubuum/blob/v0.0.16/docs/credential_approvals.md)
 for the complete authorization, audit, retry, and deployment contract.

@@ -338,9 +338,14 @@ def raise_api_error(response: httpx.Response) -> None:
     error: str | None = None
     message: str | None = None
     reason: str | None = None
+    reauthentication_required = False
     secrets = _response_request_secrets(response)
     try:
-        body = _redact_sensitive_data(response.json(), secrets)
+        body = response.json()
+        reauthentication_required = (
+            isinstance(body, dict) and body.get("reason") == "reauthentication_required"
+        )
+        body = _redact_sensitive_data(body, secrets)
         if isinstance(body, dict):
             raw_error = body.get("error")
             raw_message = body.get("message")
@@ -360,7 +365,7 @@ def raise_api_error(response: httpx.Response) -> None:
         412: PreconditionFailedError,
         429: RateLimitError,
     }.get(response.status_code, APIError)
-    if response.status_code == httpx.codes.FORBIDDEN and reason == "reauthentication_required":
+    if response.status_code == httpx.codes.FORBIDDEN and reauthentication_required:
         error_type = ReauthenticationRequiredError
     api_error = error_type(
         method=response.request.method,
