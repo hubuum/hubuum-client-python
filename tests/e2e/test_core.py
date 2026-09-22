@@ -17,6 +17,9 @@ from hubuum_client import (
     CollectionCreate,
     CollectionUpdate,
     ConflictError,
+    CreateTokenOperation,
+    CreateUserOperation,
+    CredentialApprovalRequest,
     Credentials,
     ExportJsonResponse,
     ExportRequest,
@@ -39,6 +42,9 @@ from hubuum_client import (
     PreconditionFailedError,
     PrincipalId,
     Query,
+    ReauthenticationRequiredError,
+    RenewTokenOperation,
+    RenewTokenRequest,
     RestoreTimestamps,
     TaskStatus,
     TokenListState,
@@ -477,14 +483,20 @@ def test_cursor_pagination_traverses_all_pages(
         client.collections.delete(collection.id)
 
 
-def test_iam_and_relations(client: Client, admin_group_id: GroupId, unique_name: str) -> None:
-    user = client.users.create(
-        UserCreate(
-            name=f"{unique_name}-user",
-            password=f"{unique_name}-Passw0rd!",
-            email=f"{unique_name}@example.test",
+def test_iam_and_relations(
+    client: Client, admin_group_id: GroupId, unique_name: str, admin_password: str
+) -> None:
+    user_request = UserCreate(
+        name=f"{unique_name}-user",
+        password=f"{unique_name}-Passw0rd!",
+        email=f"{unique_name}@example.test",
+    )
+    approval = client.credential_approvals.create(
+        CredentialApprovalRequest(
+            password=admin_password, operation=CreateUserOperation(user=user_request)
         )
     )
+    user = client.users.create(user_request, approval=approval)
     group = client.groups.create(
         GroupCreate(groupname=f"{unique_name}-group", description="Python e2e group")
     )
@@ -607,7 +619,7 @@ def test_v0013_import_timestamps_export_timings_and_task_events(
                         ImportCollectionInput(
                             ref_="imported-collection",
                             name=collection_name,
-                            description="v0.0.15 restored timestamp e2e collection",
+                            description="v0.0.16 restored timestamp e2e collection",
                             timestamps=RestoreTimestamps(
                                 created_at=restored_created_at,
                                 updated_at=restored_updated_at,
@@ -656,6 +668,7 @@ def test_v0013_import_timestamps_export_timings_and_task_events(
 
 def test_sync_scoped_token_full_lifecycle(
     client: Client,
+    admin_password: str,
     admin_group_id: GroupId,
     unique_name: str,
 ) -> None:
@@ -669,20 +682,32 @@ def test_sync_scoped_token_full_lifecycle(
     token_name = f"{unique_name}-sync-token"
     principal_tokens = client.tokens.for_principal(client.me().principal.principal_id)
     try:
-        token = principal_tokens.create(
-            NewTokenRequest(
-                name=token_name,
-                scope=TokenScope(
-                    permissions=(Permission.READ_COLLECTION,),
-                    resources=(
-                        TokenResourceScope(
-                            kind=TokenResourceKind.COLLECTION,
-                            id=collection.id,
-                        ),
+        token_request = NewTokenRequest(
+            name=token_name,
+            scope=TokenScope(
+                permissions=(Permission.READ_COLLECTION,),
+                resources=(
+                    TokenResourceScope(
+                        kind=TokenResourceKind.COLLECTION,
+                        id=collection.id,
                     ),
+                ),
+            ),
+        )
+        with pytest.raises(ReauthenticationRequiredError):
+            principal_tokens.create(token_request)
+        approval = client.credential_approvals.create(
+            CredentialApprovalRequest(
+                password=admin_password,
+                operation=CreateTokenOperation(
+                    principal_id=principal_tokens.principal_id, token=token_request
                 ),
             )
         )
+        token = principal_tokens.create(token_request, approval=approval)
+        assert client.credential_approvals.get(approval.record.id).consumed_at is not None
+        with pytest.raises(ReauthenticationRequiredError):
+            principal_tokens.create(token_request, approval=approval)
         assert token.expires_at is not None
         metadata = next(item for item in principal_tokens.list() if item.name == token_name)
         assert metadata.active
@@ -697,7 +722,17 @@ def test_sync_scoped_token_full_lifecycle(
         point = principal_tokens.get(metadata.id)
         assert point.id == metadata.id
         assert point.revision == metadata.revision
-        renewed = principal_tokens.renew(metadata.id)
+        renewal = client.credential_approvals.create(
+            CredentialApprovalRequest(
+                password=admin_password,
+                operation=RenewTokenOperation(
+                    principal_id=principal_tokens.principal_id,
+                    token_id=metadata.id,
+                    token=RenewTokenRequest(),
+                ),
+            )
+        )
+        renewed = principal_tokens.renew(metadata.id, approval=renewal)
         renewed_metadata = next(
             item
             for item in principal_tokens.list()
@@ -742,18 +777,23 @@ def test_sync_scoped_token_full_lifecycle(
 
 def test_non_admin_permissions_and_live_error_mapping(
     base_url: str,
+    admin_password: str,
     client: Client,
     admin_group_id: GroupId,
     unique_name: str,
 ) -> None:
     password = f"{unique_name}-Limited-Passw0rd!"
-    user = client.users.create(
-        UserCreate(
-            name=f"{unique_name}-limited-user",
-            password=password,
-            email=f"{unique_name}-limited@example.test",
+    user_request = UserCreate(
+        name=f"{unique_name}-limited-user",
+        password=password,
+        email=f"{unique_name}-limited@example.test",
+    )
+    approval = client.credential_approvals.create(
+        CredentialApprovalRequest(
+            password=admin_password, operation=CreateUserOperation(user=user_request)
         )
     )
+    user = client.users.create(user_request, approval=approval)
     group = None
     collection = None
     member_added = False
@@ -845,20 +885,33 @@ async def test_async_scoped_token_full_lifecycle(
         token_name = f"{unique_name}-async-token"
         principal_tokens = admin.tokens.for_principal((await admin.me()).principal.principal_id)
         try:
-            token = await principal_tokens.create(
-                NewTokenRequest(
-                    name=token_name,
-                    scope=TokenScope(
-                        permissions=(Permission.READ_COLLECTION,),
-                        resources=(
-                            TokenResourceScope(
-                                kind=TokenResourceKind.COLLECTION,
-                                id=collection.id,
-                            ),
+            token_request = NewTokenRequest(
+                name=token_name,
+                scope=TokenScope(
+                    permissions=(Permission.READ_COLLECTION,),
+                    resources=(
+                        TokenResourceScope(
+                            kind=TokenResourceKind.COLLECTION,
+                            id=collection.id,
                         ),
+                    ),
+                ),
+            )
+            with pytest.raises(ReauthenticationRequiredError):
+                await principal_tokens.create(token_request)
+            approval = await admin.credential_approvals.create(
+                CredentialApprovalRequest(
+                    password=admin_password,
+                    operation=CreateTokenOperation(
+                        principal_id=principal_tokens.principal_id, token=token_request
                     ),
                 )
             )
+            token = await principal_tokens.create(token_request, approval=approval)
+            evidence = await admin.credential_approvals.get(approval.record.id)
+            assert evidence.consumed_at is not None
+            with pytest.raises(ReauthenticationRequiredError):
+                await principal_tokens.create(token_request, approval=approval)
             assert token.expires_at is not None
             metadata = next(
                 item for item in await principal_tokens.list() if item.name == token_name
@@ -872,7 +925,17 @@ async def test_async_scoped_token_full_lifecycle(
                 (TokenResourceKind.COLLECTION, collection.id)
             ]
             assert (await principal_tokens.get(metadata.id)).revision == metadata.revision
-            renewed = await principal_tokens.renew(metadata.id)
+            renewal = await admin.credential_approvals.create(
+                CredentialApprovalRequest(
+                    password=admin_password,
+                    operation=RenewTokenOperation(
+                        principal_id=principal_tokens.principal_id,
+                        token_id=metadata.id,
+                        token=RenewTokenRequest(),
+                    ),
+                )
+            )
+            renewed = await principal_tokens.renew(metadata.id, approval=renewal)
             renewed_metadata = next(
                 item
                 for item in await principal_tokens.list()

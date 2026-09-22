@@ -157,6 +157,11 @@ class Client:
         return GroupsService(self)
 
     @cached_property
+    def credential_approvals(self) -> CredentialApprovalsService:
+        """Return operation-bound password approval and evidence operations."""
+        return CredentialApprovalsService(self)
+
+    @cached_property
     def tokens(self) -> TokensService:
         """Return typed principal-token operations."""
         return TokensService(self)
@@ -188,7 +193,7 @@ class Client:
 
     @property
     def openapi(self) -> OpenAPIOperations:
-        """Return the complete operation-ID interface for all 218 v0.0.15 operations."""
+        """Return the complete operation-ID interface for all 220 v0.0.16 operations."""
         return OpenAPIOperations(self)
 
     @overload
@@ -295,11 +300,13 @@ class Client:
                 request_body,
                 request.url.params,
             )
-            raise TransportError(
+            transport_error = TransportError(
                 request.method,
                 str(request.url.copy_with(query=None, fragment=None)),
                 redact_text(str(error), secrets),
-            ) from error
+            )
+        # Do not chain an HTTPX exception retaining secret-bearing requests.
+        raise transport_error
 
     def _request_response(
         self,
@@ -348,6 +355,7 @@ from .services import (  # noqa: E402  (imported after Client is defined)
     ClassesService,
     ClassRelationsService,
     CollectionsService,
+    CredentialApprovalsService,
     ExportsService,
     GroupsService,
     ImportsService,

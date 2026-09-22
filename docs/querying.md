@@ -50,7 +50,7 @@ objects = client.classes.by_id(class_id).objects.all(query)
 The path is passed as one key per argument. For example,
 `data("network", "address")` selects `data["network"]["address"]` and encodes
 the server value `network,address=...`. Commas and equals signs cannot be used
-in path keys because Hubuum v0.0.15 does not define escaping for those
+in path keys because Hubuum v0.0.16 does not define escaping for those
 delimiters.
 
 Common scalar and textual filters use direct method names:
@@ -155,7 +155,7 @@ is independent of the enclosing membership revision.
 
 ## Exact-name routes
 
-Hubuum v0.0.15 supports explicit natural-key aliases for classes and objects.
+Hubuum v0.0.16 supports explicit natural-key aliases for classes and objects.
 Use the complete name-addressed service when class and object names are already
 known:
 
@@ -174,3 +174,55 @@ Both names are encoded as opaque path segments after explicit `by-name`
 markers, so spaces, slashes, and numeric-looking values remain unambiguous.
 The nested selectors make the resource hierarchy and ID-versus-name choice
 explicit.
+
+## Task discovery
+
+Use `TaskQuery` for `client.tasks.page()`, `list()`, `pages()`, and `all()`.
+Task filters use plain parameter names; generic resource `Query.where()`
+produces operator-suffixed parameters that the task endpoint does not accept.
+
+```python
+from datetime import UTC, datetime
+from hubuum_client import TaskKind, TaskQuery, TaskStatus
+
+query = (
+    TaskQuery(
+        kind=(TaskKind.EXPORT, TaskKind.BACKUP),
+        status=(TaskStatus.SUCCEEDED, TaskStatus.FAILED),
+        terminal=True,
+        created_after=datetime(2026, 9, 22, tzinfo=UTC),
+    )
+    .limit(25)
+    .sort("finished_at.desc,id.desc")
+    .include_total()
+)
+tasks = client.tasks.all(query)
+```
+
+Kinds and statuses use comma-separated OR lists; different filters combine
+with AND. Immutable pagination builders preserve all filters across cursors.
+The server validates combinations: relation identity requires both
+`relation_type` and `relation_id`, and schema/computation revisions require
+`class_id`. Supply timezone-qualified timestamps; lower bounds are inclusive
+and upper bounds exclusive. Explicit statuses must agree with `terminal`.
+
+Resource filters include `class_id`, `object_id`, `collection_id`, relation
+identity, `remote_target_id`, and `export_template_id`. Kind-specific filters
+cover schema work, computation revision, remote side-effect state, export
+warnings/truncation, import options/failures, backup history, and `output_state`.
+Lifecycle controls also include `cancel_requested`, `terminal_reason`,
+`submitted_by` (administrator-only), and `trace_id`. See `TaskQuery` in the
+[API reference](api.md) for every typed field.
+
+`Task.details` supports all six kinds: `import_`, `export`, `backup`,
+`schema_validation`, `reindex`, and `remote_call`. Import/export/backup details
+include typed `retained` options. Schema details include the class, revision,
+work status, and retained results URL; rebuild details include the computation
+revision, and remote calls include their explicit target.
+
+Historical unknown values remain `None`, distinct from `False`. Output state
+is `available`, `expired`, `not_produced`, or `unknown`. Discovery checks current
+resource authorization before matching/counting and may suppress details and
+output links while retaining basic task status. Resource filters match explicit
+captured targets, not present-day membership or resources inferred from an
+import payload or export query. See the [server task reference](https://github.com/hubuum/hubuum/blob/v0.0.16/docs/task_api.md).

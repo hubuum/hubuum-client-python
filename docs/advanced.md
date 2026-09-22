@@ -38,7 +38,7 @@ the attribute is `None` when the header is absent or malformed.
 
 ## Complete OpenAPI operation surface
 
-The Hubuum v0.0.15 OpenAPI contract contains 218 operations. Every operation is
+The Hubuum v0.0.16 OpenAPI contract contains 220 operations. Every operation is
 registered by its exact `operationId`, HTTP method, path template, request
 media types, and authentication policy:
 
@@ -68,7 +68,7 @@ status = client.openapi.call(
 ```
 
 `Idempotency-Key` values are validated before I/O and must contain between 1
-and 255 bytes, matching v0.0.15 task-submission endpoints.
+and 255 bytes, matching v0.0.16 task-submission endpoints.
 
 When an operation accepts multiple request representations, select one through
 `content_type`. Principal settings support JSON Merge Patch by default and RFC
@@ -109,7 +109,7 @@ with client.openapi.stream(
 
 Use `async with` and `async for` for the asynchronous client. The operation
 manifest is compared with the immutable server OpenAPI document in CI,
-including request and successful-response media types; all 218 operations must
+including request and successful-response media types; all 220 operations must
 match exactly.
 
 ## Structured search
@@ -144,13 +144,14 @@ terminal `done` events; an `error` event signals failure after streaming begins.
 The `done` event carries cursor metadata. Use `await client.openapi.call(...)`
 and `async with client.openapi.stream(..., json=search)` in asynchronous code.
 GET search streams accept no body; POST search streams require one. See the
-[server search reference](https://github.com/hubuum/hubuum/blob/v0.0.15/docs/search_api.md)
+[server search reference](https://github.com/hubuum/hubuum/blob/v0.0.16/docs/search_api.md)
 for field, sort, and predicate limits.
 
 ## Queued full restores
 
-Hubuum v0.0.15 restore confirmation returns `202 Accepted` when queued, before
+Hubuum v0.0.16 restore confirmation returns `202 Accepted` when queued, before
 the separate administrator restore executor finishes. Use
+[fresh credential approval](credentials.md#users-imports-and-restores) with
 `postApiV1RestoresByRestoreIdConfirm` to confirm a validated stage, then poll
 `getApiV1RestoresByRestoreIdStatus` with the capability returned when staging:
 
@@ -173,33 +174,37 @@ are separate from task IDs and cannot use `client.tasks.wait()`.
 
 ## Scoped tokens
 
-Hubuum v0.0.15 nests token boundaries under one `scope` field. Omit `scope` for
+Hubuum v0.0.16 nests token boundaries under one `scope` field. Omit `scope` for
 an unscoped token; within a scope, permissions and collection/class/object
 resources are independent dimensions:
 
 ```python
+from getpass import getpass
+
 from hubuum_client import (
     NewTokenRequest,
+    CreateTokenOperation,
+    CredentialApprovalRequest,
     Permission,
     TokenResourceKind,
     TokenResourceScope,
     TokenScope,
 )
 
-token = client.tokens.for_principal(principal_id).create(
-    NewTokenRequest(
-        name="inventory-reader",
-        scope=TokenScope(
-            permissions=(Permission.READ_COLLECTION, Permission.READ_CLASS),
-            resources=(
-                TokenResourceScope(
-                    kind=TokenResourceKind.COLLECTION,
-                    id=collection_id,
-                ),
-            ),
-        ),
+request = NewTokenRequest(
+    name="inventory-reader",
+    scope=TokenScope(
+        permissions=(Permission.READ_COLLECTION, Permission.READ_CLASS),
+        resources=(TokenResourceScope(kind=TokenResourceKind.COLLECTION, id=collection_id),),
+    ),
+)
+approval = client.credential_approvals.create(
+    CredentialApprovalRequest(
+        password=getpass("Current password: "),
+        operation=CreateTokenOperation(principal_id=principal_id, token=request),
     )
 )
+token = client.tokens.for_principal(principal_id).create(request, approval=approval)
 ```
 
 The returned `AccessToken` has a redacted string representation and exposes the
@@ -215,12 +220,19 @@ Token lists default to active credentials and accept `TokenListState.EXPIRED`,
 and renew an active or expired token without exposing its previous secret:
 
 ```python
-from hubuum_client import TokenListState
+from hubuum_client import RenewTokenOperation, RenewTokenRequest, TokenListState
 
 tokens = client.tokens.for_principal(principal_id)
 retained = tokens.list(state=TokenListState.ALL)
 metadata = tokens.get(token_id)
-replacement = tokens.renew(token_id)
+renewal = RenewTokenRequest()
+approval = client.credential_approvals.create(
+    CredentialApprovalRequest(
+        password=getpass("Current password: "),
+        operation=RenewTokenOperation(principal_id=principal_id, token_id=token_id, token=renewal),
+    )
+)
+replacement = tokens.renew(token_id, renewal, approval=approval)
 ```
 
 ## Object aggregate measures
@@ -279,7 +291,7 @@ safety.
 ## Typed imports, exports, and task events
 
 Core import graphs use strict import-v2 request models, including the timestamps
-Hubuum v0.0.15 can restore. `run()` submits the task, waits with a bounded poller, and
+Hubuum v0.0.16 can restore. `run()` submits the task, waits with a bounded poller, and
 collects every per-entity result through guarded cursor pagination:
 
 ```python
@@ -319,7 +331,7 @@ print(result.succeeded, result.failed)
 The Python field `ref_` is serialized as the contract's `ref`. Import graphs,
 object data, result details, and error strings are excluded from model
 representations. Integration-oriented import sections remain strict JSON
-objects so the full v0.0.15 graph can be submitted without representing secret
+objects so the full v0.0.16 graph can be submitted without representing secret
 configuration in diagnostic output. Core resources can use `create_only`,
 unconditional `overwrite`, or `if_revision` per-item write conditions.
 
@@ -349,7 +361,7 @@ Task history is available through `client.tasks.events()`, `event_pages()`, and
 ## Custom extension routes
 
 `request()` remains the lower-level escape hatch for a server extension that is
-not part of the pinned v0.0.15 OpenAPI document:
+not part of the pinned v0.0.16 OpenAPI document:
 
 ```python
 from hubuum_client import RequestOptions

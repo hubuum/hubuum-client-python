@@ -24,6 +24,7 @@ from .errors import (
     PermissionDeniedError,
     PreconditionFailedError,
     RateLimitError,
+    ReauthenticationRequiredError,
 )
 from .options import Params
 
@@ -35,6 +36,7 @@ _SENSITIVE_KEY_PARTS = (
     "apikey",
     "authorization",
     "capability",
+    "approval",
     "cookie",
     "credential",
     "password",
@@ -335,6 +337,7 @@ def raise_api_error(response: httpx.Response) -> None:
     body: Any
     error: str | None = None
     message: str | None = None
+    reason: str | None = None
     secrets = _response_request_secrets(response)
     try:
         body = _redact_sensitive_data(response.json(), secrets)
@@ -343,6 +346,8 @@ def raise_api_error(response: httpx.Response) -> None:
             raw_message = body.get("message")
             error = raw_error if isinstance(raw_error, str) else None
             message = raw_message if isinstance(raw_message, str) else None
+            raw_reason = body.get("reason")
+            reason = raw_reason if isinstance(raw_reason, str) else None
     except ValueError:
         body = redact_text(response.text, secrets)
 
@@ -355,6 +360,8 @@ def raise_api_error(response: httpx.Response) -> None:
         412: PreconditionFailedError,
         429: RateLimitError,
     }.get(response.status_code, APIError)
+    if response.status_code == httpx.codes.FORBIDDEN and reason == "reauthentication_required":
+        error_type = ReauthenticationRequiredError
     api_error = error_type(
         method=response.request.method,
         url=safe_response_url(response),
@@ -363,6 +370,7 @@ def raise_api_error(response: httpx.Response) -> None:
         message=message,
         response_body=body,
         request_id=redact_text(response.headers.get("x-request-id", ""), secrets) or None,
+        reason=reason,
     )
     if isinstance(api_error, RateLimitError):
         api_error.retry_after = _parse_retry_after(
@@ -376,12 +384,14 @@ def decode_model(response: httpx.Response, model: type[T]) -> T:
     try:
         return model.model_validate(response.json())
     except (ValueError, ValidationError) as error:
-        raise DecodeError(
+        decode_error = DecodeError(
             method=response.request.method,
             url=safe_response_url(response),
             status_code=response.status_code,
             reason=validation_error_reason(error, response),
-        ) from error
+        )
+    # Validation errors retain raw input, including newly issued secrets.
+    raise decode_error
 
 
 def decode_content_type(

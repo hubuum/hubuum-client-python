@@ -239,3 +239,57 @@
 ::: hubuum_client.TaskUnsuccessfulError
 
 ::: hubuum_client.PreconditionFailedError
+
+## Credential approvals
+
+::: hubuum_client.services.CredentialApprovalsService
+    options:
+      members: true
+
+::: hubuum_client.async_services.AsyncCredentialApprovalsService
+    options:
+      members: true
+
+::: hubuum_client.CredentialApprovalRequest
+
+::: hubuum_client.CredentialApprovalResponse
+    options:
+      members: true
+
+::: hubuum_client.CredentialApprovalRecord
+
+::: hubuum_client.CredentialApprovalSecret
+
+::: hubuum_client.CreateTokenOperation
+
+::: hubuum_client.RenewTokenOperation
+
+::: hubuum_client.CreateUserOperation
+
+::: hubuum_client.UpdateUserOperation
+
+::: hubuum_client.ImportCredentialsOperation
+
+::: hubuum_client.ConfirmRestoreOperation
+
+::: hubuum_client.RestoreConfirmRequest
+
+::: hubuum_client.ReauthenticationRequiredError
+
+## Task discovery
+
+::: hubuum_client.TaskQuery
+
+::: hubuum_client.RetainedImportDetails
+
+::: hubuum_client.RetainedExportDetails
+
+::: hubuum_client.RetainedBackupDetails
+
+::: hubuum_client.TaskOutputDiscoveryState
+
+::: hubuum_client.SchemaTaskDetails
+
+::: hubuum_client.RebuildTaskDetails
+
+::: hubuum_client.RemoteCallTaskDetails

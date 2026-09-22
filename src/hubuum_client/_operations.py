@@ -1,4 +1,4 @@
-"""Immutable Hubuum v0.0.15 OpenAPI operation manifest."""
+"""Immutable Hubuum v0.0.16 OpenAPI operation manifest."""
 
 from __future__ import annotations
 
@@ -31,6 +31,18 @@ class OperationSpec(NamedTuple):
 
 
 _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
+    (
+        "getApiV1IamCredentialApprovalsByApprovalId",
+        "GET",
+        "/api/v1/iam/credential-approvals/{approval_id}",
+        None,
+    ),
+    (
+        "postApiV1IamCredentialApprovals",
+        "POST",
+        "/api/v1/iam/credential-approvals",
+        "application/json",
+    ),
     ("deleteApiV0MetaLoginRateLimit", "DELETE", "/api/v0/meta/login-rate-limit", None),
     ("deleteApiV0MetaLoginRateLimitById", "DELETE", "/api/v0/meta/login-rate-limit/{id}", None),
     ("deleteApiV1ClassesByClassId", "DELETE", "/api/v1/classes/{class_id}", None),

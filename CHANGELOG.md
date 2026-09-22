@@ -13,6 +13,15 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Typed sync/async credential approvals for token creation/renewal, user creation
+  and password changes, credential-bearing imports, and restore confirmation.
+  Protected typed mutations accept `approval=`; token methods preserve the
+  server's normalized expiry. Approval evidence is readable after consumption.
+- `ReauthenticationRequiredError` and `APIError.reason` for the server's stable
+  fresh-authentication recovery signal, plus redacted approval secret values.
+- Immutable `TaskQuery` discovery filters and typed retained options, explicit
+  targets, output state, schema-validation, rebuild, and remote-call details.
+
 - Typed synchronous and asynchronous class schema services for revision staging,
   impact analysis with retained diagnostics, explicit activation, revalidation,
   compliance pages, abandonment, cancellation, and retained HTML repair reports.
@@ -23,11 +32,17 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
-- Target Hubuum v0.0.15 at release commit
-  `4bb889c66a5e2a1dfc86d1b6beac7495912fd02e`, with its immutable OpenAPI document
+- Target Hubuum v0.0.16 at release commit
+  `8f4194ffe25d172d579b676f109efbdc71d9aab7`, with its immutable OpenAPI document
   and multi-platform image digest
-  `sha256:36af667dbc9e221a40448496d4a87e168c999d0834df4b69177345ff3d36e821`.
-  Register all 218 operations, including the 14 new schema and cancellation routes.
+  `sha256:37b3299edd845a0c2aa7772d7d68565233ac8c1802bc44be3fb4bbc6dfa8778e`.
+  Register all 220 operations: 14 schema/cancellation additions from v0.0.15
+  and two credential-approval additions from v0.0.16.
+- Migrate live credential and restore workflows to password approvals, cover
+  their rejection/consumption behavior, and document coordinated server/worker
+  migrations. Package version and dependency locks are unchanged.
+- Stop chaining transport and model-decoding exceptions that retain raw
+  secret-bearing requests/responses; redact approval values from diagnostics.
 - Document staged schema-policy updates on nonempty classes, format 6 backup
   migration, coordinated worker upgrades, validation/report budgets, and changed
   string cursor ordering. Portable imports remain version 2.

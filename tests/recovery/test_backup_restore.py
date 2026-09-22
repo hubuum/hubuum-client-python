@@ -19,11 +19,15 @@ from hubuum_client import (
     ClassCreate,
     Client,
     CollectionCreate,
+    ConfirmRestoreOperation,
+    CredentialApprovalRequest,
     Credentials,
     NotFoundError,
     ObjectCreate,
     ObjectUpdate,
     OpenAPIOptions,
+    RestoreConfirmRequest,
+    RestoreJobId,
     Task,
 )
 
@@ -102,6 +106,12 @@ def _confirmation(stage: dict[str, Any]) -> dict[str, str]:
     }
 
 
+def _validated_stage(value: Any) -> dict[str, Any]:
+    assert isinstance(value, dict)
+    assert value["status"] == "validated"
+    return value
+
+
 def _check_status(status: Any) -> bool:
     if not isinstance(status, dict):
         pytest.fail("restore status must be a JSON object")
@@ -113,7 +123,8 @@ def _check_status(status: Any) -> bool:
 def _sync_roundtrip(stack: RecoveryStack, *, include_history: bool | None = None) -> None:
     prefix = f"recovery-sync-{uuid.uuid4().hex}"
     with Client(stack.base_url) as client:
-        client.login(Credentials("admin", stack.reset_password()))
+        password = stack.reset_password()
+        client.login(Credentials("admin", password))
         collection = client.collections.create(
             CollectionCreate(
                 name=prefix,
@@ -160,13 +171,22 @@ def _sync_roundtrip(stack: RecoveryStack, *, include_history: bool | None = None
         extra = objects.create(
             ObjectCreate(name=f"{prefix}-later", description="After backup", data={})
         )
-        stage = client.openapi.call("postApiV1Restores", json=backup)
-        assert isinstance(stage, dict)
-        assert stage["status"] == "validated"
+        stage = _validated_stage(client.openapi.call("postApiV1Restores", json=backup))
+        approval = client.credential_approvals.create(
+            CredentialApprovalRequest(
+                password=password,
+                operation=ConfirmRestoreOperation(
+                    restore_id=RestoreJobId(stage["id"]),
+                    confirmation=RestoreConfirmRequest.model_validate(_confirmation(stage)),
+                ),
+            )
+        )
         confirmed = client.openapi.call(
             "postApiV1RestoresByRestoreIdConfirm",
             json=_confirmation(stage),
-            options=_stage_options(stage),
+            options=OpenAPIOptions(
+                path_params={"restore_id": stage["id"]}, headers=approval.headers()
+            ),
         )
         assert isinstance(confirmed, dict)
         assert confirmed["status"] == "confirmed"
@@ -202,7 +222,8 @@ def _sync_roundtrip(stack: RecoveryStack, *, include_history: bool | None = None
 async def _async_roundtrip(stack: RecoveryStack, *, include_history: bool | None = None) -> None:
     prefix = f"recovery-async-{uuid.uuid4().hex}"
     async with AsyncClient(stack.base_url) as client:
-        await client.login(Credentials("admin", await asyncio.to_thread(stack.reset_password)))
+        password = await asyncio.to_thread(stack.reset_password)
+        await client.login(Credentials("admin", password))
         group = await client.groups.get_by_name("admin")
         collection = await client.collections.create(
             CollectionCreate(name=prefix, description="Recovery regression", group_id=group.id)
@@ -250,13 +271,22 @@ async def _async_roundtrip(stack: RecoveryStack, *, include_history: bool | None
         extra = await objects.create(
             ObjectCreate(name=f"{prefix}-later", description="After backup", data={})
         )
-        stage = await client.openapi.call("postApiV1Restores", json=backup)
-        assert isinstance(stage, dict)
-        assert stage["status"] == "validated"
+        stage = _validated_stage(await client.openapi.call("postApiV1Restores", json=backup))
+        approval = await client.credential_approvals.create(
+            CredentialApprovalRequest(
+                password=password,
+                operation=ConfirmRestoreOperation(
+                    restore_id=RestoreJobId(stage["id"]),
+                    confirmation=RestoreConfirmRequest.model_validate(_confirmation(stage)),
+                ),
+            )
+        )
         confirmed = await client.openapi.call(
             "postApiV1RestoresByRestoreIdConfirm",
             json=_confirmation(stage),
-            options=_stage_options(stage),
+            options=OpenAPIOptions(
+                path_params={"restore_id": stage["id"]}, headers=approval.headers()
+            ),
         )
         assert isinstance(confirmed, dict)
         assert confirmed["status"] == "confirmed"

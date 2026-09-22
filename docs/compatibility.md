@@ -4,7 +4,8 @@
 
 | Python client | Hubuum server contract | Status | End-to-end evidence |
 | --- | --- | --- | --- |
-| Unreleased | [`v0.0.15`](https://github.com/hubuum/hubuum/tree/v0.0.15) | Verified | 16 core and 4 recovery tests passed locally on 2026-09-15 (Python 3.11.12, Podman, Linux AMD64 server) |
+| Unreleased | [`v0.0.16`](https://github.com/hubuum/hubuum/tree/v0.0.16) | Verified | 20 core and 4 recovery tests passed locally on 2026-09-22 (Python 3.13.3, Podman, Linux AMD64 server) |
+| [7165240](https://github.com/hubuum/hubuum-client-python/commit/7165240) | [`v0.0.15`](https://github.com/hubuum/hubuum/tree/v0.0.15) | Verified | 16 core and 4 recovery tests passed locally on 2026-09-15 (Python 3.11.12, Podman, Linux AMD64 server) |
 | 0.0.8 | [`v0.0.14`](https://github.com/hubuum/hubuum/tree/v0.0.14) | Verified | [14 core and 4 recovery tests passed on 2026-09-10](https://github.com/hubuum/hubuum-client-python/actions/runs/34446685036) (Python 3.11, Docker, Linux AMD64 server) |
 | 0.0.6 | [`v0.0.9`](https://github.com/hubuum/hubuum/tree/v0.0.9) | Verified | [Pinned e2e passed on 2026-08-07](https://github.com/hubuum/hubuum-client-python/actions/runs/31214164409) |
 | 0.0.5 | [`v0.0.8`](https://github.com/hubuum/hubuum/tree/v0.0.8) | Verified | Pinned e2e passed locally on 2026-08-05 |
@@ -18,24 +19,65 @@ client/server pair. The current server target is selected by tag and locked to
 an immutable multi-platform image:
 
 ```text
-ghcr.io/hubuum/hubuum-server:v0.0.15@sha256:36af667dbc9e221a40448496d4a87e168c999d0834df4b69177345ff3d36e821
+ghcr.io/hubuum/hubuum-server:v0.0.16@sha256:37b3299edd845a0c2aa7772d7d68565233ac8c1802bc44be3fb4bbc6dfa8778e
 ```
 
 The tag identifies the supported server release; the digest prevents that tag
 from resolving to different content later. The same reference is stored in
 `src/hubuum_client/_constants.py`, the e2e wrapper, and CI.
 
-## v0.0.15 target
+## v0.0.16 target
 
 The client pins the released OpenAPI document at commit
-`4bb889c66a5e2a1dfc86d1b6beac7495912fd02e`, with SHA-256
-`d654d5e18aee32e998cb47ce1da5dadbc5fe83ff22a260192ba125b201c3649b`.
+`8f4194ffe25d172d579b676f109efbdc71d9aab7`, with SHA-256
+`f0266a8e4399d4fe8d470e0ceecf05580a9e0b6acd976eaafbad1dfa2635c37d`.
 The exact document is [committed with the client](openapi.json), so the default
 contract check runs without network access and detects document or client
 manifest drift. An explicit upstream check/update workflow is documented in
 [CONTRIBUTING.md](https://github.com/hubuum/hubuum-client-python/blob/main/CONTRIBUTING.md#openapi-contract-updates).
 
-All 218 operations are registered, up from 204 in v0.0.14, with no removals.
+The [v0.0.15 to v0.0.16 comparison](https://github.com/hubuum/hubuum/compare/v0.0.15...v0.0.16)
+adds two operations (approval creation and evidence lookup), with no removed
+routes or schemas. All **220 operations** are registered. Fifteen schemas are
+added, including credential operations and records, retained task options,
+explicit discovery targets, output state, and the three missing task-detail
+variants. Existing error bodies gain an optional machine-readable `reason`.
+
+The client provides matching sync/async [credential approval services](credentials.md),
+including server-normalized token expiry, and [task discovery](querying.md#task-discovery)
+with plain query parameters and typed details for all six task kinds.
+
+### Upgrade from v0.0.15
+
+- **Breaking credential policy:** token creation/renewal, local user creation,
+  password changes, credential-bearing imports (including dry runs), and restore
+  confirmation require fresh operation-bound password approval. Bearer-only
+  requests receive `403 reauthentication_required`. Update callers before
+  directing them to v0.0.16; there is no compatibility bypass.
+- Apply `2026-09-18-000001_task_discovery` and
+  `2026-09-19-000001_credential_approvals` before starting upgraded processes.
+  Quiesce protected mutations until every API replica and worker is upgraded.
+  The task backfill takes write locks and may need a quiet migration window.
+- Approval audit events add `credential_approval.created` and
+  `credential_approval.succeeded`; update exhaustive event readers. Completed
+  restores preserve local evidence and invalidate outstanding approvals.
+- Task metadata backfill uses retained data only. Missing historical facts stay
+  unknown, and resource authorization can suppress details/output links.
+  Existing backup format **6** and portable import version **2** remain unchanged;
+  older format-6 backups without task discovery metadata remain accepted.
+- External storage adapters have breaking approval, task metadata/search, restore
+  confirmation, and authorization batching contracts. Update adapters before
+  their consumers. These interfaces are server concerns, not Python wire fields.
+- The release also adds operational dashboards/alerts and fixes SMTP trust-store
+  handling, metrics accounting, and task-discovery edge cases; these need no
+  additional Python endpoints. See the [v0.0.16 release notes](https://github.com/hubuum/hubuum/releases/tag/v0.0.16)
+  and [rollout guide](https://github.com/hubuum/hubuum/blob/v0.0.16/docs/credential_approvals.md#deployment-transition).
+
+Updating this Python package does not migrate a server installation.
+
+## Changes introduced in v0.0.15
+
+The previous target registered all 218 operations, up from 204 in v0.0.14.
 The 14 additions cover schema revision staging, activation and abandonment,
 impact and revalidation tasks, compliance pages, retained HTML repair reports,
 and generic task cancellation. Typed services support these operations in both
@@ -117,7 +159,7 @@ Updating this Python package does not migrate a server installation.
 
 ## Meaning of compatibility
 
-For this project, targeting server v0.0.15 means:
+For this project, targeting server v0.0.16 means:
 
 - authentication, public probes, client configuration, typed CRUD, natural keys,
   nested object-data filtering, JSON Patch, IAM, relations, forced multi-page
@@ -128,6 +170,9 @@ For this project, targeting server v0.0.15 means:
   export durations, and task events;
 - structured JSON and SSE search, schema impact/repair/activation, import
   activation, and terminal task cancellation are exercised in both runtimes;
+- live approval tests cover bearer-only rejection, single-use consumption,
+  token renewal, password changes, credential-import dry runs and idempotency,
+  and lifecycle/resource task discovery in both runtimes;
 - the disposable stack runs eight consecutive full backup/restore cycles,
   covering sync-then-async and async-then-sync order without restarting the
   server or executor. Version 6 backups include and omit history; restored
@@ -136,13 +181,13 @@ For this project, targeting server v0.0.15 means:
   backups after history-free restores and further mutations remain restorable;
   enforced class schemas also survive full restores;
 - every method, path, request media type, and successful response media type
-  matches the 218-operation manifest;
+  matches the 220-operation manifest;
 - request models follow the wire contract, while response models tolerate
   additive fields.
 
 The live suite imports the built wheel in an isolated environment. Contract
 completeness and live behavioral coverage are separate claims: representative
-workflows are tested, not all 218 operations. Full restore tests run after the
+workflows are tested, not all 220 operations. Full restore tests run after the
 core suite and only against the wrapper-owned disposable stack in the default
 `single` database role mode. Caller-managed servers never run this recovery
 suite. Administrative features such as backups, restores, computed fields,
@@ -160,7 +205,7 @@ stable `collection_id` from the expansion when needed.
 ## Forward compatibility
 
 Runs against Hubuum `main`, a release candidate, or an overridden image can
-identify drift early. They do not replace the immutable v0.0.15 e2e run or
+identify drift early. They do not replace the immutable v0.0.16 e2e run or
 change a released client's declared target. Breaking server changes require a
 new compatibility row, changelog entry, and successful evidence for the new
 tag-and-digest image.
