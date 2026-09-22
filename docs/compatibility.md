@@ -4,7 +4,7 @@
 
 | Python client | Hubuum server contract | Status | End-to-end evidence |
 | --- | --- | --- | --- |
-| Unreleased | [`v0.0.16`](https://github.com/hubuum/hubuum/tree/v0.0.16) | Verified | 20 core and 4 recovery tests passed locally on 2026-09-22 (Python 3.13.3, Podman, Linux AMD64 server) |
+| 0.0.9 | [`v0.0.16`](https://github.com/hubuum/hubuum/tree/v0.0.16) | Verified | 20 core and 4 recovery tests passed locally on 2026-09-22 (Python 3.13.3, Podman, Linux AMD64 server) |
 | [7165240](https://github.com/hubuum/hubuum-client-python/commit/7165240) | [`v0.0.15`](https://github.com/hubuum/hubuum/tree/v0.0.15) | Verified | 16 core and 4 recovery tests passed locally on 2026-09-15 (Python 3.11.12, Podman, Linux AMD64 server) |
 | 0.0.8 | [`v0.0.14`](https://github.com/hubuum/hubuum/tree/v0.0.14) | Verified | [14 core and 4 recovery tests passed on 2026-09-10](https://github.com/hubuum/hubuum-client-python/actions/runs/34446685036) (Python 3.11, Docker, Linux AMD64 server) |
 | 0.0.6 | [`v0.0.9`](https://github.com/hubuum/hubuum/tree/v0.0.9) | Verified | [Pinned e2e passed on 2026-08-07](https://github.com/hubuum/hubuum-client-python/actions/runs/31214164409) |

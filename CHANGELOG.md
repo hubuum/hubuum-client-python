@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.0.9] - 2026-09-22
+
 ### Fixed
 
 - Remove credential-bearing inputs, messages, and nested exception context from
@@ -17,12 +19,14 @@ All notable changes to this project are documented here. The format follows
 
 ### Maintenance
 
-- Refresh the release dependency lock to mkdocstrings-python 2.0.9 and
-  platformdirs 4.11.12, and update the pinned `astral-sh/setup-uv` action
-  to v10.2.0 after auditing all Python, build, and workflow dependencies.
-
-- Refresh locked dependencies: IDNA 3.20, platformdirs 4.11.11,
-  pymdown-extensions 12.0.1, and Ruff 0.16.8.
+- Refresh all Python dependency locks, including ast-serialize 0.11.2,
+  coverage 7.16.1, IDNA 3.20, mkdocstrings-python 2.0.9, platformdirs 4.11.12,
+  pymdown-extensions 12.0.1, Ruff 0.16.8, and urllib3 2.8.0. Existing direct
+  dependency bounds accept the latest stable releases, including HTTPX 0.28.1
+  and Pydantic 2.13.5.
+- Update the pinned `astral-sh/setup-uv` action to v10.2.0 after auditing all
+  Python, build, and workflow dependencies. Other workflow pins are current;
+  the Dependabot queue was empty before release preparation.
 
 ### Added
 
@@ -34,7 +38,6 @@ All notable changes to this project are documented here. The format follows
   fresh-authentication recovery signal, plus redacted approval secret values.
 - Immutable `TaskQuery` discovery filters and typed retained options, explicit
   targets, output state, schema-validation, rebuild, and remote-call details.
-
 - Typed synchronous and asynchronous class schema services for revision staging,
   impact analysis with retained diagnostics, explicit activation, revalidation,
   compliance pages, abandonment, cancellation, and retained HTML repair reports.
@@ -53,17 +56,12 @@ All notable changes to this project are documented here. The format follows
   and two credential-approval additions from v0.0.16.
 - Migrate live credential and restore workflows to password approvals, cover
   their rejection/consumption behavior, and document coordinated server/worker
-  migrations. Package version and dependency locks are unchanged.
+  migrations.
 - Stop chaining transport and model-decoding exceptions that retain raw
   secret-bearing requests/responses; redact approval values from diagnostics.
 - Document staged schema-policy updates on nonempty classes, format 6 backup
   migration, coordinated worker upgrades, validation/report budgets, and changed
   string cursor ordering. Portable imports remain version 2.
-- Refresh all Python dependencies with `uv lock --upgrade`: ast-serialize
-  0.11.2, coverage 7.16.1, pymdown-extensions 12.0, Ruff 0.16.7, and urllib3 2.8.0.
-  Existing direct dependency bounds accept the latest stable releases, including
-  HTTPX 0.28.1 and Pydantic 2.13.5. Update the pinned `astral-sh/setup-uv` action
-  to v10.1.0; other workflow pins are current. The Dependabot queue was empty.
 
 ## [0.0.8] - 2026-09-10
 
@@ -325,7 +323,8 @@ All notable changes to this project are documented here. The format follows
   error diagnostics.
 - Redacted login tokens from model representations.
 
-[Unreleased]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.8...HEAD
+[Unreleased]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.9...HEAD
+[0.0.9]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.8...v0.0.9
 [0.0.8]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.7...v0.0.8
 [0.0.7]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.6...v0.0.7
 [0.0.6]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.5...v0.0.6
