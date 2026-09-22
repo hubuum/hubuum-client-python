@@ -17,6 +17,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Maintenance
 
+- Refresh the release dependency lock to mkdocstrings-python 2.0.9 and
+  platformdirs 4.11.12, and update the pinned `astral-sh/setup-uv` action
+  to v10.2.0 after auditing all Python, build, and workflow dependencies.
+
 - Refresh locked dependencies: IDNA 3.20, platformdirs 4.11.11,
   pymdown-extensions 12.0.1, and Ruff 0.16.8.
 
