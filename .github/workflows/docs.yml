@@ -1,0 +1,58 @@
+name: Documentation
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Also publish an older stable release (vX.Y.Z); leave empty for latest and main'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: documentation-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    name: Build documentation
+    uses: hubuum/.github/.github/workflows/docs-build.yml@b900399e221aa53b09d280c13052e09f64929550 # shared documentation platform
+    with:
+      tooling_revision: 'b900399e221aa53b09d280c13052e09f64929550'
+      source_ref: ${{ github.event_name == 'release' && 'main' || github.sha }}
+      versioned: true
+      python_api: true
+      version: ${{ inputs.version || (github.event_name == 'release' && !github.event.release.prerelease && github.event.release.tag_name) || '' }}
+
+  check:
+    name: Documentation check
+    needs: build
+    if: always() && needs.build.result != 'skipped'
+    runs-on: ubuntu-24.04
+    steps:
+      - env:
+          BUILD: ${{ needs.build.result }}
+        run: test "$BUILD" = success
+
+  publish:
+    name: Publish documentation
+    needs: [build, check]
+    if: >-
+      github.repository == 'hubuum/hubuum-client-python' &&
+      ((github.ref == 'refs/heads/main' && github.event_name != 'pull_request') ||
+      (github.event_name == 'release' && !github.event.release.prerelease))
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    uses: hubuum/.github/.github/workflows/docs-publish.yml@b900399e221aa53b09d280c13052e09f64929550 # shared documentation platform
+    with:
+      tooling_revision: 'b900399e221aa53b09d280c13052e09f64929550'
+      source_sha: ${{ needs.build.outputs.source_sha }}

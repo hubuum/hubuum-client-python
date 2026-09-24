@@ -1,5 +1,7 @@
 # Hubuum client library (Python)
 
+[Documentation](https://hubuum.github.io/hubuum-client-python/) · [Hubuum ecosystem](https://hubuum.github.io/)
+
 [![CI](https://github.com/hubuum/hubuum-client-python/actions/workflows/ci.yml/badge.svg)](https://github.com/hubuum/hubuum-client-python/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![Typed](https://img.shields.io/badge/typing-typed-blue.svg)](https://peps.python.org/pep-0561/)

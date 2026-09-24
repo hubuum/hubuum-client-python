@@ -21,6 +21,7 @@ uv run bandit -q -r src scripts
 uv run zizmor .
 uv run pytest --cov
 uv run mkdocs build --strict
+bash scripts/docs.sh build
 uv build
 ```
 

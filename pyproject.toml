@@ -29,7 +29,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/hubuum/hubuum-client-python"
-Documentation = "https://github.com/hubuum/hubuum-client-python/tree/main/docs"
+Documentation = "https://hubuum.github.io/hubuum-client-python/"
 Issues = "https://github.com/hubuum/hubuum-client-python/issues"
 Repository = "https://github.com/hubuum/hubuum-client-python"
 
@@ -37,6 +37,7 @@ Repository = "https://github.com/hubuum/hubuum-client-python"
 docs = [
   "mkdocs-material>=9.5,<10",
   "mkdocstrings[python]>=1.0.6,<2",
+  "zensical==0.0.64",
 ]
 test = [
   "pytest>=8.3,<10",
@@ -54,6 +55,7 @@ dev = [
   "pytest-cov>=6,<8",
   "respx>=0.22,<1",
   "ruff>=0.16.0,<1",
+  "zensical==0.0.64",
   "zizmor>=1.27,<2",
 ]
 

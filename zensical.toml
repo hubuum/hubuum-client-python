@@ -1,0 +1,59 @@
+[project]
+site_name = "Hubuum Python client"
+site_description = "Typed synchronous and asynchronous Python clients for Hubuum."
+site_url = "https://hubuum.github.io/hubuum-client-python/"
+repo_url = "https://github.com/hubuum/hubuum-client-python"
+repo_name = "hubuum/hubuum-client-python"
+edit_uri = "edit/main/docs/"
+docs_dir = "docs"
+nav = [
+  { "Overview" = [
+    { "Welcome" = "index.md" },
+    { "Client setup" = "client.md" },
+    { "Server compatibility" = "compatibility.md" },
+  ] },
+  { "Guides" = [
+    { "Credential approvals" = "credentials.md" },
+    { "Querying and pagination" = "querying.md" },
+    { "Schema evolution" = "schema.md" },
+    { "Advanced usage" = "advanced.md" },
+  ] },
+  { "Reference" = [
+    { "Python API" = "api.md" },
+    { "Release notes" = "changelog.md" },
+  ] },
+  { "Contributing" = [
+    { "Contributor guide" = "contributing.md" },
+    { "End-to-end tests" = "e2e.md" },
+    { "Release process" = "releasing.md" },
+    { "Documentation website" = "documentation.md" },
+  ] },
+]
+
+[project.plugins]
+
+[project.plugins.mkdocstrings]
+
+[project.plugins.mkdocstrings.handlers]
+
+[project.plugins.mkdocstrings.handlers.python]
+paths = [
+  "src",
+]
+
+[project.plugins.mkdocstrings.handlers.python.options]
+docstring_style = "google"
+show_root_heading = true
+show_source = false
+separate_signature = true
+signature_crossrefs = true
+
+[tool.hubuum_docs]
+versioned = true
+builder = "uv"
+source_trees = [
+  "src",
+]
+
+[tool.hubuum_docs.source_files]
+"CONTRIBUTING.md" = "contributing.md"
