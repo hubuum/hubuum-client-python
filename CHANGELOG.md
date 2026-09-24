@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- A searchable, versioned documentation site with shared Hubuum navigation,
+  automatic GitHub Pages publishing, the latest release as its default,
+  immutable release snapshots, and an explicit development edition.
+
 ## [0.0.9] - 2026-09-22
 
 ### Fixed

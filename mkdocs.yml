@@ -64,5 +64,6 @@ nav:
   - End-to-end tests: e2e.md
   - Releasing: releasing.md
   - Changelog: changelog.md
+  - Documentation website: documentation.md
 
 strict: true
