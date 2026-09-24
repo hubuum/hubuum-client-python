@@ -12,6 +12,12 @@ All notable changes to this project are documented here. The format follows
   automatic GitHub Pages publishing, the latest release as its default,
   immutable release snapshots, and an explicit development edition.
 
+### Fixed
+
+- Documentation tables keep long environment-variable names readable, use wider
+  reference layouts, and scroll within the table on small screens. Shared style
+  fixes also reach retained release documentation.
+
 ## [0.0.9] - 2026-09-22
 
 ### Fixed
