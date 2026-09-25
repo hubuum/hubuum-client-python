@@ -59,3 +59,8 @@ Continue with [client setup](client.md), then see
 
 Use [credential approvals](credentials.md) for the v0.0.16 protected mutations,
 and [task discovery](querying.md#task-discovery) for lifecycle and resource filters.
+
+## Explore a shared example
+
+[Load and explore Atlas](example-dataset.md) to work with the same classes,
+objects, and relations used in the server, CLI, frontend, and client guides.

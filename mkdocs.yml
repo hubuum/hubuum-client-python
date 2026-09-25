@@ -54,6 +54,7 @@ markdown_extensions:
 
 nav:
   - Overview: index.md
+  - Atlas example inventory: example-dataset.md
   - Client setup: client.md
   - Credential approvals: credentials.md
   - Querying and pagination: querying.md
