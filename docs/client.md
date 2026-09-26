@@ -140,10 +140,13 @@ The base URL must be an absolute HTTP or HTTPS URL without credentials, a query
 string, or a fragment. A deployment prefix such as
 `https://example.test/hubuum/` is preserved.
 
+<!-- MkDocs admonition bodies are prose, not indented code blocks. -->
+<!-- markdownlint-disable MD046 -->
 !!! warning
 
     Setting `verify=False` disables server certificate authentication. Use it
     only for a disposable local system whose network you control.
+<!-- markdownlint-enable MD046 -->
 
 ## Public probes and configuration
 
