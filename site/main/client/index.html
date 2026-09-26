@@ -1306,11 +1306,15 @@ primarily useful for explicit proxy policies and deterministic tests.</p>
 <p>The base URL must be an absolute HTTP or HTTPS URL without credentials, a query
 string, or a fragment. A deployment prefix such as
 <code>https://example.test/hubuum/</code> is preserved.</p>
+<!-- MkDocs admonition bodies are prose, not indented code blocks. -->
+<!-- markdownlint-disable MD046 -->
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>Setting <code>verify=False</code> disables server certificate authentication. Use it
 only for a disposable local system whose network you control.</p>
 </div>
+<!-- markdownlint-enable MD046 -->
+
 <h2 id="public-probes-and-configuration">Public probes and configuration<a class="headerlink" href="#public-probes-and-configuration" title="Permanent link">&para;</a></h2>
 <p>Authentication is not required for:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">health</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">healthz</span><span class="p">()</span>
