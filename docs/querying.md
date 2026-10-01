@@ -1,5 +1,8 @@
 # Querying and pagination
 
+For a small inventory shared across Hubuum interfaces, use the
+[Atlas example walkthrough](example-dataset.md).
+
 Hubuum filters use `field__operator=value`. The Python client represents them as
 immutable `Query` values:
 

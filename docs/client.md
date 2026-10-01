@@ -41,7 +41,8 @@ with Client("https://hubuum.example.com") as client:
 ```
 
 Frameworks, workers, and dependency-injection containers can instead create the
-client during application startup and close it during shutdown:
+client during application startup and close it during shutdown. The Server
+class below comes from the [Atlas example inventory](example-dataset.md):
 
 ```python
 from hubuum_client import Client, Credentials
@@ -49,7 +50,7 @@ from hubuum_client import Client, Credentials
 client = Client("https://hubuum.example.com")
 try:
     client.login(Credentials("alice", "secret"))
-    servers = client.classes.by_name("Servers").objects
+    servers = client.classes.by_name("Server").objects
     for server in servers.all():
         print(server.name)
 finally:
@@ -64,7 +65,7 @@ from hubuum_client import AsyncClient, Credentials
 client = AsyncClient("https://hubuum.example.com")
 try:
     await client.login(Credentials("alice", "secret"))
-    servers = client.classes.by_name("Servers").objects
+    servers = client.classes.by_name("Server").objects
     for server in await servers.all():
         print(server.name)
 finally:
