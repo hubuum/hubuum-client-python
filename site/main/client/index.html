@@ -13,7 +13,7 @@
         <link rel="canonical" href="https://hubuum.github.io/hubuum-client-python/main/client/">
       
       
-        <link rel="prev" href="./..">
+        <link rel="prev" href="../example-dataset/">
       
       
         <link rel="next" href="../compatibility/">
@@ -432,6 +432,33 @@
     
   
   Welcome
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../example-dataset/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Atlas example inventory
 
     
   </span>
@@ -1231,13 +1258,14 @@ fits naturally into one scope:</p>
 <a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">run_application</span><span class="p">(</span><span class="n">client</span><span class="p">)</span>
 </code></pre></div>
 <p>Frameworks, workers, and dependency-injection containers can instead create the
-client during application startup and close it during shutdown:</p>
+client during application startup and close it during shutdown. The Server
+class below comes from the <a href="../example-dataset/">Atlas example inventory</a>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">Client</span><span class="p">,</span> <span class="n">Credentials</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="s2">"https://hubuum.example.com"</span><span class="p">)</span>
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="k">try</span><span class="p">:</span>
 <a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">client</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">Credentials</span><span class="p">(</span><span class="s2">"alice"</span><span class="p">,</span> <span class="s2">"secret"</span><span class="p">))</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">servers</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">classes</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="s2">"Servers"</span><span class="p">)</span><span class="o">.</span><span class="n">objects</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">servers</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">classes</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="s2">"Server"</span><span class="p">)</span><span class="o">.</span><span class="n">objects</span>
 <a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="k">for</span> <span class="n">server</span> <span class="ow">in</span> <span class="n">servers</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
 <a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">server</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 <a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="k">finally</span><span class="p">:</span>
@@ -1249,7 +1277,7 @@ client during application startup and close it during shutdown:</p>
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">client</span> <span class="o">=</span> <span class="n">AsyncClient</span><span class="p">(</span><span class="s2">"https://hubuum.example.com"</span><span class="p">)</span>
 <a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="k">try</span><span class="p">:</span>
 <a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">Credentials</span><span class="p">(</span><span class="s2">"alice"</span><span class="p">,</span> <span class="s2">"secret"</span><span class="p">))</span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">servers</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">classes</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="s2">"Servers"</span><span class="p">)</span><span class="o">.</span><span class="n">objects</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">servers</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">classes</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="s2">"Server"</span><span class="p">)</span><span class="o">.</span><span class="n">objects</span>
 <a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="k">for</span> <span class="n">server</span> <span class="ow">in</span> <span class="k">await</span> <span class="n">servers</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
 <a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">server</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 <a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="k">finally</span><span class="p">:</span>
@@ -1369,7 +1397,7 @@ omits an explicit expiry:</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="./.." class="md-footer__link md-footer__link--prev" aria-label="Previous: Welcome">
+          <a href="../example-dataset/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Atlas example inventory">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
@@ -1379,7 +1407,7 @@ omits an explicit expiry:</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                Welcome
+                Atlas example inventory
               </div>
             </div>
           </a>
