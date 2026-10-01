@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Documentation uses the shared warm Hubuum theme from the ecosystem site's
+  unversioned stylesheet, including retained release editions. Future styling
+  updates no longer require changes or rebuilds in this repository.
+
 ### Added
 
 - A walkthrough using the shared Atlas example inventory, with classes, objects,
