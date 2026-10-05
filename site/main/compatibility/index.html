@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="zensical-0.0.64">
+      <meta name="generator" content="zensical-0.0.67">
     
     
       
@@ -34,12 +34,12 @@
       
         
       
-      <link rel="stylesheet" href="../assets/stylesheets/modern/main.40d3fdbb.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/modern/main.4ae390e2.min.css">
       
         
           
         
-        <link rel="stylesheet" href="../assets/stylesheets/modern/palette.812a03bb.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/modern/palette.96d1a7e4.min.css">
       
       
 
@@ -575,15 +575,43 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#v0016-target" class="md-nav__link">
+  <a href="#v0017-target" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        v0.0.16 target
+        v0.0.17 target
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="v0.0.16 target">
+    <nav class="md-nav" aria-label="v0.0.17 target">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#upgrade-from-v0016" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Upgrade from v0.0.16
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#changes-introduced-in-v0016" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Changes introduced in v0.0.16
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Changes introduced in v0.0.16">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1190,15 +1218,43 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#v0016-target" class="md-nav__link">
+  <a href="#v0017-target" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        v0.0.16 target
+        v0.0.17 target
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="v0.0.16 target">
+    <nav class="md-nav" aria-label="v0.0.17 target">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#upgrade-from-v0016" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Upgrade from v0.0.16
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#changes-introduced-in-v0016" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Changes introduced in v0.0.16
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Changes introduced in v0.0.16">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1309,6 +1365,7 @@
               <article class="md-content__inner md-typeset">
                 
                   
+
   
     <a href="https://github.com/hubuum/hubuum-client-python/edit/main/docs/compatibility.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
@@ -1330,6 +1387,12 @@
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>Unreleased (planned 0.0.10)</td>
+<td><a href="https://github.com/hubuum/hubuum/tree/v0.0.17"><code>v0.0.17</code></a></td>
+<td>Verified</td>
+<td>22 core and 4 recovery tests passed locally on 2026-10-05 (Python 3.13.3, Podman, Linux AMD64 server)</td>
+</tr>
 <tr>
 <td>0.0.9</td>
 <td><a href="https://github.com/hubuum/hubuum/tree/v0.0.16"><code>v0.0.16</code></a></td>
@@ -1389,22 +1452,64 @@
 <p><code>Verified</code> means the complete Docker-backed suite passed for the exact
 client/server pair. The current server target is selected by tag and locked to
 an immutable multi-platform image:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>ghcr.io/hubuum/hubuum-server:v0.0.16@sha256:37b3299edd845a0c2aa7772d7d68565233ac8c1802bc44be3fb4bbc6dfa8778e
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>ghcr.io/hubuum/hubuum-server:v0.0.17@sha256:cc0518167816bfddb38853b8b7217c4a347511318d51e1abca93ca418f31b302
 </code></pre></div>
 <p>The tag identifies the supported server release; the digest prevents that tag
 from resolving to different content later. The same reference is stored in
 <code>src/hubuum_client/_constants.py</code>, the e2e wrapper, and CI.</p>
-<h2 id="v0016-target">v0.0.16 target<a class="headerlink" href="#v0016-target" title="Permanent link">&para;</a></h2>
+<h2 id="v0017-target">v0.0.17 target<a class="headerlink" href="#v0017-target" title="Permanent link">&para;</a></h2>
 <p>The client pins the released OpenAPI document at commit
+<code>4a03d56b27f35af62175a80d09d36d0d41c4a663</code>, with SHA-256
+<code>ae6a889ac3ac701b0f70b4384a416d21246d60a64dd0e1e26b8b9306efa23acd</code>.
+The exact document is <a href="../openapi.json">committed with the client</a>, and the offline
+contract check compares every operation and media type with the client manifest.</p>
+<p>The <a href="https://github.com/hubuum/hubuum/compare/v0.0.16...v0.0.17">v0.0.16 to v0.0.17 comparison</a>
+adds seven operations and six schemas, with no removed routes or schemas.
+All <strong>227 operations</strong> are registered in both runtimes. The additions cover
+system event subscription CRUD and administrator webhook preview/test requests;
+see <a href="../advanced/#webhook-notifications-and-system-subscriptions">notification operations</a>.
+Sink configuration gains delivery pacing, subscriptions gain task-kind filters,
+and delivery responses include <code>purpose</code> and optional <code>deferred_reason</code>.
+Event-delivery health accepts <code>collection_id: null</code> for system subscriptions.
+These administrative operations return raw JSON, preserving the server's wire
+fields and nulls. Utoipa 6 also changes the ordering of nullable schema
+alternatives; existing typed resource fields remain compatible.</p>
+<h3 id="upgrade-from-v0016">Upgrade from v0.0.16<a class="headerlink" href="#upgrade-from-v0016" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Stop all writers and take a PostgreSQL snapshot before applying the
+  webhook-notification migration. This upgrade requires a maintenance window;
+  restart only matching API, worker, and restore-executor binaries. Binary-only
+  rollback is unsupported after migration. Recovery uses that snapshot and
+  matching v0.0.16 binaries, losing writes made after the snapshot.</li>
+<li>Backups now use <strong>format 7</strong>. v0.0.17 accepts format 6 with legacy defaults,
+  but older servers cannot restore format 7. Restore preserves notification
+  configuration and terminal delivery history while resetting transient sink
+  scheduling. The live client recovery suite verifies new format 7 backups;
+  it does not claim format 6 migration coverage. Portable imports remain version 2.</li>
+<li>System subscriptions require an unscoped administrator. Consumers of delivery
+  health must accept null collection IDs; exhaustive delivery readers must
+  allow the added purpose and deferral fields.</li>
+<li>Webhook URL secrets and bearer authentication use separate aliases. Preview
+  renders without resolving secrets or sending a request; test delivery returns
+  <code>202 Accepted</code> when queued. Inspect delivery status to confirm its outcome.</li>
+<li>Optional Treetop installations require REST and policy bundles on protocol
+  0.1, migrated label targets, and rebuilt/re-signed format 2 bundles. External
+  storage adapters must upgrade the eight SDK crates together to storage SDK
+  0.4; Rust schema consumers must adopt Utoipa 6.</li>
+</ul>
+<p>See the <a href="https://github.com/hubuum/hubuum/releases/tag/v0.0.17">v0.0.17 release notes</a>
+and <a href="https://github.com/hubuum/hubuum/blob/v0.0.17/docs/events.md">notification upgrade reference</a>
+for deployment details. Updating this Python package does not migrate a server.</p>
+<h2 id="changes-introduced-in-v0016">Changes introduced in v0.0.16<a class="headerlink" href="#changes-introduced-in-v0016" title="Permanent link">&para;</a></h2>
+<p>Client 0.0.9 pinned the released OpenAPI document at commit
 <code>8f4194ffe25d172d579b676f109efbdc71d9aab7</code>, with SHA-256
 <code>f0266a8e4399d4fe8d470e0ceecf05580a9e0b6acd976eaafbad1dfa2635c37d</code>.
-The exact document is <a href="../openapi.json">committed with the client</a>, so the default
-contract check runs without network access and detects document or client
+The contract check runs without network access and detects document or client
 manifest drift. An explicit upstream check/update workflow is documented in
 <a href="https://github.com/hubuum/hubuum-client-python/blob/main/CONTRIBUTING.md#openapi-contract-updates">CONTRIBUTING.md</a>.</p>
 <p>The <a href="https://github.com/hubuum/hubuum/compare/v0.0.15...v0.0.16">v0.0.15 to v0.0.16 comparison</a>
 adds two operations (approval creation and evidence lookup), with no removed
-routes or schemas. All <strong>220 operations</strong> are registered. Fifteen schemas are
+routes or schemas. All <strong>220 operations</strong> were registered. Fifteen schemas are
 added, including credential operations and records, retained task options,
 explicit discovery targets, output state, and the three missing task-detail
 variants. Existing error bodies gain an optional machine-readable <code>reason</code>.</p>
@@ -1517,7 +1622,7 @@ also cover migrations, coordinated server/admin/template-worker deployment,
 external authorization policy changes, token-key rotation, and rollback.
 Updating this Python package does not migrate a server installation.</p>
 <h2 id="meaning-of-compatibility">Meaning of compatibility<a class="headerlink" href="#meaning-of-compatibility" title="Permanent link">&para;</a></h2>
-<p>For this project, targeting server v0.0.16 means:</p>
+<p>For this project, targeting server v0.0.17 means:</p>
 <ul>
 <li>authentication, public probes, client configuration, typed CRUD, natural keys,
   nested object-data filtering, JSON Patch, IAM, relations, forced multi-page
@@ -1531,21 +1636,24 @@ Updating this Python package does not migrate a server installation.</p>
 <li>live approval tests cover bearer-only rejection, single-use consumption,
   token renewal, password changes, credential-import dry runs and idempotency,
   and lifecycle/resource task discovery in both runtimes;</li>
+<li>notification tests cover system subscription CRUD, task-kind filters, null
+  collection IDs in delivery health, delivery pacing, and webhook preview/test
+  admission in both runtimes, using an unavailable secret alias to prevent delivery;</li>
 <li>the disposable stack runs eight consecutive full backup/restore cycles,
   covering sync-then-async and async-then-sync order without restarting the
-  server or executor. Version 6 backups include and omit history; restored
+  server or executor. Version 7 backups include and omit history; restored
   objects retain data, JSON <code>null</code>, and revisions, post-backup objects disappear, old tokens
   are rejected, and login works after an administrator password reset. Default
   backups after history-free restores and further mutations remain restorable;
   enforced class schemas also survive full restores;</li>
 <li>every method, path, request media type, and successful response media type
-  matches the 220-operation manifest;</li>
+  matches the 227-operation manifest;</li>
 <li>request models follow the wire contract, while response models tolerate
   additive fields.</li>
 </ul>
 <p>The live suite imports the built wheel in an isolated environment. Contract
 completeness and live behavioral coverage are separate claims: representative
-workflows are tested, not all 220 operations. Full restore tests run after the
+workflows are tested, not all 227 operations. Full restore tests run after the
 core suite and only against the wrapper-owned disposable stack in the default
 <code>single</code> database role mode. Caller-managed servers never run this recovery
 suite. Administrative features such as backups, restores, computed fields,
@@ -1559,7 +1667,7 @@ an expanded representation. <code>HubuumClass</code> accepts both forms and deri
 stable <code>collection_id</code> from the expansion when needed.</p>
 <h2 id="forward-compatibility">Forward compatibility<a class="headerlink" href="#forward-compatibility" title="Permanent link">&para;</a></h2>
 <p>Runs against Hubuum <code>main</code>, a release candidate, or an overridden image can
-identify drift early. They do not replace the immutable v0.0.16 e2e run or
+identify drift early. They do not replace the immutable v0.0.17 e2e run or
 change a released client's declared target. Breaking server changes require a
 new compatibility row, changelog entry, and successful evidence for the new
 tag-and-digest image.</p>
@@ -1656,7 +1764,7 @@ tag-and-digest image.</p>
 </footer>
       
     </div>
-    <div class="md-dialog" data-md-component="dialog">
+    <div class="md-dialog" data-md-component="dialog" role="status" aria-atomic="true">
       <div class="md-dialog__inner md-typeset"></div>
     </div>
     
@@ -1670,10 +1778,10 @@ tag-and-digest image.</p>
       
         
         
-      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["navigation.tabs","navigation.tabs.sticky","navigation.sections","navigation.path","navigation.top","navigation.footer","navigation.instant","navigation.instant.progress","content.action.edit","content.code.copy","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.7d14d953.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["navigation.tabs","navigation.tabs.sticky","navigation.sections","navigation.path","navigation.top","navigation.footer","navigation.instant","navigation.instant.progress","content.action.edit","content.code.copy","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.7d14d953.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
     
     
-      <script src="../assets/javascripts/bundle.c04ba553.min.js"></script>
+      <script src="../assets/javascripts/bundle.67a597eb.min.js"></script>
       
         <script src="../assets/javascripts/versions.js"></script>
       

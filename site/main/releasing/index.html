@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="zensical-0.0.64">
+      <meta name="generator" content="zensical-0.0.67">
     
     
       
@@ -34,12 +34,12 @@
       
         
       
-      <link rel="stylesheet" href="../assets/stylesheets/modern/main.40d3fdbb.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/modern/main.4ae390e2.min.css">
       
         
           
         
-        <link rel="stylesheet" href="../assets/stylesheets/modern/palette.812a03bb.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/modern/palette.96d1a7e4.min.css">
       
       
 
@@ -1006,6 +1006,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#next-release-0010" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Next release: 0.0.10
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#release-process" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1123,6 +1134,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#next-release-0010" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Next release: 0.0.10
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#release-process" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1153,6 +1175,7 @@
               <article class="md-content__inner md-typeset">
                 
                   
+
   
     <a href="https://github.com/hubuum/hubuum-client-python/edit/main/docs/releasing.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
@@ -1192,6 +1215,15 @@ not require a stored PyPI password or API token.</p>
 permissions, and <code>main</code> branch protection are codified in
 <code>scripts/configure-github-repository.sh</code>. Maintainers can rerun the idempotent
 script with an authenticated GitHub CLI session after changing the baseline.</p>
+<h2 id="next-release-0010">Next release: 0.0.10<a class="headerlink" href="#next-release-0010" title="Permanent link">&para;</a></h2>
+<p>The current preparation targets Hubuum v0.0.17, refreshes the dependency lock
+and shared documentation workflow pins, and supersedes Dependabot #60's
+Zensical/Ruff update. The package version remains 0.0.9 and release notes stay
+under <code>[Unreleased]</code> until the preparation PR lands and <code>main</code> CI passes.</p>
+<p>After merge, confirm #60 is closed and inspect any newly opened Dependabot
+updates. Follow the process below to bump to 0.0.10, date the changelog, refresh
+the lock's package metadata, and run the checks before tagging. Keep the
+tag-time Dependabot gate enabled.</p>
 <h2 id="release-process">Release process<a class="headerlink" href="#release-process" title="Permanent link">&para;</a></h2>
 <ol>
 <li>Resolve every open Dependabot pull request before changing the version.
@@ -1319,7 +1351,7 @@ replaced, so never move or reuse a release tag after its workflow begins.</p>
 </footer>
       
     </div>
-    <div class="md-dialog" data-md-component="dialog">
+    <div class="md-dialog" data-md-component="dialog" role="status" aria-atomic="true">
       <div class="md-dialog__inner md-typeset"></div>
     </div>
     
@@ -1333,10 +1365,10 @@ replaced, so never move or reuse a release tag after its workflow begins.</p>
       
         
         
-      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["navigation.tabs","navigation.tabs.sticky","navigation.sections","navigation.path","navigation.top","navigation.footer","navigation.instant","navigation.instant.progress","content.action.edit","content.code.copy","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.7d14d953.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["navigation.tabs","navigation.tabs.sticky","navigation.sections","navigation.path","navigation.top","navigation.footer","navigation.instant","navigation.instant.progress","content.action.edit","content.code.copy","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.7d14d953.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
     
     
-      <script src="../assets/javascripts/bundle.c04ba553.min.js"></script>
+      <script src="../assets/javascripts/bundle.67a597eb.min.js"></script>
       
         <script src="../assets/javascripts/versions.js"></script>
       

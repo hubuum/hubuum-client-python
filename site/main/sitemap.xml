@@ -4,24 +4,6 @@
         <loc>https://hubuum.github.io/hubuum-client-python/main/</loc>
       </url>
       <url>
-        <loc>https://hubuum.github.io/hubuum-client-python/main/example-dataset/</loc>
-      </url>
-      <url>
-        <loc>https://hubuum.github.io/hubuum-client-python/main/client/</loc>
-      </url>
-      <url>
-        <loc>https://hubuum.github.io/hubuum-client-python/main/compatibility/</loc>
-      </url>
-      <url>
-        <loc>https://hubuum.github.io/hubuum-client-python/main/credentials/</loc>
-      </url>
-      <url>
-        <loc>https://hubuum.github.io/hubuum-client-python/main/querying/</loc>
-      </url>
-      <url>
-        <loc>https://hubuum.github.io/hubuum-client-python/main/schema/</loc>
-      </url>
-      <url>
         <loc>https://hubuum.github.io/hubuum-client-python/main/advanced/</loc>
       </url>
       <url>
@@ -31,15 +13,33 @@
         <loc>https://hubuum.github.io/hubuum-client-python/main/changelog/</loc>
       </url>
       <url>
+        <loc>https://hubuum.github.io/hubuum-client-python/main/client/</loc>
+      </url>
+      <url>
+        <loc>https://hubuum.github.io/hubuum-client-python/main/compatibility/</loc>
+      </url>
+      <url>
         <loc>https://hubuum.github.io/hubuum-client-python/main/contributing/</loc>
+      </url>
+      <url>
+        <loc>https://hubuum.github.io/hubuum-client-python/main/credentials/</loc>
+      </url>
+      <url>
+        <loc>https://hubuum.github.io/hubuum-client-python/main/documentation/</loc>
       </url>
       <url>
         <loc>https://hubuum.github.io/hubuum-client-python/main/e2e/</loc>
       </url>
       <url>
+        <loc>https://hubuum.github.io/hubuum-client-python/main/example-dataset/</loc>
+      </url>
+      <url>
+        <loc>https://hubuum.github.io/hubuum-client-python/main/querying/</loc>
+      </url>
+      <url>
         <loc>https://hubuum.github.io/hubuum-client-python/main/releasing/</loc>
       </url>
       <url>
-        <loc>https://hubuum.github.io/hubuum-client-python/main/documentation/</loc>
+        <loc>https://hubuum.github.io/hubuum-client-python/main/schema/</loc>
       </url>
 </urlset>

@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="zensical-0.0.64">
+      <meta name="generator" content="zensical-0.0.67">
     
     
       
@@ -34,12 +34,12 @@
       
         
       
-      <link rel="stylesheet" href="../assets/stylesheets/modern/main.40d3fdbb.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/modern/main.4ae390e2.min.css">
       
         
           
         
-        <link rel="stylesheet" href="../assets/stylesheets/modern/palette.812a03bb.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/modern/palette.96d1a7e4.min.css">
       
       
 
@@ -1175,6 +1175,7 @@
               <article class="md-content__inner md-typeset">
                 
                   
+
   
     <a href="https://github.com/hubuum/hubuum-client-python/edit/main/docs/e2e.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
@@ -1187,7 +1188,7 @@
 <h1 id="docker-backed-end-to-end-tests">Docker-backed end-to-end tests<a class="headerlink" href="#docker-backed-end-to-end-tests" title="Permanent link">&para;</a></h1>
 <p>The e2e suite builds the project wheel, installs that artifact into an isolated
 virtual environment, and exercises the installed distribution against a real
-Hubuum v0.0.16 server and PostgreSQL database. It covers public probes, login,
+Hubuum v0.0.17 server and PostgreSQL database. It covers public probes, login,
 public configuration, typed CRUD, natural-key addressing, forced multi-page
 cursor traversal and metadata, typed nested object-data filters (including
 scalar, numeric, array, structure, null, combined, and network cases),
@@ -1196,7 +1197,7 @@ class and object relations, non-administrator permission boundaries, live
 <code>400</code>, <code>401</code>, <code>403</code>, <code>404</code>, <code>409</code>, and <code>412</code> errors, successful and stale
 <code>If-Match</code> updates and deletes in both runtimes, principal-settings JSON Patch,
 scoped-token mint/list/inspect/renew/use/revoke lifecycles in both runtimes,
-v0.0.16 relation cardinality enforcement, import-v2 timestamp restoration,
+v0.0.17 relation cardinality enforcement, import-v2 timestamp restoration,
 export phase timings and task events, cleanup, and a complete async
 create/query/update/patch/delete lifecycle. Structured JSON and SSE searches
 are also checked in both runtimes.</p>
@@ -1205,10 +1206,15 @@ inspect saved diagnostics, retain an HTML report, repair an object, verify the
 old report is stale, activate a fresh compatible analysis, inspect compliance
 evidence, and remove the schema through import activation. Terminal task
 cancellation is checked for idempotence.</p>
+<p>Notification tests cover system subscription create/list/get/update/delete,
+task-kind filters, nullable collection IDs in delivery health, sink pacing,
+and webhook preview and test admission in both runtimes. Each sink uses a
+unique unavailable URL-secret alias, so queued tests cannot send an outbound
+message. Provider delivery itself is outside this client's compatibility claim.</p>
 <p>After the core suite passes, the wrapper starts the matching restore executor
 and runs <code>tests/recovery</code> against the same disposable database. Four tests run
 eight consecutive backup/restore cycles in both sync/async orders without
-restarting either process. They verify version 6 backups with and without
+restarting either process. They verify version 7 backups with and without
 history, restored object data and revisions (including JSON <code>null</code>), removal
 of later objects, capability-only status polling, old-token rejection, and password-reset/login
 recovery. History-free restores are followed by further mutations and a default
@@ -1267,7 +1273,7 @@ also checks the generated container name and matching local mapped URL.</p>
 <tr>
 <td><code>HUBUUM_E2E_SERVER_IMAGE</code></td>
 <td>Override the server image</td>
-<td>Immutable v0.0.16 tag and digest</td>
+<td>Immutable v0.0.17 tag and digest</td>
 </tr>
 <tr>
 <td><code>HUBUUM_E2E_POSTGRES_IMAGE</code></td>
@@ -1307,7 +1313,7 @@ digest recorded in the compatibility matrix.</p>
 after the selected core tests pass. Every test uses a random resource prefix.
 The core suite cleans up resources in reverse dependency order; recovery
 resources are removed with the disposable database when the wrapper exits.</p>
-<p>The v0.0.16 suite also obtains operation-bound approvals for protected user,
+<p>The v0.0.17 suite also obtains operation-bound approvals for protected user,
 token, import, and restore mutations. It verifies bearer-only rejection,
 approval consumption and replay rejection, credential-import dry runs with
 idempotent admission, and retained task discovery through paginated and
@@ -1408,7 +1414,7 @@ between the client and server.</p>
 </footer>
       
     </div>
-    <div class="md-dialog" data-md-component="dialog">
+    <div class="md-dialog" data-md-component="dialog" role="status" aria-atomic="true">
       <div class="md-dialog__inner md-typeset"></div>
     </div>
     
@@ -1422,10 +1428,10 @@ between the client and server.</p>
       
         
         
-      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["navigation.tabs","navigation.tabs.sticky","navigation.sections","navigation.path","navigation.top","navigation.footer","navigation.instant","navigation.instant.progress","content.action.edit","content.code.copy","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.7d14d953.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["navigation.tabs","navigation.tabs.sticky","navigation.sections","navigation.path","navigation.top","navigation.footer","navigation.instant","navigation.instant.progress","content.action.edit","content.code.copy","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.7d14d953.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
     
     
-      <script src="../assets/javascripts/bundle.c04ba553.min.js"></script>
+      <script src="../assets/javascripts/bundle.67a597eb.min.js"></script>
       
         <script src="../assets/javascripts/versions.js"></script>
       
