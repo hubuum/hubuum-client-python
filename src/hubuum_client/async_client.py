@@ -135,6 +135,11 @@ class AsyncClient:
         return await self.request("GET", "/api/v1/iam/me", response_model=MeResponse)
 
     @cached_property
+    def event_sinks(self) -> AsyncEventSinksService:
+        """Administrator sink management and explicit collection grants."""
+        return AsyncEventSinksService(self)
+
+    @cached_property
     def collections(self) -> AsyncCollectionsService:
         """Return typed collection CRUD and hierarchy operations."""
         return AsyncCollectionsService(self)
@@ -353,6 +358,7 @@ from .async_services import (  # noqa: E402
     AsyncClassRelationsService,
     AsyncCollectionsService,
     AsyncCredentialApprovalsService,
+    AsyncEventSinksService,
     AsyncExportsService,
     AsyncGroupsService,
     AsyncImportsService,

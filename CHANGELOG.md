@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Typed synchronous and asynchronous collection destination services through
+  `client.collections.event_sinks(collection_id)`, with CRUD and cursor pagination.
+- Typed collection subscription services, global administrator sink CRUD, and
+  sink collection grants. Configuration, webhook URLs and secret aliases are
+  omitted from model representations or collection discovery as appropriate.
+- These optional integration methods require the matching server update after
+  `v0.0.17`. Existing APIs retain the pinned `v0.0.17` compatibility baseline.
+
 ## [0.0.10] - 2026-10-05
 
 ### Changed
