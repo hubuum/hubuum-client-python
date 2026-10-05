@@ -1006,17 +1006,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#next-release-0010" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Next release: 0.0.10
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#release-process" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1134,17 +1123,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#next-release-0010" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Next release: 0.0.10
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#release-process" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1215,15 +1193,6 @@ not require a stored PyPI password or API token.</p>
 permissions, and <code>main</code> branch protection are codified in
 <code>scripts/configure-github-repository.sh</code>. Maintainers can rerun the idempotent
 script with an authenticated GitHub CLI session after changing the baseline.</p>
-<h2 id="next-release-0010">Next release: 0.0.10<a class="headerlink" href="#next-release-0010" title="Permanent link">&para;</a></h2>
-<p>The current preparation targets Hubuum v0.0.17, refreshes the dependency lock
-and shared documentation workflow pins, and supersedes Dependabot #60's
-Zensical/Ruff update. The package version remains 0.0.9 and release notes stay
-under <code>[Unreleased]</code> until the preparation PR lands and <code>main</code> CI passes.</p>
-<p>After merge, confirm #60 is closed and inspect any newly opened Dependabot
-updates. Follow the process below to bump to 0.0.10, date the changelog, refresh
-the lock's package metadata, and run the checks before tagging. Keep the
-tag-time Dependabot gate enabled.</p>
 <h2 id="release-process">Release process<a class="headerlink" href="#release-process" title="Permanent link">&para;</a></h2>
 <ol>
 <li>Resolve every open Dependabot pull request before changing the version.
