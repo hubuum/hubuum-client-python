@@ -14,7 +14,7 @@ resource IDs, immutable queries, cursor pagination, structured errors, and a
 contract-checked interface for all 227 operations in the server's OpenAPI
 surface.
 
-The development version targets Hubuum server **v0.0.17**. Compatibility is tested
+Version **0.0.10** targets Hubuum server **v0.0.17**. Compatibility is tested
 against the tag-and-digest server image recorded in the
 [compatibility matrix](docs/compatibility.md), including repeated full restores
 and JSON-null recovery in both runtimes.

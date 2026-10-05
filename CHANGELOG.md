@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.0.10] - 2026-10-05
+
 ### Changed
 
 - Target Hubuum v0.0.17 at release commit
@@ -33,8 +35,6 @@ All notable changes to this project are documented here. The format follows
   reviewing its changes. Audit every third-party action pin and Twine; all
   already match their latest stable releases. Require Hatchling 1.32.4 and
   align the development-tool minimums with the audited versions.
-- Prepare 0.0.10 under `[Unreleased]`; retain package version 0.0.9 until these
-  dependency changes pass `main` CI and the Dependabot queue is empty.
 
 ### Added
 
@@ -370,7 +370,8 @@ All notable changes to this project are documented here. The format follows
   error diagnostics.
 - Redacted login tokens from model representations.
 
-[Unreleased]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.9...HEAD
+[Unreleased]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.10...HEAD
+[0.0.10]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.9...v0.0.10
 [0.0.9]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.8...v0.0.9
 [0.0.8]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.7...v0.0.8
 [0.0.7]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.6...v0.0.7
