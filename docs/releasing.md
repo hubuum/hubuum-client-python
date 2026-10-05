@@ -33,18 +33,6 @@ permissions, and `main` branch protection are codified in
 `scripts/configure-github-repository.sh`. Maintainers can rerun the idempotent
 script with an authenticated GitHub CLI session after changing the baseline.
 
-## Next release: 0.0.10
-
-The current preparation targets Hubuum v0.0.17, refreshes the dependency lock
-and shared documentation workflow pins, and supersedes Dependabot #60's
-Zensical/Ruff update. The package version remains 0.0.9 and release notes stay
-under `[Unreleased]` until the preparation PR lands and `main` CI passes.
-
-After merge, confirm #60 is closed and inspect any newly opened Dependabot
-updates. Follow the process below to bump to 0.0.10, date the changelog, refresh
-the lock's package metadata, and run the checks before tagging. Keep the
-tag-time Dependabot gate enabled.
-
 ## Release process
 
 1. Resolve every open Dependabot pull request before changing the version.
