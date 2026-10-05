@@ -11,10 +11,10 @@
 [Hubuum](https://github.com/hubuum/hubuum) asset-management API. It provides
 matching synchronous and asynchronous clients, Pydantic v2 models, typed
 resource IDs, immutable queries, cursor pagination, structured errors, and a
-contract-checked interface for all 220 operations in the server's OpenAPI
+contract-checked interface for all 227 operations in the server's OpenAPI
 surface.
 
-Version **0.0.9** targets Hubuum server **v0.0.16**. Compatibility is tested
+The development version targets Hubuum server **v0.0.17**. Compatibility is tested
 against the tag-and-digest server image recorded in the
 [compatibility matrix](docs/compatibility.md), including repeated full restores
 and JSON-null recovery in both runtimes.
@@ -100,7 +100,7 @@ Credentials and bearer tokens have redacted representations. TLS certificate
 validation is enabled by default; disabling it is an explicit client option and
 should be limited to disposable development systems.
 
-Hubuum v0.0.16 reports the authoritative expiry for newly issued tokens. After
+Hubuum v0.0.17 reports the authoritative expiry for newly issued tokens. After
 login or token minting, it is available as `client.token.expires_at` or
 `created_token.expires_at`. The unauthenticated public configuration reports
 the default and maximum accepted lifetimes:
@@ -129,10 +129,10 @@ The typed surface currently covers the most common Hubuum workflows:
 
 Structured JSON and SSE search are available through `openapi.call()` and
 `openapi.stream(..., json=...)`; see [advanced usage](docs/advanced.md#structured-search).
-The [upgrade notes](docs/compatibility.md#changes-since-v009) cover the server
-changes since v0.0.9, including explicit migrations and queued restores.
+The [upgrade notes](docs/compatibility.md#upgrade-from-v0016) cover the required
+maintenance window, notification migration, and format 7 backups.
 
-Every v0.0.16 OpenAPI operation is registered by its stable `operationId`:
+Every v0.0.17 OpenAPI operation is registered by its stable `operationId`:
 
 ```python
 from hubuum_client import OpenAPIOptions
@@ -143,7 +143,7 @@ result = client.openapi.call(
 )
 ```
 
-The checked-in manifest covers all 220 methods, paths, path variables, body
+The checked-in manifest covers all 227 methods, paths, path variables, body
 media types, public/authenticated policies, JSON responses, rendered text
 exports, and the search event stream. `request()` remains available for
 server extensions outside the pinned specification. Both interfaces are

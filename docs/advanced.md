@@ -38,7 +38,7 @@ the attribute is `None` when the header is absent or malformed.
 
 ## Complete OpenAPI operation surface
 
-The Hubuum v0.0.16 OpenAPI contract contains 220 operations. Every operation is
+The Hubuum v0.0.17 OpenAPI contract contains 227 operations. Every operation is
 registered by its exact `operationId`, HTTP method, path template, request
 media types, and authentication policy:
 
@@ -68,7 +68,7 @@ status = client.openapi.call(
 ```
 
 `Idempotency-Key` values are validated before I/O and must contain between 1
-and 255 bytes, matching v0.0.16 task-submission endpoints.
+and 255 bytes, matching v0.0.17 task-submission endpoints.
 
 When an operation accepts multiple request representations, select one through
 `content_type`. Principal settings support JSON Merge Patch by default and RFC
@@ -109,8 +109,55 @@ with client.openapi.stream(
 
 Use `async with` and `async for` for the asynchronous client. The operation
 manifest is compared with the immutable server OpenAPI document in CI,
-including request and successful-response media types; all 220 operations must
+including request and successful-response media types; all 227 operations must
 match exactly.
+
+## Webhook notifications and system subscriptions
+
+Hubuum v0.0.17 adds administrator webhook preview/test operations and system
+event subscriptions. Both clients expose them through `openapi.call()`:
+
+```python
+subscription = client.openapi.call(
+    "postApiV1SystemEventSubscriptions",
+    json={
+        "sink_id": sink_id,
+        "name": "failed-backups",
+        "entity_types": ["task"],
+        "actions": ["failed"],
+        "filter": {"task_kinds": ["backup"]},
+        "enabled": True,
+    },
+)
+
+preview = client.openapi.call(
+    "postApiV1EventSinksBySinkIdPreview",
+    json={"subscription_id": subscription["id"], "event_id": saved_event_uuid},
+    options=OpenAPIOptions(path_params={"sink_id": sink_id}),
+)
+```
+
+Use an existing webhook sink and the UUID `event_id` of a saved event in the
+subscription's scope. System subscriptions require an unscoped administrator
+and match events without a direct or related collection. Their list, get,
+patch, and delete operation IDs use the `SystemEventSubscriptions` prefix;
+point operations take `subscription_id` in `OpenAPIOptions.path_params`.
+Use `await` with the asynchronous client.
+
+Preview renders a payload without resolving secrets or sending it. Calling
+`postApiV1EventSinksBySinkIdTest` with the same arguments queues a test delivery;
+inspect it with `getApiV1EventDeliveriesByDeliveryId` and the returned `id` as
+`delivery_id`. A queued response is not confirmation of delivery. Test requests
+bypass subscription filters and enabled flags while retaining scope checks
+and sink pacing.
+
+Sink `config.url_secret_ref` and top-level `secret_ref` select separate URL and
+bearer-token secrets configured on the server. `delivery_policy.min_interval_ms`
+controls sink pacing. Delivery JSON includes `purpose` and may include
+`deferred_reason`; delivery-health subscription entries can have
+`collection_id: null`. These administrative responses remain raw JSON.
+See the [server webhook guide](https://github.com/hubuum/hubuum/blob/v0.0.17/docs/webhook_notifications.md)
+for configuration and delivery rules.
 
 ## Structured search
 
@@ -144,12 +191,12 @@ terminal `done` events; an `error` event signals failure after streaming begins.
 The `done` event carries cursor metadata. Use `await client.openapi.call(...)`
 and `async with client.openapi.stream(..., json=search)` in asynchronous code.
 GET search streams accept no body; POST search streams require one. See the
-[server search reference](https://github.com/hubuum/hubuum/blob/v0.0.16/docs/search_api.md)
+[server search reference](https://github.com/hubuum/hubuum/blob/v0.0.17/docs/search_api.md)
 for field, sort, and predicate limits.
 
 ## Queued full restores
 
-Hubuum v0.0.16 restore confirmation returns `202 Accepted` when queued, before
+Hubuum v0.0.17 restore confirmation returns `202 Accepted` when queued, before
 the separate administrator restore executor finishes. Use
 [fresh credential approval](credentials.md#users-imports-and-restores) with
 `postApiV1RestoresByRestoreIdConfirm` to confirm a validated stage, then poll
@@ -174,7 +221,7 @@ are separate from task IDs and cannot use `client.tasks.wait()`.
 
 ## Scoped tokens
 
-Hubuum v0.0.16 nests token boundaries under one `scope` field. Omit `scope` for
+Hubuum v0.0.17 nests token boundaries under one `scope` field. Omit `scope` for
 an unscoped token; within a scope, permissions and collection/class/object
 resources are independent dimensions:
 
@@ -291,7 +338,7 @@ safety.
 ## Typed imports, exports, and task events
 
 Core import graphs use strict import-v2 request models, including the timestamps
-Hubuum v0.0.16 can restore. `run()` submits the task, waits with a bounded poller, and
+Hubuum v0.0.17 can restore. `run()` submits the task, waits with a bounded poller, and
 collects every per-entity result through guarded cursor pagination:
 
 ```python
@@ -331,7 +378,7 @@ print(result.succeeded, result.failed)
 The Python field `ref_` is serialized as the contract's `ref`. Import graphs,
 object data, result details, and error strings are excluded from model
 representations. Integration-oriented import sections remain strict JSON
-objects so the full v0.0.16 graph can be submitted without representing secret
+objects so the full v0.0.17 graph can be submitted without representing secret
 configuration in diagnostic output. Core resources can use `create_only`,
 unconditional `overwrite`, or `if_revision` per-item write conditions.
 
@@ -361,7 +408,7 @@ Task history is available through `client.tasks.events()`, `event_pages()`, and
 ## Custom extension routes
 
 `request()` remains the lower-level escape hatch for a server extension that is
-not part of the pinned v0.0.16 OpenAPI document:
+not part of the pinned v0.0.17 OpenAPI document:
 
 ```python
 from hubuum_client import RequestOptions
