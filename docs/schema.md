@@ -1,6 +1,6 @@
 # Schema evolution and task cancellation
 
-Hubuum v0.0.16 gives every class an immutable schema revision. A schema revision
+Hubuum v0.0.17 gives every class an immutable schema revision. A schema revision
 is independent of the class or object's resource revision. Select the typed
 service with `client.classes.by_id(class_id).schema`; `AsyncClient` exposes the
 same methods with `await`.
@@ -60,7 +60,7 @@ Class read permission allows revision reads. Class update permission allows
 staging, abandonment, and strict activation. Aggregate counts, impact and
 revalidation requests, work reports, and schema cancellation additionally require
 an unscoped administrator. See the
-[server schema reference](https://github.com/hubuum/hubuum/blob/v0.0.16/docs/schema_evolution.md)
+[server schema reference](https://github.com/hubuum/hubuum/blob/v0.0.17/docs/schema_evolution.md)
 for the complete authorization and migration rules.
 
 ## Saved findings and HTML reports
@@ -131,7 +131,7 @@ inspected candidates that the caller cannot see. Evidence uses the wire field
 `revision`, `expected_active_revision`, `policy`, and optional `impact_task_id`.
 The class input must contain the exact policy of an already staged revision.
 Import activation requires administrator authority and commits with that import
-item. Portable import envelopes remain version 2; full backups now use format 6.
+item. Portable import envelopes remain version 2; full backups now use format 7.
 See [server compatibility](compatibility.md) before upgrading or restoring older
 artifacts.
 

@@ -4,6 +4,7 @@
 
 | Python client | Hubuum server contract | Status | End-to-end evidence |
 | --- | --- | --- | --- |
+| Unreleased (planned 0.0.10) | [`v0.0.17`](https://github.com/hubuum/hubuum/tree/v0.0.17) | Verified | 22 core and 4 recovery tests passed locally on 2026-10-05 (Python 3.13.3, Podman, Linux AMD64 server) |
 | 0.0.9 | [`v0.0.16`](https://github.com/hubuum/hubuum/tree/v0.0.16) | Verified | 20 core and 4 recovery tests passed locally on 2026-09-22 (Python 3.13.3, Podman, Linux AMD64 server) |
 | [7165240](https://github.com/hubuum/hubuum-client-python/commit/7165240) | [`v0.0.15`](https://github.com/hubuum/hubuum/tree/v0.0.15) | Verified | 16 core and 4 recovery tests passed locally on 2026-09-15 (Python 3.11.12, Podman, Linux AMD64 server) |
 | 0.0.8 | [`v0.0.14`](https://github.com/hubuum/hubuum/tree/v0.0.14) | Verified | [14 core and 4 recovery tests passed on 2026-09-10](https://github.com/hubuum/hubuum-client-python/actions/runs/34446685036) (Python 3.11, Docker, Linux AMD64 server) |
@@ -19,26 +20,72 @@ client/server pair. The current server target is selected by tag and locked to
 an immutable multi-platform image:
 
 ```text
-ghcr.io/hubuum/hubuum-server:v0.0.16@sha256:37b3299edd845a0c2aa7772d7d68565233ac8c1802bc44be3fb4bbc6dfa8778e
+ghcr.io/hubuum/hubuum-server:v0.0.17@sha256:cc0518167816bfddb38853b8b7217c4a347511318d51e1abca93ca418f31b302
 ```
 
 The tag identifies the supported server release; the digest prevents that tag
 from resolving to different content later. The same reference is stored in
 `src/hubuum_client/_constants.py`, the e2e wrapper, and CI.
 
-## v0.0.16 target
+## v0.0.17 target
 
 The client pins the released OpenAPI document at commit
+`4a03d56b27f35af62175a80d09d36d0d41c4a663`, with SHA-256
+`ae6a889ac3ac701b0f70b4384a416d21246d60a64dd0e1e26b8b9306efa23acd`.
+The exact document is [committed with the client](openapi.json), and the offline
+contract check compares every operation and media type with the client manifest.
+
+The [v0.0.16 to v0.0.17 comparison](https://github.com/hubuum/hubuum/compare/v0.0.16...v0.0.17)
+adds seven operations and six schemas, with no removed routes or schemas.
+All **227 operations** are registered in both runtimes. The additions cover
+system event subscription CRUD and administrator webhook preview/test requests;
+see [notification operations](advanced.md#webhook-notifications-and-system-subscriptions).
+Sink configuration gains delivery pacing, subscriptions gain task-kind filters,
+and delivery responses include `purpose` and optional `deferred_reason`.
+Event-delivery health accepts `collection_id: null` for system subscriptions.
+These administrative operations return raw JSON, preserving the server's wire
+fields and nulls. Utoipa 6 also changes the ordering of nullable schema
+alternatives; existing typed resource fields remain compatible.
+
+### Upgrade from v0.0.16
+
+- Stop all writers and take a PostgreSQL snapshot before applying the
+  webhook-notification migration. This upgrade requires a maintenance window;
+  restart only matching API, worker, and restore-executor binaries. Binary-only
+  rollback is unsupported after migration. Recovery uses that snapshot and
+  matching v0.0.16 binaries, losing writes made after the snapshot.
+- Backups now use **format 7**. v0.0.17 accepts format 6 with legacy defaults,
+  but older servers cannot restore format 7. Restore preserves notification
+  configuration and terminal delivery history while resetting transient sink
+  scheduling. The live client recovery suite verifies new format 7 backups;
+  it does not claim format 6 migration coverage. Portable imports remain version 2.
+- System subscriptions require an unscoped administrator. Consumers of delivery
+  health must accept null collection IDs; exhaustive delivery readers must
+  allow the added purpose and deferral fields.
+- Webhook URL secrets and bearer authentication use separate aliases. Preview
+  renders without resolving secrets or sending a request; test delivery returns
+  `202 Accepted` when queued. Inspect delivery status to confirm its outcome.
+- Optional Treetop installations require REST and policy bundles on protocol
+  0.1, migrated label targets, and rebuilt/re-signed format 2 bundles. External
+  storage adapters must upgrade the eight SDK crates together to storage SDK
+  0.4; Rust schema consumers must adopt Utoipa 6.
+
+See the [v0.0.17 release notes](https://github.com/hubuum/hubuum/releases/tag/v0.0.17)
+and [notification upgrade reference](https://github.com/hubuum/hubuum/blob/v0.0.17/docs/events.md)
+for deployment details. Updating this Python package does not migrate a server.
+
+## Changes introduced in v0.0.16
+
+Client 0.0.9 pinned the released OpenAPI document at commit
 `8f4194ffe25d172d579b676f109efbdc71d9aab7`, with SHA-256
 `f0266a8e4399d4fe8d470e0ceecf05580a9e0b6acd976eaafbad1dfa2635c37d`.
-The exact document is [committed with the client](openapi.json), so the default
-contract check runs without network access and detects document or client
+The contract check runs without network access and detects document or client
 manifest drift. An explicit upstream check/update workflow is documented in
 [CONTRIBUTING.md](https://github.com/hubuum/hubuum-client-python/blob/main/CONTRIBUTING.md#openapi-contract-updates).
 
 The [v0.0.15 to v0.0.16 comparison](https://github.com/hubuum/hubuum/compare/v0.0.15...v0.0.16)
 adds two operations (approval creation and evidence lookup), with no removed
-routes or schemas. All **220 operations** are registered. Fifteen schemas are
+routes or schemas. All **220 operations** were registered. Fifteen schemas are
 added, including credential operations and records, retained task options,
 explicit discovery targets, output state, and the three missing task-detail
 variants. Existing error bodies gain an optional machine-readable `reason`.
@@ -159,7 +206,7 @@ Updating this Python package does not migrate a server installation.
 
 ## Meaning of compatibility
 
-For this project, targeting server v0.0.16 means:
+For this project, targeting server v0.0.17 means:
 
 - authentication, public probes, client configuration, typed CRUD, natural keys,
   nested object-data filtering, JSON Patch, IAM, relations, forced multi-page
@@ -173,21 +220,24 @@ For this project, targeting server v0.0.16 means:
 - live approval tests cover bearer-only rejection, single-use consumption,
   token renewal, password changes, credential-import dry runs and idempotency,
   and lifecycle/resource task discovery in both runtimes;
+- notification tests cover system subscription CRUD, task-kind filters, null
+  collection IDs in delivery health, delivery pacing, and webhook preview/test
+  admission in both runtimes, using an unavailable secret alias to prevent delivery;
 - the disposable stack runs eight consecutive full backup/restore cycles,
   covering sync-then-async and async-then-sync order without restarting the
-  server or executor. Version 6 backups include and omit history; restored
+  server or executor. Version 7 backups include and omit history; restored
   objects retain data, JSON `null`, and revisions, post-backup objects disappear, old tokens
   are rejected, and login works after an administrator password reset. Default
   backups after history-free restores and further mutations remain restorable;
   enforced class schemas also survive full restores;
 - every method, path, request media type, and successful response media type
-  matches the 220-operation manifest;
+  matches the 227-operation manifest;
 - request models follow the wire contract, while response models tolerate
   additive fields.
 
 The live suite imports the built wheel in an isolated environment. Contract
 completeness and live behavioral coverage are separate claims: representative
-workflows are tested, not all 220 operations. Full restore tests run after the
+workflows are tested, not all 227 operations. Full restore tests run after the
 core suite and only against the wrapper-owned disposable stack in the default
 `single` database role mode. Caller-managed servers never run this recovery
 suite. Administrative features such as backups, restores, computed fields,
@@ -205,7 +255,7 @@ stable `collection_id` from the expansion when needed.
 ## Forward compatibility
 
 Runs against Hubuum `main`, a release candidate, or an overridden image can
-identify drift early. They do not replace the immutable v0.0.16 e2e run or
+identify drift early. They do not replace the immutable v0.0.17 e2e run or
 change a released client's declared target. Breaking server changes require a
 new compatibility row, changelog entry, and successful evidence for the new
 tag-and-digest image.

@@ -8,12 +8,38 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- Target Hubuum v0.0.17 at release commit
+  `4a03d56b27f35af62175a80d09d36d0d41c4a663`, with its immutable OpenAPI document
+  and multi-platform image digest
+  `sha256:cc0518167816bfddb38853b8b7217c4a347511318d51e1abca93ca418f31b302`.
+  Register all 227 operations, including system event subscription CRUD and
+  webhook preview/test admission in both runtimes.
+- Verify format 7 backups and repeated restores; document the required offline
+  server migration, snapshot-based rollback, notification fields, and Treetop
+  and storage SDK upgrade requirements.
 - Documentation uses the shared warm Hubuum theme from the ecosystem site's
   unversioned stylesheet, including retained release editions. Future styling
   updates no longer require changes or rebuilds in this repository.
 
+### Maintenance
+
+- Refresh Python locks with `uv lock --upgrade`, including mypy 2.4.0,
+  Ruff 0.16.10, Zensical 0.0.67, coverage 7.16.2, Markdown 3.11,
+  pymdown-extensions 12.1, ast-serialize 0.12.1, librt 0.16.0,
+  charset-normalizer 3.5.2, MarkupSafe 3.0.4, and platformdirs 4.12.3.
+  This supersedes the Zensical/Ruff updates in Dependabot #60. HTTPX 0.28.1
+  and Pydantic 2.13.5 remain current within the supported runtime bounds.
+- Advance the shared documentation workflow/tooling pin to `c803fa3` after
+  reviewing its changes. Audit every third-party action pin and Twine; all
+  already match their latest stable releases. Require Hatchling 1.32.4 and
+  align the development-tool minimums with the audited versions.
+- Prepare 0.0.10 under `[Unreleased]`; retain package version 0.0.9 until these
+  dependency changes pass `main` CI and the Dependabot queue is empty.
+
 ### Added
 
+- Live sync/async notification coverage and request-construction regression
+  coverage for every registered operation in both runtimes.
 - A walkthrough using the shared Atlas example inventory, with classes, objects,
   relations, and permissions linked to the server-owned import and backup.
 

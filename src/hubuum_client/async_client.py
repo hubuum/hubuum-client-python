@@ -191,7 +191,7 @@ class AsyncClient:
 
     @property
     def openapi(self) -> AsyncOpenAPIOperations:
-        """Return the complete operation-ID interface for all 220 v0.0.16 operations."""
+        """Return the complete operation-ID interface for all 227 v0.0.17 operations."""
         return AsyncOpenAPIOperations(self)
 
     @overload
