@@ -8,6 +8,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- Allow synchronous and asynchronous `imports.run()` callers to configure
+  result `max_pages` and `max_items` for large imports, retaining the bounded
+  defaults and rejecting invalid limits before submission.
 - Raise `DecodeError` with safe request context for malformed named permissions
   and related-resource responses in both synchronous and asynchronous clients,
   including arrays containing non-object items.

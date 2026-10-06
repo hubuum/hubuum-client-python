@@ -240,6 +240,49 @@ async def test_approved_mutations_preserve_exact_nested_body_and_headers(
         await _resolve(client.close())
 
 
+@pytest.mark.parametrize("asynchronous", [False, True])
+async def test_import_run_preserves_approval_with_custom_result_bounds(asynchronous: bool) -> None:
+    requests: list[tuple[str, str]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append((request.method, request.url.path))
+        if request.method == "POST":
+            assert request.url.path == "/api/v1/imports"
+            assert request.headers["X-Hubuum-Credential-Approval"] == SECRET
+            assert request.headers["Idempotency-Key"] == "import-key"
+            return httpx.Response(202, json=TASK)
+        assert "X-Hubuum-Credential-Approval" not in request.headers
+        if request.url.path == "/api/v1/tasks/23":
+            return httpx.Response(200, json=TASK)
+        assert request.url.path == "/api/v1/imports/23/results"
+        return httpx.Response(200, json=[])
+
+    cls = AsyncClient if asynchronous else Client
+    client = cls("https://hubuum.test", token="session", transport=httpx.MockTransport(handler))
+    try:
+        approval = CredentialApprovalResponse.model_validate(
+            {"approval": SECRET, "record": RECORD | {"operation": "import_credentials"}}
+        )
+        result = await _resolve(
+            client.imports.run(
+                ImportRequest(graph=ImportGraph()),
+                approval=approval,
+                idempotency_key="import-key",
+                max_pages=1,
+                max_items=1,
+            )
+        )
+        assert result.task.id == 23
+        assert result.results == ()
+        assert requests == [
+            ("POST", "/api/v1/imports"),
+            ("GET", "/api/v1/tasks/23"),
+            ("GET", "/api/v1/imports/23/results"),
+        ]
+    finally:
+        await _resolve(client.close())
+
+
 def test_approval_secrets_and_requests_are_redacted_and_strict() -> None:
     approval = CredentialApprovalResponse.model_validate(APPROVAL)
     secret = CredentialApprovalSecret(SECRET)
