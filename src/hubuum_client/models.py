@@ -1679,6 +1679,13 @@ class EventSinkUpdate(RequestModel):
     secret_ref: str | None = Field(default=None, repr=False)
     delivery_policy: dict[str, JsonValue] | None = None
 
+    def payload(self) -> dict[str, Any]:
+        """Preserve explicit credential removal without clearing omitted fields."""
+        payload = super().payload()
+        if "secret_ref" in self.model_fields_set:
+            payload["secret_ref"] = self.secret_ref
+        return payload
+
 
 class EventSubscription(HubuumModel):
     id: EventSubscriptionId

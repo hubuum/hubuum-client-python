@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Explicit `EventSinkUpdate(secret_ref=None)` clears a sink credential reference;
+  omitted references remain unchanged in both client modes.
+
 ### Added
 
 - Typed synchronous and asynchronous collection destination services through

@@ -142,3 +142,34 @@ async def test_collection_discovery_does_not_fall_back_to_admin_endpoint(
         else:
             client.close()
     assert [request.url.path for request in requests] == ["/api/v1/collections/7/event-sinks"]
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+@pytest.mark.parametrize("clear", [False, True])
+async def test_sink_update_distinguishes_omitted_and_cleared_credentials(
+    asynchronous: bool, clear: bool
+) -> None:
+    bodies: list[dict[str, object]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        bodies.append(json.loads(request.content))
+        return httpx.Response(
+            200,
+            json={
+                **SINK,
+                "config": {},
+                "secret_ref": None if clear else "existing",
+                "created_at": "2026-10-05T00:00:00Z",
+                "updated_at": "2026-10-05T00:00:00Z",
+            },
+        )
+
+    client = (AsyncClient if asynchronous else Client)(
+        "https://hubuum.test", token="token", transport=httpx.MockTransport(handler)
+    )
+    try:
+        payload = EventSinkUpdate(secret_ref=None) if clear else EventSinkUpdate(enabled=False)
+        await resolve(client.event_sinks.update(5, payload))
+    finally:
+        await resolve(client.close())
+    assert bodies == ([{"secret_ref": None}] if clear else [{"enabled": False}])
