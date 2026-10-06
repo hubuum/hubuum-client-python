@@ -1378,8 +1378,10 @@ to useful subclasses:</p>
 </tbody>
 </table>
 <p>Other failed HTTP responses raise <code>APIError</code>. Network and TLS failures raise
-<code>TransportError</code>; successful responses that violate a typed model raise
-<code>DecodeError</code>.</p>
+<code>TransportError</code>; successful responses that violate a typed model or an expected
+JSON object/array shape raise <code>DecodeError</code>. This includes named class permissions
+and related class, object, relation, and graph reads. Decode errors include the
+request method, query-free URL, and HTTP status without the malformed body.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">NotFoundError</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">try</span><span class="p">:</span>
