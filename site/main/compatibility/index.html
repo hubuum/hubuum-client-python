@@ -702,6 +702,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#optional-collection-integration-extension" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Optional collection integration extension
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1345,6 +1356,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#optional-collection-integration-extension" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Optional collection integration extension
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1671,6 +1693,42 @@ identify drift early. They do not replace the immutable v0.0.17 e2e run or
 change a released client's declared target. Breaking server changes require a
 new compatibility row, changelog entry, and successful evidence for the new
 tag-and-digest image.</p>
+<h2 id="optional-collection-integration-extension">Optional collection integration extension<a class="headerlink" href="#optional-collection-integration-extension" title="Permanent link">&para;</a></h2>
+<p>Collection-owned webhook endpoints require the server update after <code>v0.0.17</code>.
+<code>docs/collection-integrations.json</code> records this additional contract separately
+from the pinned released-server baseline. Unsupported servers return their normal
+route error; the client never falls back to global discovery for a collection.</p>
+<p>Both synchronous and asynchronous clients provide the same service interface:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventSinkCreate</span><span class="p">,</span> <span class="n">EventSubscriptionCreate</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">sinks</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">collections</span><span class="o">.</span><span class="n">event_sinks</span><span class="p">(</span><span class="n">collection_id</span><span class="p">)</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">sink</span> <span class="o">=</span> <span class="n">sinks</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">EventSinkCreate</span><span class="p">(</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        <span class="n">name</span><span class="o">=</span><span class="s2">"notifications"</span><span class="p">,</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>        <span class="n">kind</span><span class="o">=</span><span class="s2">"webhook"</span><span class="p">,</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>        <span class="n">config</span><span class="o">=</span><span class="p">{</span><span class="s2">"destination_url"</span><span class="p">:</span> <span class="n">webhook_url</span><span class="p">},</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="p">)</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="p">)</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="n">client</span><span class="o">.</span><span class="n">collections</span><span class="o">.</span><span class="n">event_subscriptions</span><span class="p">(</span><span class="n">collection_id</span><span class="p">)</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>    <span class="n">EventSubscriptionCreate</span><span class="p">(</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>        <span class="n">name</span><span class="o">=</span><span class="s2">"object changes"</span><span class="p">,</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>        <span class="n">sink_id</span><span class="o">=</span><span class="n">sink</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>        <span class="n">entity_types</span><span class="o">=</span><span class="p">(</span><span class="s2">"object"</span><span class="p">,),</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>        <span class="n">actions</span><span class="o">=</span><span class="p">(</span><span class="s2">"updated"</span><span class="p">,),</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>    <span class="p">)</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="p">)</span>
+</code></pre></div>
+<p>Await the calls with <code>AsyncClient</code>. Management and audit-read permissions are
+required for creation and editing. Destination URLs are omitted from collection
+responses; rotating one requires a replacement configuration. The destination is
+owned by the collection and survives the creator losing access.</p>
+<p>Administrators can call <code>client.event_sinks.grant(sink_id, collection_id)</code>,
+<code>.collections(sink_id)</code>, and <code>.revoke(sink_id, collection_id)</code>. Shared grants do not
+inherit, and credential-bearing webhooks must bind their destination on the sink.</p>
+<p>To verify delegated access against the updated server, set
+<code>HUBUUM_E2E_COLLECTION_INTEGRATIONS=1</code> together with <code>HUBUUM_E2E_BASE_URL</code> and
+<code>HUBUUM_E2E_ADMIN_PASSWORD</code>, then run <code>./scripts/run-e2e-tests.sh</code>. The additional
+tests cover sync and async collection managers and remain skipped on v0.0.17.</p>
 
 
 
