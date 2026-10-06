@@ -8,6 +8,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- Raise `DecodeError` with safe request context for malformed named permissions
+  and related-resource responses in both synchronous and asynchronous clients,
+  including arrays containing non-object items.
 - Make the e2e readiness unit tests use a fully simulated clock, preventing
   intermittent timeout failures when Bash's wall clock crosses a second.
 - Explicit `EventSinkUpdate(secret_ref=None)` clears a sink credential reference;
