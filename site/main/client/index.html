@@ -1240,7 +1240,7 @@
 </code></pre></div>
 <p><code>login()</code> authenticates the current client and returns it for optional chaining.
 The resulting <code>client.token.expires_at</code> contains the authoritative expiry
-persisted by Hubuum v0.0.17. A token supplied directly at construction has no
+persisted by Hubuum v0.0.18. A token supplied directly at construction has no
 known expiry unless its <code>AccessToken</code> value includes one.
 An existing bearer token can be supplied at construction:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="s2">"https://hubuum.example.com"</span><span class="p">,</span> <span class="n">token</span><span class="o">=</span><span class="n">token</span><span class="p">)</span>

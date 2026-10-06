@@ -1185,7 +1185,7 @@
 
 <h1 id="hubuum-client-for-python">Hubuum client for Python<a class="headerlink" href="#hubuum-client-for-python" title="Permanent link">&para;</a></h1>
 <p><code>hubuum-client</code> is a small, modern interface to the Hubuum REST API. Version
-0.0.10 targets Hubuum server v0.0.17 and gives synchronous and
+0.0.11 targets Hubuum server v0.0.18 and gives synchronous and
 asynchronous applications the same typed resource model.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">Client</span><span class="p">,</span> <span class="n">Credentials</span><span class="p">,</span> <span class="n">Query</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
@@ -1202,7 +1202,7 @@ asynchronous applications the same typed resource model.</p>
 <li><strong>Predictable typing.</strong> Request and response bodies are Pydantic v2 models;
   resource identities use distinct <code>NewType</code> declarations.</li>
 <li><strong>Runtime parity.</strong> <code>Client</code> and <code>AsyncClient</code> expose matching resources,
-  errors, authentication behavior, pagination semantics, and all 227 pinned
+  errors, authentication behavior, pagination semantics, and all 235 pinned
   OpenAPI operations.</li>
 <li><strong>Secure defaults.</strong> TLS validation is enabled, tokens and credentials are
   redacted, and raw requests cannot switch origin or traverse URL paths.</li>
@@ -1223,14 +1223,14 @@ object relations, nested token scopes and renewal, typed object aggregate
 measures, task events, import v2, and exports. Health, readiness, and public
 configuration are available before authentication.</p>
 <p>The <code>openapi</code> service deliberately registers every operation in the immutable
-v0.0.17 specification. Administrative domains that do not yet
+v0.0.18 specification. Administrative domains that do not yet
 have dedicated Pydantic resources are invoked by <code>operationId</code> and return
 standard typed JSON, text, or byte values. CI compares that manifest with the
 authoritative server contract so an endpoint cannot silently fall out of
 coverage.</p>
 <p>Continue with <a href="client/">client setup</a>, then see
 <a href="querying/">queries and pagination</a>.</p>
-<p>Use <a href="credentials/">credential approvals</a> for the v0.0.17 protected mutations,
+<p>Use <a href="credentials/">credential approvals</a> for the v0.0.18 protected mutations,
 and <a href="querying/#task-discovery">task discovery</a> for lifecycle and resource filters.</p>
 <h2 id="explore-a-shared-example">Explore a shared example<a class="headerlink" href="#explore-a-shared-example" title="Permanent link">&para;</a></h2>
 <p><a href="example-dataset/">Load and explore Atlas</a> to work with the same classes,

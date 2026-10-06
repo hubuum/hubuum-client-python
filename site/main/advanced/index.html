@@ -1397,7 +1397,7 @@ their diagnostics.</p>
 non-negative seconds. Both integer delay values and HTTP dates are supported;
 the attribute is <code>None</code> when the header is absent or malformed.</p>
 <h2 id="complete-openapi-operation-surface">Complete OpenAPI operation surface<a class="headerlink" href="#complete-openapi-operation-surface" title="Permanent link">&para;</a></h2>
-<p>The Hubuum v0.0.17 OpenAPI contract contains 227 operations. Every operation is
+<p>The Hubuum v0.0.18 OpenAPI contract contains 235 operations. Every operation is
 registered by its exact <code>operationId</code>, HTTP method, path template, request
 media types, and authentication policy:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenAPIOptions</span>
@@ -1421,7 +1421,7 @@ parameters fail before a request:</p>
 <a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="p">)</span>
 </code></pre></div>
 <p><code>Idempotency-Key</code> values are validated before I/O and must contain between 1
-and 255 bytes, matching v0.0.17 task-submission endpoints.</p>
+and 255 bytes, matching v0.0.18 task-submission endpoints.</p>
 <p>When an operation accepts multiple request representations, select one through
 <code>content_type</code>. Principal settings support JSON Merge Patch by default and RFC
 6902 JSON Patch explicitly:</p>
@@ -1452,10 +1452,10 @@ For example, rendered exports are not forced through a JSON decoder:</p>
 </code></pre></div>
 <p>Use <code>async with</code> and <code>async for</code> for the asynchronous client. The operation
 manifest is compared with the immutable server OpenAPI document in CI,
-including request and successful-response media types; all 227 operations must
+including request and successful-response media types; all 235 operations must
 match exactly.</p>
 <h2 id="webhook-notifications-and-system-subscriptions">Webhook notifications and system subscriptions<a class="headerlink" href="#webhook-notifications-and-system-subscriptions" title="Permanent link">&para;</a></h2>
-<p>Hubuum v0.0.17 adds administrator webhook preview/test operations and system
+<p>Hubuum v0.0.18 adds administrator webhook preview/test operations and system
 event subscriptions. Both clients expose them through <code>openapi.call()</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">subscription</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">openapi</span><span class="o">.</span><span class="n">call</span><span class="p">(</span>
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="s2">"postApiV1SystemEventSubscriptions"</span><span class="p">,</span>
@@ -1492,7 +1492,7 @@ bearer-token secrets configured on the server. <code>delivery_policy.min_interva
 controls sink pacing. Delivery JSON includes <code>purpose</code> and may include
 <code>deferred_reason</code>; delivery-health subscription entries can have
 <code>collection_id: null</code>. These administrative responses remain raw JSON.
-See the <a href="https://github.com/hubuum/hubuum/blob/v0.0.17/docs/webhook_notifications.md">server webhook guide</a>
+See the <a href="https://github.com/hubuum/hubuum/blob/v0.0.18/docs/webhook_notifications.md">server webhook guide</a>
 for configuration and delivery rules.</p>
 <h2 id="structured-search">Structured search<a class="headerlink" href="#structured-search" title="Permanent link">&para;</a></h2>
 <p>Use <code>postApiV1Search</code> for the version 1 structured-search DSL. The same JSON
@@ -1522,10 +1522,10 @@ terminal <code>done</code> events; an <code>error</code> event signals failure a
 The <code>done</code> event carries cursor metadata. Use <code>await client.openapi.call(...)</code>
 and <code>async with client.openapi.stream(..., json=search)</code> in asynchronous code.
 GET search streams accept no body; POST search streams require one. See the
-<a href="https://github.com/hubuum/hubuum/blob/v0.0.17/docs/search_api.md">server search reference</a>
+<a href="https://github.com/hubuum/hubuum/blob/v0.0.18/docs/search_api.md">server search reference</a>
 for field, sort, and predicate limits.</p>
 <h2 id="queued-full-restores">Queued full restores<a class="headerlink" href="#queued-full-restores" title="Permanent link">&para;</a></h2>
-<p>Hubuum v0.0.17 restore confirmation returns <code>202 Accepted</code> when queued, before
+<p>Hubuum v0.0.18 restore confirmation returns <code>202 Accepted</code> when queued, before
 the separate administrator restore executor finishes. Use
 <a href="../credentials/#users-imports-and-restores">fresh credential approval</a> with
 <code>postApiV1RestoresByRestoreIdConfirm</code> to confirm a validated stage, then poll
@@ -1545,7 +1545,7 @@ state replaces existing tokens. Keep the capability private. It is redacted
 from client error diagnostics and option representations. Full restore stages
 are separate from task IDs and cannot use <code>client.tasks.wait()</code>.</p>
 <h2 id="scoped-tokens">Scoped tokens<a class="headerlink" href="#scoped-tokens" title="Permanent link">&para;</a></h2>
-<p>Hubuum v0.0.17 nests token boundaries under one <code>scope</code> field. Omit <code>scope</code> for
+<p>Hubuum v0.0.18 nests token boundaries under one <code>scope</code> field. Omit <code>scope</code> for
 an unscoped token; within a scope, permissions and collection/class/object
 resources are independent dimensions:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">getpass</span><span class="w"> </span><span class="kn">import</span> <span class="n">getpass</span>
@@ -1644,7 +1644,7 @@ preserved, and the server applies the complete patch atomically with rename
 safety.</p>
 <h2 id="typed-imports-exports-and-task-events">Typed imports, exports, and task events<a class="headerlink" href="#typed-imports-exports-and-task-events" title="Permanent link">&para;</a></h2>
 <p>Core import graphs use strict import-v2 request models, including the timestamps
-Hubuum v0.0.17 can restore. <code>run()</code> submits the task, waits with a bounded poller, and
+Hubuum v0.0.18 can restore. <code>run()</code> submits the task, waits with a bounded poller, and
 collects per-entity results through guarded cursor pagination:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
 <a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>
@@ -1692,7 +1692,7 @@ collection, use <code>submit()</code>, <code>client.tasks.wait()</code>, and <co
 <p>The Python field <code>ref_</code> is serialized as the contract's <code>ref</code>. Import graphs,
 object data, result details, and error strings are excluded from model
 representations. Integration-oriented import sections remain strict JSON
-objects so the full v0.0.17 graph can be submitted without representing secret
+objects so the full v0.0.18 graph can be submitted without representing secret
 configuration in diagnostic output. Core resources can use <code>create_only</code>,
 unconditional <code>overwrite</code>, or <code>if_revision</code> per-item write conditions.</p>
 <p>Direct exports are similarly typed:</p>
@@ -1716,7 +1716,7 @@ Task history is available through <code>client.tasks.events()</code>, <code>even
 <code>all_events()</code>. Every method has a matching async form.</p>
 <h2 id="custom-extension-routes">Custom extension routes<a class="headerlink" href="#custom-extension-routes" title="Permanent link">&para;</a></h2>
 <p><code>request()</code> remains the lower-level escape hatch for a server extension that is
-not part of the pinned v0.0.17 OpenAPI document:</p>
+not part of the pinned v0.0.18 OpenAPI document:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">RequestOptions</span>
 <a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>
 <a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">request</span><span class="p">(</span>

@@ -1272,7 +1272,7 @@ terminal filter returns a new immutable <code>Query</code>, so filters compose n
 <p>The path is passed as one key per argument. For example,
 <code>data("network", "address")</code> selects <code>data["network"]["address"]</code> and encodes
 the server value <code>network,address=...</code>. Commas and equals signs cannot be used
-in path keys because Hubuum v0.0.17 does not define escaping for those
+in path keys because Hubuum v0.0.18 does not define escaping for those
 delimiters.</p>
 <p>Common scalar and textual filters use direct method names:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">date</span>
@@ -1350,7 +1350,7 @@ pagination follows the same bounds and cursor rules through <code>members_page()
 responses also include the optional nested <code>principal</code> details, whose revision
 is independent of the enclosing membership revision.</p>
 <h2 id="exact-name-routes">Exact-name routes<a class="headerlink" href="#exact-name-routes" title="Permanent link">&para;</a></h2>
-<p>Hubuum v0.0.17 supports explicit natural-key aliases for classes and objects.
+<p>Hubuum v0.0.18 supports explicit natural-key aliases for classes and objects.
 Use the complete name-addressed service when class and object names are already
 known:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">selected_class</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">classes</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="s2">"12345"</span><span class="p">)</span>
@@ -1409,7 +1409,7 @@ is <code>available</code>, <code>expired</code>, <code>not_produced</code>, or <
 resource authorization before matching/counting and may suppress details and
 output links while retaining basic task status. Resource filters match explicit
 captured targets, not present-day membership or resources inferred from an
-import payload or export query. See the <a href="https://github.com/hubuum/hubuum/blob/v0.0.17/docs/task_api.md">server task reference</a>.</p>
+import payload or export query. See the <a href="https://github.com/hubuum/hubuum/blob/v0.0.18/docs/task_api.md">server task reference</a>.</p>
 
 
 

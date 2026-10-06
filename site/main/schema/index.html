@@ -1208,7 +1208,7 @@
 
 
 <h1 id="schema-evolution-and-task-cancellation">Schema evolution and task cancellation<a class="headerlink" href="#schema-evolution-and-task-cancellation" title="Permanent link">&para;</a></h1>
-<p>Hubuum v0.0.17 gives every class an immutable schema revision. A schema revision
+<p>Hubuum v0.0.18 gives every class an immutable schema revision. A schema revision
 is independent of the class or object's resource revision. Select the typed
 service with <code>client.classes.by_id(class_id).schema</code>; <code>AsyncClient</code> exposes the
 same methods with <code>await</code>.</p>
@@ -1262,7 +1262,7 @@ pending until revalidated. <code>schema.revalidate(revision)</code> queues anoth
 staging, abandonment, and strict activation. Aggregate counts, impact and
 revalidation requests, work reports, and schema cancellation additionally require
 an unscoped administrator. See the
-<a href="https://github.com/hubuum/hubuum/blob/v0.0.17/docs/schema_evolution.md">server schema reference</a>
+<a href="https://github.com/hubuum/hubuum/blob/v0.0.18/docs/schema_evolution.md">server schema reference</a>
 for the complete authorization and migration rules.</p>
 <h2 id="saved-findings-and-html-reports">Saved findings and HTML reports<a class="headerlink" href="#saved-findings-and-html-reports" title="Permanent link">&para;</a></h2>
 <p><code>schema.work(task_id)</code> returns typed counters, readiness, and <code>impact</code> details.
@@ -1319,7 +1319,7 @@ inspected candidates that the caller cannot see. Evidence uses the wire field
 <code>revision</code>, <code>expected_active_revision</code>, <code>policy</code>, and optional <code>impact_task_id</code>.
 The class input must contain the exact policy of an already staged revision.
 Import activation requires administrator authority and commits with that import
-item. Portable import envelopes remain version 2; full backups now use format 7.
+item. Portable import envelopes remain version 2; full backups now use format 8.
 See <a href="../compatibility/">server compatibility</a> before upgrading or restoring older
 artifacts.</p>
 <h2 id="cancel-a-task">Cancel a task<a class="headerlink" href="#cancel-a-task" title="Permanent link">&para;</a></h2>

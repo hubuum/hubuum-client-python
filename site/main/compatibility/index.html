@@ -575,6 +575,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#v0018-target" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        v0.0.18 target
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0017-target" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -703,10 +714,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#optional-collection-integration-extension" class="md-nav__link">
+  <a href="#collection-integrations" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Optional collection integration extension
+        Collection integrations
       </span>
     </span>
   </a>
@@ -1229,6 +1240,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#v0018-target" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        v0.0.18 target
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0017-target" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1357,10 +1379,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#optional-collection-integration-extension" class="md-nav__link">
+  <a href="#collection-integrations" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Optional collection integration extension
+        Collection integrations
       </span>
     </span>
   </a>
@@ -1409,6 +1431,12 @@
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>0.0.11</td>
+<td><a href="https://github.com/hubuum/hubuum/tree/v0.0.18"><code>v0.0.18</code></a></td>
+<td>Verified</td>
+<td>24 core and 4 recovery tests passed on 2026-10-06 using the installed wheel (Python 3.13.3, Podman, released Linux AMD64 image), including delegated setup in both runtimes and eight complete restore cycles</td>
+</tr>
 <tr>
 <td>0.0.10</td>
 <td><a href="https://github.com/hubuum/hubuum/tree/v0.0.17"><code>v0.0.17</code></a></td>
@@ -1474,17 +1502,41 @@
 <p><code>Verified</code> means the complete Docker-backed suite passed for the exact
 client/server pair. The current server target is selected by tag and locked to
 an immutable multi-platform image:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>ghcr.io/hubuum/hubuum-server:v0.0.17@sha256:cc0518167816bfddb38853b8b7217c4a347511318d51e1abca93ca418f31b302
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>ghcr.io/hubuum/hubuum-server:v0.0.18@sha256:5b54248f19171200dfa497174d385a48f90666a415cb31732797043d5e182fc4
 </code></pre></div>
 <p>The tag identifies the supported server release; the digest prevents that tag
 from resolving to different content later. The same reference is stored in
 <code>src/hubuum_client/_constants.py</code>, the e2e wrapper, and CI.</p>
+<h2 id="v0018-target">v0.0.18 target<a class="headerlink" href="#v0018-target" title="Permanent link">&para;</a></h2>
+<p>Client 0.0.11 targets the released v0.0.18 contract with 235 registered operations.
+Typed collection destinations, subscriptions, global sinks, and direct collection
+grants are available through synchronous and asynchronous services. The complete
+live suite requires delegated collection setup and explicit grants for shared sinks.</p>
+<p>The pinned OpenAPI document comes from server commit
+<code>35fcf6696d4d564e2d89534db0c5194c14129d9f</code>, with SHA-256
+<code>9983bdefeb9bea3e7af1c7696bf6a7af32db3d9e4a2fb776ffad72c3c56f342c</code>.
+The exact document is <a href="../openapi.json">committed with this client</a>. The contract
+checker verifies every registered operation and media type against that source.</p>
+<p>Collection setup requires <code>ManageEventSubscription</code> and <code>ReadAudit</code>. Grants do not
+inherit to child collections. Credentials and static headers require fixed webhook
+destinations, and subscription routing cannot redirect them. Collection-owned
+integrations persist after their creator loses access; related-collection deliveries
+omit resource snapshots.</p>
+<p>The server emits format 8 backups with ownership and grants, and accepts formats
+6 and 7 with legacy grant backfill. Older servers cannot restore format 8. Upgrading
+from v0.0.17 requires stopping all API, worker, and restore-executor writers, taking
+a PostgreSQL snapshot, applying the collection-event-sinks migration, and starting
+matching v0.0.18 binaries after reconciling role grants. Binary-only rollback is
+unsupported: recover the snapshot with matching v0.0.17 binaries, losing later writes.
+See the <a href="https://github.com/hubuum/hubuum/releases/tag/v0.0.18">server release notes</a>.</p>
 <h2 id="v0017-target">v0.0.17 target<a class="headerlink" href="#v0017-target" title="Permanent link">&para;</a></h2>
-<p>The client pins the released OpenAPI document at commit
+<p>Client 0.0.10 pinned the released OpenAPI document at commit
 <code>4a03d56b27f35af62175a80d09d36d0d41c4a663</code>, with SHA-256
 <code>ae6a889ac3ac701b0f70b4384a416d21246d60a64dd0e1e26b8b9306efa23acd</code>.
-The exact document is <a href="../openapi.json">committed with the client</a>, and the offline
-contract check compares every operation and media type with the client manifest.</p>
+The exact document remains in the
+<a href="https://github.com/hubuum/hubuum-client-python/blob/v0.0.10/docs/openapi.json">0.0.10 client release</a>.
+Its offline contract check compared every operation and media type with that
+release's client manifest.</p>
 <p>The <a href="https://github.com/hubuum/hubuum/compare/v0.0.16...v0.0.17">v0.0.16 to v0.0.17 comparison</a>
 adds seven operations and six schemas, with no removed routes or schemas.
 All <strong>227 operations</strong> are registered in both runtimes. The additions cover
@@ -1644,7 +1696,7 @@ also cover migrations, coordinated server/admin/template-worker deployment,
 external authorization policy changes, token-key rotation, and rollback.
 Updating this Python package does not migrate a server installation.</p>
 <h2 id="meaning-of-compatibility">Meaning of compatibility<a class="headerlink" href="#meaning-of-compatibility" title="Permanent link">&para;</a></h2>
-<p>For this project, targeting server v0.0.17 means:</p>
+<p>For this project, targeting server v0.0.18 means:</p>
 <ul>
 <li>authentication, public probes, client configuration, typed CRUD, natural keys,
   nested object-data filtering, JSON Patch, IAM, relations, forced multi-page
@@ -1663,19 +1715,19 @@ Updating this Python package does not migrate a server installation.</p>
   admission in both runtimes, using an unavailable secret alias to prevent delivery;</li>
 <li>the disposable stack runs eight consecutive full backup/restore cycles,
   covering sync-then-async and async-then-sync order without restarting the
-  server or executor. Version 7 backups include and omit history; restored
+  server or executor. Version 8 backups include and omit history; restored
   objects retain data, JSON <code>null</code>, and revisions, post-backup objects disappear, old tokens
   are rejected, and login works after an administrator password reset. Default
   backups after history-free restores and further mutations remain restorable;
   enforced class schemas also survive full restores;</li>
 <li>every method, path, request media type, and successful response media type
-  matches the 227-operation manifest;</li>
+  matches the 235-operation manifest;</li>
 <li>request models follow the wire contract, while response models tolerate
   additive fields.</li>
 </ul>
 <p>The live suite imports the built wheel in an isolated environment. Contract
 completeness and live behavioral coverage are separate claims: representative
-workflows are tested, not all 227 operations. Full restore tests run after the
+workflows are tested, not all 235 operations. Full restore tests run after the
 core suite and only against the wrapper-owned disposable stack in the default
 <code>single</code> database role mode. Caller-managed servers never run this recovery
 suite. Administrative features such as backups, restores, computed fields,
@@ -1689,15 +1741,14 @@ an expanded representation. <code>HubuumClass</code> accepts both forms and deri
 stable <code>collection_id</code> from the expansion when needed.</p>
 <h2 id="forward-compatibility">Forward compatibility<a class="headerlink" href="#forward-compatibility" title="Permanent link">&para;</a></h2>
 <p>Runs against Hubuum <code>main</code>, a release candidate, or an overridden image can
-identify drift early. They do not replace the immutable v0.0.17 e2e run or
+identify drift early. They do not replace the immutable v0.0.18 e2e run or
 change a released client's declared target. Breaking server changes require a
 new compatibility row, changelog entry, and successful evidence for the new
 tag-and-digest image.</p>
-<h2 id="optional-collection-integration-extension">Optional collection integration extension<a class="headerlink" href="#optional-collection-integration-extension" title="Permanent link">&para;</a></h2>
-<p>Collection-owned webhook endpoints require the server update after <code>v0.0.17</code>.
-<code>docs/collection-integrations.json</code> records this additional contract separately
-from the pinned released-server baseline. Unsupported servers return their normal
-route error; the client never falls back to global discovery for a collection.</p>
+<h2 id="collection-integrations">Collection integrations<a class="headerlink" href="#collection-integrations" title="Permanent link">&para;</a></h2>
+<p>Collection-owned webhook endpoints are included in the pinned <code>v0.0.18</code>
+<code>docs/openapi.json</code> contract. Unsupported older servers return their normal route
+error; the client never falls back to global discovery for a collection.</p>
 <p>Both synchronous and asynchronous clients provide the same service interface:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventSinkCreate</span><span class="p">,</span> <span class="n">EventSubscriptionCreate</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
@@ -1725,10 +1776,10 @@ owned by the collection and survives the creator losing access.</p>
 <p>Administrators can call <code>client.event_sinks.grant(sink_id, collection_id)</code>,
 <code>.collections(sink_id)</code>, and <code>.revoke(sink_id, collection_id)</code>. Shared grants do not
 inherit, and credential-bearing webhooks must bind their destination on the sink.</p>
-<p>To verify delegated access against the updated server, set
-<code>HUBUUM_E2E_COLLECTION_INTEGRATIONS=1</code> together with <code>HUBUUM_E2E_BASE_URL</code> and
-<code>HUBUUM_E2E_ADMIN_PASSWORD</code>, then run <code>./scripts/run-e2e-tests.sh</code>. The additional
-tests cover sync and async collection managers and remain skipped on v0.0.17.</p>
+<p>Run <code>./scripts/run-e2e-tests.sh</code> to verify delegated access against the pinned
+server. Sync and async collection-manager workflows are required parts of the
+canonical suite. Caller-managed servers can use <code>HUBUUM_E2E_BASE_URL</code> and
+<code>HUBUUM_E2E_ADMIN_PASSWORD</code>; recovery tests run only on the disposable stack.</p>
 
 
 
