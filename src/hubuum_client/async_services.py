@@ -31,11 +31,18 @@ from .models import (
     ClassUpdate,
     Collection,
     CollectionCreate,
+    CollectionEventSink,
     CollectionUpdate,
     ComplianceStatus,
     CredentialApprovalRecord,
     CredentialApprovalRequest,
     CredentialApprovalResponse,
+    EventSink,
+    EventSinkCreate,
+    EventSinkUpdate,
+    EventSubscription,
+    EventSubscriptionCreate,
+    EventSubscriptionUpdate,
     ExportContentType,
     ExportJsonResponse,
     ExportOutput,
@@ -76,6 +83,7 @@ from .models import (
     UserCreate,
     UserPoint,
     UserUpdate,
+    _EventSinkCollectionIds,
     _object_data_patch_payload,
 )
 from .options import Params, RequestOptions
@@ -86,6 +94,7 @@ from .types import (
     ClassId,
     CollectionId,
     CredentialApprovalId,
+    EventSinkId,
     GroupId,
     PrincipalId,
     SchemaRevision,
@@ -250,6 +259,16 @@ class AsyncCollectionsService(
             list_model=Collection,
             point_model=Collection,
         )
+
+    def event_sinks(self, collection_id: CollectionId | int) -> AsyncCollectionEventSinksService:
+        """Permitted destinations and owned-webhook management (server after v0.0.17)."""
+        return AsyncCollectionEventSinksService(self._client, CollectionId(collection_id))
+
+    def event_subscriptions(
+        self, collection_id: CollectionId | int
+    ) -> AsyncEventSubscriptionsService:
+        """Collection subscriptions; writes require management and audit permissions."""
+        return AsyncEventSubscriptionsService(self._client, CollectionId(collection_id))
 
     async def children(self, collection_id: CollectionId | int) -> builtins.list[Collection]:
         return await _model_list(
@@ -1342,3 +1361,74 @@ async def _model_page(
         total_count=_header_int(response.headers.get("x-total-count")),
         page_limit=_header_int(response.headers.get("x-page-limit")),
     )
+
+
+class AsyncCollectionEventSinksService(
+    AsyncResourceService[CollectionEventSink, CollectionEventSink, EventSinkCreate, EventSinkUpdate]
+):
+    """Create fixed-destination webhooks owned by a collection and discover permitted sinks."""
+
+    def __init__(self, client: AsyncClient, collection_id: CollectionId) -> None:
+        base = f"/api/v1/collections/{_segment(collection_id)}/event-sinks"
+        super().__init__(
+            client,
+            collection_path=base,
+            item_path=base + "/{id}",
+            list_model=CollectionEventSink,
+            point_model=CollectionEventSink,
+        )
+
+
+class AsyncEventSubscriptionsService(
+    AsyncResourceService[
+        EventSubscription, EventSubscription, EventSubscriptionCreate, EventSubscriptionUpdate
+    ]
+):
+    """Collection event subscriptions with bounded cursor pagination."""
+
+    def __init__(self, client: AsyncClient, collection_id: CollectionId) -> None:
+        base = f"/api/v1/collections/{_segment(collection_id)}/event-subscriptions"
+        super().__init__(
+            client,
+            collection_path=base,
+            item_path=base + "/{id}",
+            list_model=EventSubscription,
+            point_model=EventSubscription,
+        )
+
+
+class AsyncEventSinksService(
+    AsyncResourceService[EventSink, EventSink, EventSinkCreate, EventSinkUpdate]
+):
+    """Administrator sink CRUD and explicit collection-use grants."""
+
+    def __init__(self, client: AsyncClient) -> None:
+        super().__init__(
+            client,
+            collection_path="/api/v1/event-sinks",
+            item_path="/api/v1/event-sinks/{id}",
+            list_model=EventSink,
+            point_model=EventSink,
+        )
+
+    async def collections(self, sink_id: EventSinkId | int) -> builtins.list[CollectionId]:
+        """List direct grants; requires server collection-integration support."""
+        result = await self._client.request(
+            "GET",
+            f"/api/v1/event-sinks/{_segment(sink_id)}/collections",
+            response_model=_EventSinkCollectionIds,
+        )
+        return result.root
+
+    async def grant(self, sink_id: EventSinkId | int, collection_id: CollectionId | int) -> None:
+        """Permit one collection to use a global sink."""
+        await self._client.request(
+            "PUT", f"/api/v1/event-sinks/{_segment(sink_id)}/collections/{_segment(collection_id)}"
+        )
+
+    async def revoke(self, sink_id: EventSinkId | int, collection_id: CollectionId | int) -> None:
+        """Revoke a grant, including admission of queued deliveries."""
+        await self._client.request(
+            "DELETE",
+            f"/api/v1/event-sinks/{_segment(sink_id)}/collections/{_segment(collection_id)}",
+        )

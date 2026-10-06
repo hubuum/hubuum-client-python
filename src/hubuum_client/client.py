@@ -137,6 +137,11 @@ class Client:
         return self.request("GET", "/api/v1/iam/me", response_model=MeResponse)
 
     @cached_property
+    def event_sinks(self) -> EventSinksService:
+        """Administrator sink management and explicit collection grants."""
+        return EventSinksService(self)
+
+    @cached_property
     def collections(self) -> CollectionsService:
         """Return typed collection CRUD and hierarchy operations."""
         return CollectionsService(self)
@@ -351,11 +356,12 @@ class Client:
 
 
 from .openapi import OpenAPIOperations  # noqa: E402
-from .services import (  # noqa: E402  (imported after Client is defined)
+from .services import (  # noqa: E402
     ClassesService,
     ClassRelationsService,
     CollectionsService,
     CredentialApprovalsService,
+    EventSinksService,
     ExportsService,
     GroupsService,
     ImportsService,

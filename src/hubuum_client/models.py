@@ -15,6 +15,7 @@ from pydantic import (
     Field,
     JsonValue,
     ModelWrapValidatorHandler,
+    RootModel,
     ValidationError,
     model_validator,
 )
@@ -26,6 +27,8 @@ from .types import (
     CollectionId,
     CredentialApprovalId,
     CredentialApprovalSecret,
+    EventSinkId,
+    EventSubscriptionId,
     GroupId,
     ImportResultId,
     ObjectId,
@@ -1621,3 +1624,106 @@ class ApiErrorResponse(HubuumModel):
     error: str
     message: str
     reason: str | None = None
+
+
+class EventSinkRouting(StrEnum):
+    FIXED = "fixed"
+    WEBHOOK_URL = "webhook_url"
+    EMAIL_RECIPIENTS = "email_recipients"
+    VALKEY_STREAM = "valkey_stream"
+    AMQP = "amqp"
+
+
+class CollectionEventSink(HubuumModel):
+    """Permitted destination metadata, without URLs, configuration or credentials."""
+
+    id: EventSinkId
+    name: str
+    kind: str
+    enabled: bool
+    collection_id: CollectionId | None
+    revision: ResourceRevision
+    routing: EventSinkRouting
+
+
+class EventSink(HubuumModel):
+    """Administrator sink configuration; sensitive values are hidden from repr."""
+
+    id: EventSinkId
+    name: str
+    kind: str
+    config: dict[str, JsonValue] = Field(repr=False)
+    enabled: bool
+    collection_id: CollectionId | None = None
+    secret_ref: str | None = Field(default=None, repr=False)
+    delivery_policy: dict[str, JsonValue] | None = None
+    created_at: datetime
+    updated_at: datetime
+    revision: ResourceRevision
+
+
+class EventSinkCreate(RequestModel):
+    name: str
+    kind: Literal["webhook", "email", "amqp", "valkey_stream"]
+    config: dict[str, JsonValue] = Field(default_factory=dict, repr=False)
+    enabled: bool | None = None
+    secret_ref: str | None = Field(default=None, repr=False)
+    delivery_policy: dict[str, JsonValue] | None = None
+
+
+class EventSinkUpdate(RequestModel):
+    name: str | None = None
+    kind: Literal["webhook", "email", "amqp", "valkey_stream"] | None = None
+    config: dict[str, JsonValue] | None = Field(default=None, repr=False)
+    enabled: bool | None = None
+    secret_ref: str | None = Field(default=None, repr=False)
+    delivery_policy: dict[str, JsonValue] | None = None
+
+    def payload(self) -> dict[str, Any]:
+        """Preserve explicit credential removal without clearing omitted fields."""
+        payload = super().payload()
+        if "secret_ref" in self.model_fields_set:
+            payload["secret_ref"] = self.secret_ref
+        return payload
+
+
+class EventSubscription(HubuumModel):
+    id: EventSubscriptionId
+    collection_id: CollectionId | None
+    sink_id: EventSinkId
+    name: str
+    description: str | None = None
+    entity_types: tuple[str, ...]
+    actions: tuple[str, ...]
+    filter: dict[str, JsonValue] = Field(default_factory=dict, repr=False)
+    routing: dict[str, JsonValue] = Field(default_factory=dict, repr=False)
+    enabled: bool
+    created_at: datetime
+    updated_at: datetime
+    revision: ResourceRevision
+
+
+class EventSubscriptionCreate(RequestModel):
+    sink_id: EventSinkId
+    name: str
+    description: str | None = None
+    entity_types: tuple[str, ...]
+    actions: tuple[str, ...]
+    filter: dict[str, JsonValue] | None = Field(default=None, repr=False)
+    routing: dict[str, JsonValue] | None = Field(default=None, repr=False)
+    enabled: bool | None = None
+
+
+class EventSubscriptionUpdate(RequestModel):
+    sink_id: EventSinkId | None = None
+    name: str | None = None
+    description: str | None = None
+    entity_types: tuple[str, ...] | None = None
+    actions: tuple[str, ...] | None = None
+    filter: dict[str, JsonValue] | None = Field(default=None, repr=False)
+    routing: dict[str, JsonValue] | None = Field(default=None, repr=False)
+    enabled: bool | None = None
+
+
+class _EventSinkCollectionIds(RootModel[list[CollectionId]]):
+    """Internal decoder for the administrator's direct collection grant list."""

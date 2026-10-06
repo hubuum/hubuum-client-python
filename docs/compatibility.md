@@ -259,3 +259,47 @@ identify drift early. They do not replace the immutable v0.0.17 e2e run or
 change a released client's declared target. Breaking server changes require a
 new compatibility row, changelog entry, and successful evidence for the new
 tag-and-digest image.
+
+## Optional collection integration extension
+
+Collection-owned webhook endpoints require the server update after `v0.0.17`.
+`docs/collection-integrations.json` records this additional contract separately
+from the pinned released-server baseline. Unsupported servers return their normal
+route error; the client never falls back to global discovery for a collection.
+
+Both synchronous and asynchronous clients provide the same service interface:
+
+```python
+from hubuum_client import EventSinkCreate, EventSubscriptionCreate
+
+sinks = client.collections.event_sinks(collection_id)
+sink = sinks.create(
+    EventSinkCreate(
+        name="notifications",
+        kind="webhook",
+        config={"destination_url": webhook_url},
+    )
+)
+client.collections.event_subscriptions(collection_id).create(
+    EventSubscriptionCreate(
+        name="object changes",
+        sink_id=sink.id,
+        entity_types=("object",),
+        actions=("updated",),
+    )
+)
+```
+
+Await the calls with `AsyncClient`. Management and audit-read permissions are
+required for creation and editing. Destination URLs are omitted from collection
+responses; rotating one requires a replacement configuration. The destination is
+owned by the collection and survives the creator losing access.
+
+Administrators can call `client.event_sinks.grant(sink_id, collection_id)`,
+`.collections(sink_id)`, and `.revoke(sink_id, collection_id)`. Shared grants do not
+inherit, and credential-bearing webhooks must bind their destination on the sink.
+
+To verify delegated access against the updated server, set
+`HUBUUM_E2E_COLLECTION_INTEGRATIONS=1` together with `HUBUUM_E2E_BASE_URL` and
+`HUBUUM_E2E_ADMIN_PASSWORD`, then run `./scripts/run-e2e-tests.sh`. The additional
+tests cover sync and async collection managers and remain skipped on v0.0.17.
