@@ -3,7 +3,6 @@ from __future__ import annotations
 import inspect
 import sys
 from collections.abc import Awaitable
-from contextlib import suppress
 from typing import TypeVar
 
 import pytest
@@ -89,9 +88,7 @@ async def test_notification_preview_test_and_system_subscriptions(
         )
         collection_options = OpenAPIOptions(path_params={"collection_id": collection.id})
         cleanup.append(("deleteApiV1CollectionsByCollectionId", collection_options))
-        # The pinned v0.0.17 baseline predates explicit sink-use grants.
-        with suppress(NotFoundError):
-            await _resolve(api.event_sinks.grant(EventSinkId(sink["id"]), collection.id))
+        await _resolve(api.event_sinks.grant(EventSinkId(sink["id"]), collection.id))
         subscription = await _resolve(
             api.openapi.call(
                 "postApiV1CollectionsByCollectionIdEventSubscriptions",

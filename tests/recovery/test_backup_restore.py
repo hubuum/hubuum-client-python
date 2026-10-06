@@ -164,7 +164,7 @@ def _sync_roundtrip(stack: RecoveryStack, *, include_history: bool | None = None
             options=OpenAPIOptions(path_params={"task_id": task.id}),
         )
         assert isinstance(backup, dict)
-        assert backup["backup_version"] == 7
+        assert backup["backup_version"] == 8
         assert (backup.get("history") is not None) is (include_history is not False)
         objects.update(original.id, ObjectUpdate(data={"phase": "after"}))
         objects.update(nullable.id, ObjectUpdate(data={"phase": "after"}))
@@ -264,7 +264,7 @@ async def _async_roundtrip(stack: RecoveryStack, *, include_history: bool | None
             options=OpenAPIOptions(path_params={"task_id": task.id}),
         )
         assert isinstance(backup, dict)
-        assert backup["backup_version"] == 7
+        assert backup["backup_version"] == 8
         assert (backup.get("history") is not None) is (include_history is not False)
         await objects.update(original.id, ObjectUpdate(data={"phase": "after"}))
         await objects.update(nullable.id, ObjectUpdate(data={"phase": "after"}))

@@ -1,6 +1,6 @@
 # Credential approvals
 
-Hubuum v0.0.17 requires fresh password approval for credential management.
+Hubuum v0.0.18 requires fresh password approval for credential management.
 A bearer token alone cannot create or renew a token, create a local user,
 change a password, import human passwords or password hashes (even in a dry
 run), or confirm a restore. Profile-only user updates, credential-free
@@ -139,5 +139,5 @@ top-level fields, with generic messages and redacted inputs; nested context and
 the original validation exception are discarded. Successful validation preserves
 the exact wire payload, including passwords needed for the approved operation.
 
-See the [server client and rollout guide](https://github.com/hubuum/hubuum/blob/v0.0.17/docs/credential_approvals.md)
+See the [server client and rollout guide](https://github.com/hubuum/hubuum/blob/v0.0.18/docs/credential_approvals.md)
 for the complete authorization, audit, retry, and deployment contract.

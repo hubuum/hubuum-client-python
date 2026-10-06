@@ -1,4 +1,4 @@
-"""Immutable Hubuum v0.0.17 OpenAPI operation manifest."""
+"""Immutable Hubuum v0.0.18 OpenAPI operation manifest."""
 
 from __future__ import annotations
 
@@ -31,55 +31,6 @@ class OperationSpec(NamedTuple):
 
 
 _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
-    (
-        "deleteApiV1SystemEventSubscriptionsBySubscriptionId",
-        "DELETE",
-        "/api/v1/system-event-subscriptions/{subscription_id}",
-        None,
-    ),
-    ("getApiV1SystemEventSubscriptions", "GET", "/api/v1/system-event-subscriptions", None),
-    (
-        "getApiV1SystemEventSubscriptionsBySubscriptionId",
-        "GET",
-        "/api/v1/system-event-subscriptions/{subscription_id}",
-        None,
-    ),
-    (
-        "patchApiV1SystemEventSubscriptionsBySubscriptionId",
-        "PATCH",
-        "/api/v1/system-event-subscriptions/{subscription_id}",
-        "application/json",
-    ),
-    (
-        "postApiV1EventSinksBySinkIdPreview",
-        "POST",
-        "/api/v1/event-sinks/{sink_id}/preview",
-        "application/json",
-    ),
-    (
-        "postApiV1EventSinksBySinkIdTest",
-        "POST",
-        "/api/v1/event-sinks/{sink_id}/test",
-        "application/json",
-    ),
-    (
-        "postApiV1SystemEventSubscriptions",
-        "POST",
-        "/api/v1/system-event-subscriptions",
-        "application/json",
-    ),
-    (
-        "getApiV1IamCredentialApprovalsByApprovalId",
-        "GET",
-        "/api/v1/iam/credential-approvals/{approval_id}",
-        None,
-    ),
-    (
-        "postApiV1IamCredentialApprovals",
-        "POST",
-        "/api/v1/iam/credential-approvals",
-        "application/json",
-    ),
     ("deleteApiV0MetaLoginRateLimit", "DELETE", "/api/v0/meta/login-rate-limit", None),
     ("deleteApiV0MetaLoginRateLimitById", "DELETE", "/api/v0/meta/login-rate-limit/{id}", None),
     ("deleteApiV1ClassesByClassId", "DELETE", "/api/v1/classes/{class_id}", None),
@@ -119,22 +70,18 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "/api/v1/classes/{class_id}/schema/tasks/{task_id}",
         None,
     ),
-    (
-        "deleteApiV1ClassesByNameByClassName",
-        "DELETE",
-        "/api/v1/classes/by-name/{class_name}",
-        None,
-    ),
+    ("deleteApiV1ClassesByNameByClassName", "DELETE", "/api/v1/classes/by-name/{class_name}", None),
     (
         "deleteApiV1ClassesByNameByClassNameObjectsByNameByObjectName",
         "DELETE",
         "/api/v1/classes/by-name/{class_name}/objects/by-name/{object_name}",
         None,
     ),
+    ("deleteApiV1CollectionsByCollectionId", "DELETE", "/api/v1/collections/{collection_id}", None),
     (
-        "deleteApiV1CollectionsByCollectionId",
+        "deleteApiV1CollectionsByCollectionIdEventSinksBySinkId",
         "DELETE",
-        "/api/v1/collections/{collection_id}",
+        "/api/v1/collections/{collection_id}/event-sinks/{sink_id}",
         None,
     ),
     (
@@ -156,6 +103,12 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         None,
     ),
     ("deleteApiV1EventSinksBySinkId", "DELETE", "/api/v1/event-sinks/{sink_id}", None),
+    (
+        "deleteApiV1EventSinksBySinkIdCollectionsByCollectionId",
+        "DELETE",
+        "/api/v1/event-sinks/{sink_id}/collections/{collection_id}",
+        None,
+    ),
     (
         "deleteApiV1ExportTemplatesByTemplateId",
         "DELETE",
@@ -201,10 +154,11 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "/api/v1/relations/objects/{relation_id}",
         None,
     ),
+    ("deleteApiV1RemoteTargetsByTargetId", "DELETE", "/api/v1/remote-targets/{target_id}", None),
     (
-        "deleteApiV1RemoteTargetsByTargetId",
+        "deleteApiV1SystemEventSubscriptionsBySubscriptionId",
         "DELETE",
-        "/api/v1/remote-targets/{target_id}",
+        "/api/v1/system-event-subscriptions/{subscription_id}",
         None,
     ),
     ("getApiV0AuthProviders", "GET", "/api/v0/auth/providers", None),
@@ -224,12 +178,7 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "/api/v1/classes/{class_id}/{from_object_id}/relations/{to_class_id}/{to_object_id}",
         None,
     ),
-    (
-        "getApiV1ClassesByClassIdByObjectId",
-        "GET",
-        "/api/v1/classes/{class_id}/{object_id}",
-        None,
-    ),
+    ("getApiV1ClassesByClassIdByObjectId", "GET", "/api/v1/classes/{class_id}/{object_id}", None),
     (
         "getApiV1ClassesByClassIdByObjectIdEvents",
         "GET",
@@ -292,12 +241,7 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "/api/v1/classes/{class_id}/objects/{object_id}/related/relations",
         None,
     ),
-    (
-        "getApiV1ClassesByClassIdPermissions",
-        "GET",
-        "/api/v1/classes/{class_id}/permissions",
-        None,
-    ),
+    ("getApiV1ClassesByClassIdPermissions", "GET", "/api/v1/classes/{class_id}/permissions", None),
     (
         "getApiV1ClassesByClassIdRelatedClasses",
         "GET",
@@ -354,12 +298,7 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         None,
     ),
     ("getApiV1ClassesByClassIdTrailing", "GET", "/api/v1/classes/{class_id}/", None),
-    (
-        "getApiV1ClassesByNameByClassName",
-        "GET",
-        "/api/v1/classes/by-name/{class_name}",
-        None,
-    ),
+    ("getApiV1ClassesByNameByClassName", "GET", "/api/v1/classes/by-name/{class_name}", None),
     (
         "getApiV1ClassesByNameByClassNameObjectAggregates",
         "GET",
@@ -421,12 +360,7 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         None,
     ),
     ("getApiV1Collections", "GET", "/api/v1/collections", None),
-    (
-        "getApiV1CollectionsByCollectionId",
-        "GET",
-        "/api/v1/collections/{collection_id}",
-        None,
-    ),
+    ("getApiV1CollectionsByCollectionId", "GET", "/api/v1/collections/{collection_id}", None),
     (
         "getApiV1CollectionsByCollectionIdAncestors",
         "GET",
@@ -437,6 +371,18 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "getApiV1CollectionsByCollectionIdChildren",
         "GET",
         "/api/v1/collections/{collection_id}/children",
+        None,
+    ),
+    (
+        "getApiV1CollectionsByCollectionIdEventSinks",
+        "GET",
+        "/api/v1/collections/{collection_id}/event-sinks",
+        None,
+    ),
+    (
+        "getApiV1CollectionsByCollectionIdEventSinksBySinkId",
+        "GET",
+        "/api/v1/collections/{collection_id}/event-sinks/{sink_id}",
         None,
     ),
     (
@@ -513,23 +459,19 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
     ),
     ("getApiV1Config", "GET", "/api/v1/config", None),
     ("getApiV1EventDeliveries", "GET", "/api/v1/event-deliveries", None),
-    (
-        "getApiV1EventDeliveriesByDeliveryId",
-        "GET",
-        "/api/v1/event-deliveries/{delivery_id}",
-        None,
-    ),
+    ("getApiV1EventDeliveriesByDeliveryId", "GET", "/api/v1/event-deliveries/{delivery_id}", None),
     ("getApiV1EventDeliveriesHealth", "GET", "/api/v1/event-deliveries/health", None),
     ("getApiV1EventSinks", "GET", "/api/v1/event-sinks", None),
     ("getApiV1EventSinksBySinkId", "GET", "/api/v1/event-sinks/{sink_id}", None),
-    ("getApiV1Events", "GET", "/api/v1/events", None),
-    ("getApiV1ExportTemplates", "GET", "/api/v1/export-templates", None),
     (
-        "getApiV1ExportTemplatesByTemplateId",
+        "getApiV1EventSinksBySinkIdCollections",
         "GET",
-        "/api/v1/export-templates/{template_id}",
+        "/api/v1/event-sinks/{sink_id}/collections",
         None,
     ),
+    ("getApiV1Events", "GET", "/api/v1/events", None),
+    ("getApiV1ExportTemplates", "GET", "/api/v1/export-templates", None),
+    ("getApiV1ExportTemplatesByTemplateId", "GET", "/api/v1/export-templates/{template_id}", None),
     (
         "getApiV1ExportTemplatesByTemplateIdEvents",
         "GET",
@@ -550,20 +492,16 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
     ),
     ("getApiV1ExportsByTaskId", "GET", "/api/v1/exports/{task_id}", None),
     ("getApiV1ExportsByTaskIdOutput", "GET", "/api/v1/exports/{task_id}/output", None),
+    (
+        "getApiV1IamCredentialApprovalsByApprovalId",
+        "GET",
+        "/api/v1/iam/credential-approvals/{approval_id}",
+        None,
+    ),
     ("getApiV1IamGroups", "GET", "/api/v1/iam/groups", None),
     ("getApiV1IamGroupsByGroupId", "GET", "/api/v1/iam/groups/{group_id}", None),
-    (
-        "getApiV1IamGroupsByGroupIdEvents",
-        "GET",
-        "/api/v1/iam/groups/{group_id}/events",
-        None,
-    ),
-    (
-        "getApiV1IamGroupsByGroupIdMembers",
-        "GET",
-        "/api/v1/iam/groups/{group_id}/members",
-        None,
-    ),
+    ("getApiV1IamGroupsByGroupIdEvents", "GET", "/api/v1/iam/groups/{group_id}/events", None),
+    ("getApiV1IamGroupsByGroupIdMembers", "GET", "/api/v1/iam/groups/{group_id}/members", None),
     (
         "getApiV1IamGroupsByGroupIdMembersByPrincipalId",
         "GET",
@@ -621,12 +559,7 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
     ),
     ("getApiV1IamUsers", "GET", "/api/v1/iam/users", None),
     ("getApiV1IamUsersByUserId", "GET", "/api/v1/iam/users/{user_id}", None),
-    (
-        "getApiV1IamUsersByUserIdEvents",
-        "GET",
-        "/api/v1/iam/users/{user_id}/events",
-        None,
-    ),
+    ("getApiV1IamUsersByUserIdEvents", "GET", "/api/v1/iam/users/{user_id}/events", None),
     ("getApiV1ImportsByTaskId", "GET", "/api/v1/imports/{task_id}", None),
     ("getApiV1ImportsByTaskIdResults", "GET", "/api/v1/imports/{task_id}/results", None),
     ("getApiV1RelationsClasses", "GET", "/api/v1/relations/classes", None),
@@ -656,37 +589,29 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "/api/v1/remote-targets/{remote_target_id}/history/as-of",
         None,
     ),
-    (
-        "getApiV1RemoteTargetsByTargetId",
-        "GET",
-        "/api/v1/remote-targets/{target_id}",
-        None,
-    ),
+    ("getApiV1RemoteTargetsByTargetId", "GET", "/api/v1/remote-targets/{target_id}", None),
     (
         "getApiV1RemoteTargetsByTargetIdEvents",
         "GET",
         "/api/v1/remote-targets/{target_id}/events",
         None,
     ),
-    (
-        "getApiV1RestoresByRestoreIdStatus",
-        "GET",
-        "/api/v1/restores/{restore_id}/status",
-        None,
-    ),
+    ("getApiV1RestoresByRestoreIdStatus", "GET", "/api/v1/restores/{restore_id}/status", None),
     ("getApiV1Search", "GET", "/api/v1/search", None),
     ("getApiV1SearchStream", "GET", "/api/v1/search/stream", None),
+    ("getApiV1SystemEventSubscriptions", "GET", "/api/v1/system-event-subscriptions", None),
+    (
+        "getApiV1SystemEventSubscriptionsBySubscriptionId",
+        "GET",
+        "/api/v1/system-event-subscriptions/{subscription_id}",
+        None,
+    ),
     ("getApiV1Tasks", "GET", "/api/v1/tasks", None),
     ("getApiV1TasksByTaskId", "GET", "/api/v1/tasks/{task_id}", None),
     ("getApiV1TasksByTaskIdEvents", "GET", "/api/v1/tasks/{task_id}/events", None),
     ("getHealthz", "GET", "/healthz", None),
     ("getReadyz", "GET", "/readyz", None),
-    (
-        "patchApiV1ClassesByClassId",
-        "PATCH",
-        "/api/v1/classes/{class_id}",
-        "application/json",
-    ),
+    ("patchApiV1ClassesByClassId", "PATCH", "/api/v1/classes/{class_id}", "application/json"),
     (
         "patchApiV1ClassesByClassIdByObjectId",
         "PATCH",
@@ -730,41 +655,32 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "application/json",
     ),
     (
+        "patchApiV1CollectionsByCollectionIdEventSinksBySinkId",
+        "PATCH",
+        "/api/v1/collections/{collection_id}/event-sinks/{sink_id}",
+        "application/json",
+    ),
+    (
         "patchApiV1CollectionsByCollectionIdEventSubscriptionsBySubscriptionId",
         "PATCH",
         "/api/v1/collections/{collection_id}/event-subscriptions/{subscription_id}",
         "application/json",
     ),
-    (
-        "patchApiV1EventSinksBySinkId",
-        "PATCH",
-        "/api/v1/event-sinks/{sink_id}",
-        "application/json",
-    ),
+    ("patchApiV1EventSinksBySinkId", "PATCH", "/api/v1/event-sinks/{sink_id}", "application/json"),
     (
         "patchApiV1ExportTemplatesByTemplateId",
         "PATCH",
         "/api/v1/export-templates/{template_id}",
         "application/json",
     ),
-    (
-        "patchApiV1IamGroupsByGroupId",
-        "PATCH",
-        "/api/v1/iam/groups/{group_id}",
-        "application/json",
-    ),
+    ("patchApiV1IamGroupsByGroupId", "PATCH", "/api/v1/iam/groups/{group_id}", "application/json"),
     (
         "patchApiV1IamMeComputedFieldsByFieldId",
         "PATCH",
         "/api/v1/iam/me/computed-fields/{field_id}",
         "application/json",
     ),
-    (
-        "patchApiV1IamMeSettings",
-        "PATCH",
-        "/api/v1/iam/me/settings",
-        "application/json",
-    ),
+    ("patchApiV1IamMeSettings", "PATCH", "/api/v1/iam/me/settings", "application/json"),
     (
         "patchApiV1IamPrincipalsByPrincipalIdSettings",
         "PATCH",
@@ -777,16 +693,17 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "/api/v1/iam/service-accounts/{service_account_id}",
         "application/json",
     ),
-    (
-        "patchApiV1IamUsersByUserId",
-        "PATCH",
-        "/api/v1/iam/users/{user_id}",
-        "application/json",
-    ),
+    ("patchApiV1IamUsersByUserId", "PATCH", "/api/v1/iam/users/{user_id}", "application/json"),
     (
         "patchApiV1RemoteTargetsByTargetId",
         "PATCH",
         "/api/v1/remote-targets/{target_id}",
+        "application/json",
+    ),
+    (
+        "patchApiV1SystemEventSubscriptionsBySubscriptionId",
+        "PATCH",
+        "/api/v1/system-event-subscriptions/{subscription_id}",
         "application/json",
     ),
     ("postApiV0AuthLogin", "POST", "/api/v0/auth/login", "application/json"),
@@ -870,6 +787,12 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
     ),
     ("postApiV1Collections", "POST", "/api/v1/collections", "application/json"),
     (
+        "postApiV1CollectionsByCollectionIdEventSinks",
+        "POST",
+        "/api/v1/collections/{collection_id}/event-sinks",
+        "application/json",
+    ),
+    (
         "postApiV1CollectionsByCollectionIdEventSubscriptions",
         "POST",
         "/api/v1/collections/{collection_id}/event-subscriptions",
@@ -901,11 +824,18 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
     ),
     ("postApiV1EventSinks", "POST", "/api/v1/event-sinks", "application/json"),
     (
-        "postApiV1ExportTemplates",
+        "postApiV1EventSinksBySinkIdPreview",
         "POST",
-        "/api/v1/export-templates",
+        "/api/v1/event-sinks/{sink_id}/preview",
         "application/json",
     ),
+    (
+        "postApiV1EventSinksBySinkIdTest",
+        "POST",
+        "/api/v1/event-sinks/{sink_id}/test",
+        "application/json",
+    ),
+    ("postApiV1ExportTemplates", "POST", "/api/v1/export-templates", "application/json"),
     (
         "postApiV1ExportTemplatesByTemplateIdExports",
         "POST",
@@ -913,6 +843,12 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "application/json",
     ),
     ("postApiV1Exports", "POST", "/api/v1/exports", "application/json"),
+    (
+        "postApiV1IamCredentialApprovals",
+        "POST",
+        "/api/v1/iam/credential-approvals",
+        "application/json",
+    ),
     ("postApiV1IamGroups", "POST", "/api/v1/iam/groups", "application/json"),
     (
         "postApiV1IamGroupsByGroupIdMembersByPrincipalId",
@@ -920,12 +856,7 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "/api/v1/iam/groups/{group_id}/members/{principal_id}",
         None,
     ),
-    (
-        "postApiV1IamMeComputedFields",
-        "POST",
-        "/api/v1/iam/me/computed-fields",
-        "application/json",
-    ),
+    ("postApiV1IamMeComputedFields", "POST", "/api/v1/iam/me/computed-fields", "application/json"),
     (
         "postApiV1IamMeComputedFieldsPreview",
         "POST",
@@ -950,12 +881,7 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "/api/v1/iam/principals/{principal_id}/tokens/{token_id}/revoke",
         None,
     ),
-    (
-        "postApiV1IamServiceAccounts",
-        "POST",
-        "/api/v1/iam/service-accounts",
-        "application/json",
-    ),
+    ("postApiV1IamServiceAccounts", "POST", "/api/v1/iam/service-accounts", "application/json"),
     (
         "postApiV1IamServiceAccountsByServiceAccountIdDisable",
         "POST",
@@ -963,31 +889,11 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         None,
     ),
     ("postApiV1IamUsers", "POST", "/api/v1/iam/users", "application/json"),
-    (
-        "postApiV1IamUsersByUserIdAnonymize",
-        "POST",
-        "/api/v1/iam/users/{user_id}/anonymize",
-        None,
-    ),
+    ("postApiV1IamUsersByUserIdAnonymize", "POST", "/api/v1/iam/users/{user_id}/anonymize", None),
     ("postApiV1Imports", "POST", "/api/v1/imports", "application/json"),
-    (
-        "postApiV1RelationsClasses",
-        "POST",
-        "/api/v1/relations/classes",
-        "application/json",
-    ),
-    (
-        "postApiV1RelationsObjects",
-        "POST",
-        "/api/v1/relations/objects",
-        "application/json",
-    ),
-    (
-        "postApiV1RemoteTargets",
-        "POST",
-        "/api/v1/remote-targets",
-        "application/json",
-    ),
+    ("postApiV1RelationsClasses", "POST", "/api/v1/relations/classes", "application/json"),
+    ("postApiV1RelationsObjects", "POST", "/api/v1/relations/objects", "application/json"),
+    ("postApiV1RemoteTargets", "POST", "/api/v1/remote-targets", "application/json"),
     (
         "postApiV1RemoteTargetsByTargetIdInvoke",
         "POST",
@@ -1003,6 +909,12 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
     ),
     ("postApiV1Search", "POST", "/api/v1/search", "application/json"),
     ("postApiV1SearchStream", "POST", "/api/v1/search/stream", "application/json"),
+    (
+        "postApiV1SystemEventSubscriptions",
+        "POST",
+        "/api/v1/system-event-subscriptions",
+        "application/json",
+    ),
     ("postApiV1TasksByTaskIdCancel", "POST", "/api/v1/tasks/{task_id}/cancel", "application/json"),
     (
         "putApiV1CollectionsByCollectionIdParent",
@@ -1015,6 +927,12 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "PUT",
         "/api/v1/collections/{collection_id}/permissions/group/{group_id}",
         "application/json",
+    ),
+    (
+        "putApiV1EventSinksBySinkIdCollectionsByCollectionId",
+        "PUT",
+        "/api/v1/event-sinks/{sink_id}/collections/{collection_id}",
+        None,
     ),
     ("putApiV1IamMeSettings", "PUT", "/api/v1/iam/me/settings", "application/json"),
     (
@@ -1031,7 +949,6 @@ OPERATIONS = {
 }
 _NO_SUCCESS_RESPONSE_MEDIA = frozenset(
     {
-        "deleteApiV1SystemEventSubscriptionsBySubscriptionId",
         "deleteApiV1ClassesByClassId",
         "deleteApiV1ClassesByClassIdByFromObjectIdRelationsByToClassIdByToObjectId",
         "deleteApiV1ClassesByClassIdByObjectId",
@@ -1039,8 +956,10 @@ _NO_SUCCESS_RESPONSE_MEDIA = frozenset(
         "deleteApiV1ClassesByNameByClassName",
         "deleteApiV1ClassesByNameByClassNameObjectsByNameByObjectName",
         "deleteApiV1CollectionsByCollectionId",
+        "deleteApiV1CollectionsByCollectionIdEventSinksBySinkId",
         "deleteApiV1CollectionsByCollectionIdEventSubscriptionsBySubscriptionId",
         "deleteApiV1EventSinksBySinkId",
+        "deleteApiV1EventSinksBySinkIdCollectionsByCollectionId",
         "deleteApiV1ExportTemplatesByTemplateId",
         "deleteApiV1IamGroupsByGroupId",
         "deleteApiV1IamGroupsByGroupIdMembersByPrincipalId",
@@ -1052,9 +971,11 @@ _NO_SUCCESS_RESPONSE_MEDIA = frozenset(
         "deleteApiV1RelationsClassesByRelationId",
         "deleteApiV1RelationsObjectsByRelationId",
         "deleteApiV1RemoteTargetsByTargetId",
+        "deleteApiV1SystemEventSubscriptionsBySubscriptionId",
         "getApiV1CollectionsByCollectionIdPermissionsGroupByGroupIdByPermission",
         "postApiV1IamPrincipalsByPrincipalIdTokensByTokenIdRevoke",
         "postApiV1IamUsersByUserIdAnonymize",
+        "putApiV1EventSinksBySinkIdCollectionsByCollectionId",
     }
 )
 _REQUEST_MEDIA_TYPE_OVERRIDES = {

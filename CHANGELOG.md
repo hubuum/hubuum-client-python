@@ -6,6 +6,27 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.0.11] - 2026-10-06
+
+### Changed
+
+- Refresh the documentation dependency griffelib to 2.3.2.
+- **Breaking (server target):** target Hubuum v0.0.18 and its immutable released
+  image and OpenAPI document.
+  Register all 235 operations, including collection-owned sinks and direct grants.
+- Require sync and async delegated webhook workflows in the pinned live suite.
+  Notification fixtures explicitly grant global sink use, and recovery verifies
+  format 8 backups. Formats 6 and 7 remain server-supported for restore.
+- **Breaking (server upgrade and backup output):** stop all API, worker, and
+  restore-executor writers and take a PostgreSQL snapshot before applying the
+  collection-sink migration. Deploy matching v0.0.18 binaries together. Rollback
+  requires the snapshot and matching v0.0.17 binaries; older servers cannot
+  restore format 8.
+- **Breaking (server authorization):** subscription creation and edits require
+  `ReadAudit` plus `ManageEventSubscription` and collection ownership or a direct
+  sink grant. Bind credential-bearing webhooks to a fixed destination before
+  enabling delivery.
+
 ### Fixed
 
 - Allow synchronous and asynchronous `imports.run()` callers to configure
@@ -26,8 +47,7 @@ All notable changes to this project are documented here. The format follows
 - Typed collection subscription services, global administrator sink CRUD, and
   sink collection grants. Configuration, webhook URLs and secret aliases are
   omitted from model representations or collection discovery as appropriate.
-- These optional integration methods require the matching server update after
-  `v0.0.17`. Existing APIs retain the pinned `v0.0.17` compatibility baseline.
+- Collection integrations are part of the released `v0.0.18` compatibility target.
 
 ## [0.0.10] - 2026-10-05
 
@@ -393,7 +413,8 @@ All notable changes to this project are documented here. The format follows
   error diagnostics.
 - Redacted login tokens from model representations.
 
-[Unreleased]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.10...HEAD
+[Unreleased]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.11...HEAD
+[0.0.11]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.10...v0.0.11
 [0.0.10]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.9...v0.0.10
 [0.0.9]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.8...v0.0.9
 [0.0.8]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.7...v0.0.8
