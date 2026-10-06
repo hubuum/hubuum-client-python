@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import inspect
-import os
 from collections.abc import Awaitable
 from typing import TypeVar
 
@@ -23,13 +22,7 @@ from hubuum_client import (
     UserCreate,
 )
 
-pytestmark = [
-    pytest.mark.e2e,
-    pytest.mark.skipif(
-        os.environ.get("HUBUUM_E2E_COLLECTION_INTEGRATIONS") != "1",
-        reason="Collection integrations require the updated server after v0.0.17",
-    ),
-]
+pytestmark = pytest.mark.e2e
 T = TypeVar("T")
 
 

@@ -198,7 +198,7 @@ class Client:
 
     @property
     def openapi(self) -> OpenAPIOperations:
-        """Return the complete operation-ID interface for all 227 v0.0.17 operations."""
+        """Return the complete operation-ID interface for all 235 v0.0.18 operations."""
         return OpenAPIOperations(self)
 
     @overload

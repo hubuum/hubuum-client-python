@@ -263,7 +263,7 @@ class AsyncCollectionsService(
         )
 
     def event_sinks(self, collection_id: CollectionId | int) -> AsyncCollectionEventSinksService:
-        """Permitted destinations and owned-webhook management (server after v0.0.17)."""
+        """Permitted destinations and owned-webhook management (server v0.0.18 and newer)."""
         return AsyncCollectionEventSinksService(self._client, CollectionId(collection_id))
 
     def event_subscriptions(

@@ -4,6 +4,7 @@
 
 | Python client | Hubuum server contract | Status | End-to-end evidence |
 | --- | --- | --- | --- |
+| 0.0.11 | [`v0.0.18`](https://github.com/hubuum/hubuum/tree/v0.0.18) | Verified | 24 core and 4 recovery tests passed on 2026-10-06 using the installed wheel (Python 3.13.3, Podman, released Linux AMD64 image), including delegated setup in both runtimes and eight complete restore cycles |
 | 0.0.10 | [`v0.0.17`](https://github.com/hubuum/hubuum/tree/v0.0.17) | Verified | [22 core and 4 recovery tests passed on 2026-10-05](https://github.com/hubuum/hubuum-client-python/actions/runs/37269468024) (Python 3.11, Docker, Linux AMD64 server) |
 | 0.0.9 | [`v0.0.16`](https://github.com/hubuum/hubuum/tree/v0.0.16) | Verified | 20 core and 4 recovery tests passed locally on 2026-09-22 (Python 3.13.3, Podman, Linux AMD64 server) |
 | [7165240](https://github.com/hubuum/hubuum-client-python/commit/7165240) | [`v0.0.15`](https://github.com/hubuum/hubuum/tree/v0.0.15) | Verified | 16 core and 4 recovery tests passed locally on 2026-09-15 (Python 3.11.12, Podman, Linux AMD64 server) |
@@ -20,20 +21,49 @@ client/server pair. The current server target is selected by tag and locked to
 an immutable multi-platform image:
 
 ```text
-ghcr.io/hubuum/hubuum-server:v0.0.17@sha256:cc0518167816bfddb38853b8b7217c4a347511318d51e1abca93ca418f31b302
+ghcr.io/hubuum/hubuum-server:v0.0.18@sha256:5b54248f19171200dfa497174d385a48f90666a415cb31732797043d5e182fc4
 ```
 
 The tag identifies the supported server release; the digest prevents that tag
 from resolving to different content later. The same reference is stored in
 `src/hubuum_client/_constants.py`, the e2e wrapper, and CI.
 
+## v0.0.18 target
+
+Client 0.0.11 targets the released v0.0.18 contract with 235 registered operations.
+Typed collection destinations, subscriptions, global sinks, and direct collection
+grants are available through synchronous and asynchronous services. The complete
+live suite requires delegated collection setup and explicit grants for shared sinks.
+
+The pinned OpenAPI document comes from server commit
+`35fcf6696d4d564e2d89534db0c5194c14129d9f`, with SHA-256
+`9983bdefeb9bea3e7af1c7696bf6a7af32db3d9e4a2fb776ffad72c3c56f342c`.
+The exact document is [committed with this client](openapi.json). The contract
+checker verifies every registered operation and media type against that source.
+
+Collection setup requires `ManageEventSubscription` and `ReadAudit`. Grants do not
+inherit to child collections. Credentials and static headers require fixed webhook
+destinations, and subscription routing cannot redirect them. Collection-owned
+integrations persist after their creator loses access; related-collection deliveries
+omit resource snapshots.
+
+The server emits format 8 backups with ownership and grants, and accepts formats
+6 and 7 with legacy grant backfill. Older servers cannot restore format 8. Upgrading
+from v0.0.17 requires stopping all API, worker, and restore-executor writers, taking
+a PostgreSQL snapshot, applying the collection-event-sinks migration, and starting
+matching v0.0.18 binaries after reconciling role grants. Binary-only rollback is
+unsupported: recover the snapshot with matching v0.0.17 binaries, losing later writes.
+See the [server release notes](https://github.com/hubuum/hubuum/releases/tag/v0.0.18).
+
 ## v0.0.17 target
 
-The client pins the released OpenAPI document at commit
+Client 0.0.10 pinned the released OpenAPI document at commit
 `4a03d56b27f35af62175a80d09d36d0d41c4a663`, with SHA-256
 `ae6a889ac3ac701b0f70b4384a416d21246d60a64dd0e1e26b8b9306efa23acd`.
-The exact document is [committed with the client](openapi.json), and the offline
-contract check compares every operation and media type with the client manifest.
+The exact document remains in the
+[0.0.10 client release](https://github.com/hubuum/hubuum-client-python/blob/v0.0.10/docs/openapi.json).
+Its offline contract check compared every operation and media type with that
+release's client manifest.
 
 The [v0.0.16 to v0.0.17 comparison](https://github.com/hubuum/hubuum/compare/v0.0.16...v0.0.17)
 adds seven operations and six schemas, with no removed routes or schemas.
@@ -206,7 +236,7 @@ Updating this Python package does not migrate a server installation.
 
 ## Meaning of compatibility
 
-For this project, targeting server v0.0.17 means:
+For this project, targeting server v0.0.18 means:
 
 - authentication, public probes, client configuration, typed CRUD, natural keys,
   nested object-data filtering, JSON Patch, IAM, relations, forced multi-page
@@ -225,19 +255,19 @@ For this project, targeting server v0.0.17 means:
   admission in both runtimes, using an unavailable secret alias to prevent delivery;
 - the disposable stack runs eight consecutive full backup/restore cycles,
   covering sync-then-async and async-then-sync order without restarting the
-  server or executor. Version 7 backups include and omit history; restored
+  server or executor. Version 8 backups include and omit history; restored
   objects retain data, JSON `null`, and revisions, post-backup objects disappear, old tokens
   are rejected, and login works after an administrator password reset. Default
   backups after history-free restores and further mutations remain restorable;
   enforced class schemas also survive full restores;
 - every method, path, request media type, and successful response media type
-  matches the 227-operation manifest;
+  matches the 235-operation manifest;
 - request models follow the wire contract, while response models tolerate
   additive fields.
 
 The live suite imports the built wheel in an isolated environment. Contract
 completeness and live behavioral coverage are separate claims: representative
-workflows are tested, not all 227 operations. Full restore tests run after the
+workflows are tested, not all 235 operations. Full restore tests run after the
 core suite and only against the wrapper-owned disposable stack in the default
 `single` database role mode. Caller-managed servers never run this recovery
 suite. Administrative features such as backups, restores, computed fields,
@@ -255,17 +285,16 @@ stable `collection_id` from the expansion when needed.
 ## Forward compatibility
 
 Runs against Hubuum `main`, a release candidate, or an overridden image can
-identify drift early. They do not replace the immutable v0.0.17 e2e run or
+identify drift early. They do not replace the immutable v0.0.18 e2e run or
 change a released client's declared target. Breaking server changes require a
 new compatibility row, changelog entry, and successful evidence for the new
 tag-and-digest image.
 
-## Optional collection integration extension
+## Collection integrations
 
-Collection-owned webhook endpoints require the server update after `v0.0.17`.
-`docs/collection-integrations.json` records this additional contract separately
-from the pinned released-server baseline. Unsupported servers return their normal
-route error; the client never falls back to global discovery for a collection.
+Collection-owned webhook endpoints are included in the pinned `v0.0.18`
+`docs/openapi.json` contract. Unsupported older servers return their normal route
+error; the client never falls back to global discovery for a collection.
 
 Both synchronous and asynchronous clients provide the same service interface:
 
@@ -299,7 +328,7 @@ Administrators can call `client.event_sinks.grant(sink_id, collection_id)`,
 `.collections(sink_id)`, and `.revoke(sink_id, collection_id)`. Shared grants do not
 inherit, and credential-bearing webhooks must bind their destination on the sink.
 
-To verify delegated access against the updated server, set
-`HUBUUM_E2E_COLLECTION_INTEGRATIONS=1` together with `HUBUUM_E2E_BASE_URL` and
-`HUBUUM_E2E_ADMIN_PASSWORD`, then run `./scripts/run-e2e-tests.sh`. The additional
-tests cover sync and async collection managers and remain skipped on v0.0.17.
+Run `./scripts/run-e2e-tests.sh` to verify delegated access against the pinned
+server. Sync and async collection-manager workflows are required parts of the
+canonical suite. Caller-managed servers can use `HUBUUM_E2E_BASE_URL` and
+`HUBUUM_E2E_ADMIN_PASSWORD`; recovery tests run only on the disposable stack.
