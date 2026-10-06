@@ -137,6 +137,11 @@ class Client:
         return self.request("GET", "/api/v1/iam/me", response_model=MeResponse)
 
     @cached_property
+    def event_sinks(self) -> EventSinksService:
+        """Administrator sink management and explicit collection grants."""
+        return EventSinksService(self)
+
+    @cached_property
     def collections(self) -> CollectionsService:
         """Return typed collection CRUD and hierarchy operations."""
         return CollectionsService(self)
@@ -155,6 +160,11 @@ class Client:
     def groups(self) -> GroupsService:
         """Return typed group and membership operations."""
         return GroupsService(self)
+
+    @cached_property
+    def credential_approvals(self) -> CredentialApprovalsService:
+        """Return operation-bound password approval and evidence operations."""
+        return CredentialApprovalsService(self)
 
     @cached_property
     def tokens(self) -> TokensService:
@@ -188,7 +198,7 @@ class Client:
 
     @property
     def openapi(self) -> OpenAPIOperations:
-        """Return the complete operation-ID interface for all 218 v0.0.15 operations."""
+        """Return the complete operation-ID interface for all 227 v0.0.17 operations."""
         return OpenAPIOperations(self)
 
     @overload
@@ -295,11 +305,13 @@ class Client:
                 request_body,
                 request.url.params,
             )
-            raise TransportError(
+            transport_error = TransportError(
                 request.method,
                 str(request.url.copy_with(query=None, fragment=None)),
                 redact_text(str(error), secrets),
-            ) from error
+            )
+        # Do not chain an HTTPX exception retaining secret-bearing requests.
+        raise transport_error
 
     def _request_response(
         self,
@@ -344,10 +356,12 @@ class Client:
 
 
 from .openapi import OpenAPIOperations  # noqa: E402
-from .services import (  # noqa: E402  (imported after Client is defined)
+from .services import (  # noqa: E402
     ClassesService,
     ClassRelationsService,
     CollectionsService,
+    CredentialApprovalsService,
+    EventSinksService,
     ExportsService,
     GroupsService,
     ImportsService,

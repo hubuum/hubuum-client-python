@@ -76,6 +76,7 @@ class APIError(HubuumError):
     message: str | None = None
     response_body: Any = None
     request_id: str | None = None
+    reason: str | None = None
 
     def __str__(self) -> str:
         detail = self.message or self.error or "request failed"
@@ -89,6 +90,10 @@ class AuthenticationError(APIError):
 
 class PermissionDeniedError(APIError):
     """The authenticated principal cannot perform the operation."""
+
+
+class ReauthenticationRequiredError(PermissionDeniedError):
+    """Obtain fresh, operation-bound password approval before retrying."""
 
 
 class NotFoundError(APIError):

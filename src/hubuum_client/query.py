@@ -3,12 +3,24 @@
 from __future__ import annotations
 
 from collections.abc import Iterator, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, fields, replace
 from datetime import date, datetime
 from enum import StrEnum
 from ipaddress import IPv4Address, IPv4Network, IPv6Address, IPv6Network
-from typing import Generic, TypeVar, overload
+from typing import Generic, Literal, Self, TypeVar, overload
 
+from .models import (
+    ExportScopeKind,
+    ImportAtomicity,
+    ImportCollisionPolicy,
+    ImportPermissionPolicy,
+    SchemaWorkKind,
+    SchemaWorkStatus,
+    TaskKind,
+    TaskOutputDiscoveryState,
+    TaskRemoteSideEffectState,
+    TaskStatus,
+)
 from .types import FilterOperator, QueryValue
 
 _MAX_SCHEMA_PAGE_LIMIT = 100
@@ -68,27 +80,27 @@ class Query:
         field: str,
         value: FilterValue,
         operator: FilterOperator = FilterOperator.EQUALS,
-    ) -> Query:
+    ) -> Self:
         return replace(self, filters=(*self.filters, QueryFilter(field, operator, value)))
 
     def data(self, *path: str) -> DataField:
         """Select a nested object ``data`` field for a fluent JSON filter."""
         return DataField(self, path)
 
-    def limit(self, value: int) -> Query:
+    def limit(self, value: int) -> Self:
         if value < 1:
             raise ValueError("limit must be at least 1")
         return replace(self, limit_value=value)
 
-    def cursor(self, value: str | None) -> Query:
+    def cursor(self, value: str | None) -> Self:
         return replace(self, cursor_value=value)
 
-    def sort(self, value: str) -> Query:
+    def sort(self, value: str) -> Self:
         if not value.strip():
             raise ValueError("sort must not be empty")
         return replace(self, sort_value=value)
 
-    def include_total(self, value: bool = True) -> Query:
+    def include_total(self, value: bool = True) -> Self:
         return replace(self, include_total_value=value)
 
     def as_params(self) -> list[tuple[str, QueryValue | None]]:
@@ -101,6 +113,66 @@ class Query:
             params.append(("sort", self.sort_value))
         if self.include_total_value is not None:
             params.append(("include_total", _wire_value(self.include_total_value)))
+        return params
+
+
+@dataclass(frozen=True, slots=True)
+class TaskQuery(Query):
+    """Task discovery controls using plain server parameter names.
+
+    Inherited limit, sort, cursor, and include_total builders preserve these
+    fields. Use the named fields below instead of generic ``where`` filters.
+    Historical unknown facts remain distinct from known false values.
+    """
+
+    kind: tuple[TaskKind, ...] = ()
+    status: tuple[TaskStatus, ...] = ()
+    submitted_by: int | None = None
+    terminal: bool | None = None
+    cancel_requested: bool | None = None
+    terminal_reason: Literal["cancel_requested", "deadline_exceeded"] | None = None
+    trace_id: str | None = None
+    created_after: datetime | None = None
+    created_before: datetime | None = None
+    started_after: datetime | None = None
+    started_before: datetime | None = None
+    finished_after: datetime | None = None
+    finished_before: datetime | None = None
+    class_id: int | None = None
+    object_id: int | None = None
+    collection_id: int | None = None
+    relation_type: Literal["class_relation", "object_relation"] | None = None
+    relation_id: int | None = None
+    schema_revision: int | None = None
+    schema_work_kind: SchemaWorkKind | None = None
+    schema_work_status: SchemaWorkStatus | None = None
+    computation_revision: int | None = None
+    remote_target_id: int | None = None
+    remote_side_effect_state: TaskRemoteSideEffectState | None = None
+    export_scope_kind: ExportScopeKind | None = None
+    export_template_id: int | None = None
+    export_has_warnings: bool | None = None
+    export_truncated: bool | None = None
+    import_dry_run: bool | None = None
+    import_atomicity: ImportAtomicity | None = None
+    import_collision_policy: ImportCollisionPolicy | None = None
+    import_permission_policy: ImportPermissionPolicy | None = None
+    import_has_failed_items: bool | None = None
+    backup_include_history: bool | None = None
+    output_state: TaskOutputDiscoveryState | None = None
+
+    def as_params(self) -> list[tuple[str, QueryValue | None]]:
+        params = Query.as_params(self)
+        pagination_fields = {item.name for item in fields(Query)}
+        for item in fields(self):
+            if item.name in pagination_fields:
+                continue
+            value = getattr(self, item.name)
+            if value is None or value == ():
+                continue
+            params.append(
+                (item.name, ",".join(value) if isinstance(value, tuple) else _wire_value(value))
+            )
         return params
 
 

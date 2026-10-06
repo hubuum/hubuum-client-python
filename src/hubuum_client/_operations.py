@@ -1,4 +1,4 @@
-"""Immutable Hubuum v0.0.15 OpenAPI operation manifest."""
+"""Immutable Hubuum v0.0.17 OpenAPI operation manifest."""
 
 from __future__ import annotations
 
@@ -31,6 +31,55 @@ class OperationSpec(NamedTuple):
 
 
 _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
+    (
+        "deleteApiV1SystemEventSubscriptionsBySubscriptionId",
+        "DELETE",
+        "/api/v1/system-event-subscriptions/{subscription_id}",
+        None,
+    ),
+    ("getApiV1SystemEventSubscriptions", "GET", "/api/v1/system-event-subscriptions", None),
+    (
+        "getApiV1SystemEventSubscriptionsBySubscriptionId",
+        "GET",
+        "/api/v1/system-event-subscriptions/{subscription_id}",
+        None,
+    ),
+    (
+        "patchApiV1SystemEventSubscriptionsBySubscriptionId",
+        "PATCH",
+        "/api/v1/system-event-subscriptions/{subscription_id}",
+        "application/json",
+    ),
+    (
+        "postApiV1EventSinksBySinkIdPreview",
+        "POST",
+        "/api/v1/event-sinks/{sink_id}/preview",
+        "application/json",
+    ),
+    (
+        "postApiV1EventSinksBySinkIdTest",
+        "POST",
+        "/api/v1/event-sinks/{sink_id}/test",
+        "application/json",
+    ),
+    (
+        "postApiV1SystemEventSubscriptions",
+        "POST",
+        "/api/v1/system-event-subscriptions",
+        "application/json",
+    ),
+    (
+        "getApiV1IamCredentialApprovalsByApprovalId",
+        "GET",
+        "/api/v1/iam/credential-approvals/{approval_id}",
+        None,
+    ),
+    (
+        "postApiV1IamCredentialApprovals",
+        "POST",
+        "/api/v1/iam/credential-approvals",
+        "application/json",
+    ),
     ("deleteApiV0MetaLoginRateLimit", "DELETE", "/api/v0/meta/login-rate-limit", None),
     ("deleteApiV0MetaLoginRateLimitById", "DELETE", "/api/v0/meta/login-rate-limit/{id}", None),
     ("deleteApiV1ClassesByClassId", "DELETE", "/api/v1/classes/{class_id}", None),
@@ -982,6 +1031,7 @@ OPERATIONS = {
 }
 _NO_SUCCESS_RESPONSE_MEDIA = frozenset(
     {
+        "deleteApiV1SystemEventSubscriptionsBySubscriptionId",
         "deleteApiV1ClassesByClassId",
         "deleteApiV1ClassesByClassIdByFromObjectIdRelationsByToClassIdByToObjectId",
         "deleteApiV1ClassesByClassIdByObjectId",

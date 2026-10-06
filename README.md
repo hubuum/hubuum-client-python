@@ -1,5 +1,7 @@
 # Hubuum client library (Python)
 
+[Documentation](https://hubuum.github.io/hubuum-client-python/) · [Hubuum ecosystem](https://hubuum.github.io/)
+
 [![CI](https://github.com/hubuum/hubuum-client-python/actions/workflows/ci.yml/badge.svg)](https://github.com/hubuum/hubuum-client-python/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![Typed](https://img.shields.io/badge/typing-typed-blue.svg)](https://peps.python.org/pep-0561/)
@@ -9,17 +11,22 @@
 [Hubuum](https://github.com/hubuum/hubuum) asset-management API. It provides
 matching synchronous and asynchronous clients, Pydantic v2 models, typed
 resource IDs, immutable queries, cursor pagination, structured errors, and a
-contract-checked interface for all 218 operations in the server's OpenAPI
+contract-checked interface for all 227 operations in the server's OpenAPI
 surface.
 
-The **unreleased client** targets Hubuum server **v0.0.15**. Compatibility is tested
+Version **0.0.10** targets Hubuum server **v0.0.17**. Compatibility is tested
 against the tag-and-digest server image recorded in the
 [compatibility matrix](docs/compatibility.md), including repeated full restores
 and JSON-null recovery in both runtimes.
 
 Schema revisions, impact diagnostics, retained HTML repair reports, and task
 cancellation have matching typed sync/async APIs. See the
-[schema workflow](docs/schema.md) and [upgrade notes](docs/compatibility.md#v0015-target).
+[schema workflow](docs/schema.md) and [upgrade notes](docs/compatibility.md#v0016-target).
+
+Credential management now requires [single-use password approval](docs/credentials.md),
+including token creation/renewal, user passwords, credential-bearing imports,
+and restore confirmation. [Task discovery](docs/querying.md#task-discovery)
+supports resource, lifecycle, and retained-option filters for all six task kinds.
 
 ## Installation
 
@@ -93,7 +100,7 @@ Credentials and bearer tokens have redacted representations. TLS certificate
 validation is enabled by default; disabling it is an explicit client option and
 should be limited to disposable development systems.
 
-Hubuum v0.0.15 reports the authoritative expiry for newly issued tokens. After
+Hubuum v0.0.17 reports the authoritative expiry for newly issued tokens. After
 login or token minting, it is available as `client.token.expires_at` or
 `created_token.expires_at`. The unauthenticated public configuration reports
 the default and maximum accepted lifetimes:
@@ -122,10 +129,10 @@ The typed surface currently covers the most common Hubuum workflows:
 
 Structured JSON and SSE search are available through `openapi.call()` and
 `openapi.stream(..., json=...)`; see [advanced usage](docs/advanced.md#structured-search).
-The [upgrade notes](docs/compatibility.md#changes-since-v009) cover the server
-changes since v0.0.9, including explicit migrations and queued restores.
+The [upgrade notes](docs/compatibility.md#upgrade-from-v0016) cover the required
+maintenance window, notification migration, and format 7 backups.
 
-Every v0.0.15 OpenAPI operation is registered by its stable `operationId`:
+Every v0.0.17 OpenAPI operation is registered by its stable `operationId`:
 
 ```python
 from hubuum_client import OpenAPIOptions
@@ -136,7 +143,7 @@ result = client.openapi.call(
 )
 ```
 
-The checked-in manifest covers all 218 methods, paths, path variables, body
+The checked-in manifest covers all 227 methods, paths, path variables, body
 media types, public/authenticated policies, JSON responses, rendered text
 exports, and the search event stream. `request()` remains available for
 server extensions outside the pinned specification. Both interfaces are
@@ -210,3 +217,21 @@ than in a public issue.
 ## License
 
 Distributed under the MIT License. See [LICENSE](LICENSE).
+
+## Documentation-only CI
+
+Pull requests and pushes containing only prose or documentation-site inputs run
+Markdown lint and documentation validation without the application test/build
+matrix. Unknown files, source changes, executable examples, and declared
+test/build inputs retain application CI. Mixed changes run both kinds of checks.
+
+`scripts/ci-policy.py` owns the allowlist and exceptions. Update its regression
+tests whenever a document becomes a build, test, or packaging input; direct
+literal Rust includes are checked automatically. Run the policy tests with
+`python3 scripts/test-ci-policy.py`.
+
+The `Lint, types, docs, and package` check is the aggregate CI gate: classification failures,
+failed checks, and unexpectedly skipped required jobs fail it. Keep that check
+required in branch protection. Add the `ci:full` pull-request label or dispatch
+the CI workflow manually to request complete validation. Release validation
+and separately scheduled checks retain their existing coverage.

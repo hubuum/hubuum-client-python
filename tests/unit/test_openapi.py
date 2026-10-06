@@ -43,8 +43,8 @@ def _async_client(handler: Callable[[httpx.Request], httpx.Response]) -> AsyncCl
 
 
 def test_manifest_deliberately_covers_all_target_operations() -> None:
-    assert len(OPERATIONS) == 218
-    assert len(SUPPORTED_OPERATIONS) == 218
+    assert len(OPERATIONS) == 227
+    assert len(SUPPORTED_OPERATIONS) == 227
     assert OPERATIONS["getApiV1SearchStream"].path == "/api/v1/search/stream"
     assert (
         OPERATIONS[
@@ -68,7 +68,10 @@ def test_manifest_deliberately_covers_all_target_operations() -> None:
 
 
 @pytest.mark.parametrize("operation_id", tuple(OPERATIONS))
-def test_every_manifest_operation_constructs_its_declared_request(operation_id: str) -> None:
+@pytest.mark.parametrize("asynchronous", [False, True])
+async def test_every_manifest_operation_constructs_its_declared_request(
+    operation_id: str, asynchronous: bool
+) -> None:
     operation = OPERATIONS[operation_id]
     path_params = {name: f"value-{name}" for name in _PATH_PARAMETER.findall(operation.path)}
     expected_path = _PATH_PARAMETER.sub(
@@ -92,8 +95,22 @@ def test_every_manifest_operation_constructs_its_declared_request(operation_id: 
             assert request.headers["content-type"] == operation.request_media_type, operation_id
         return httpx.Response(204)
 
+    options = OpenAPIOptions(path_params=path_params)
+    if asynchronous:
+        async with _async_client(handler) as async_client:
+            if operation_id in STREAMING_OPERATION_IDS:
+                async with async_client.openapi.stream(
+                    operation_id, json=body, options=options
+                ) as async_response:
+                    assert async_response.status_code == 204
+            else:
+                assert (
+                    await async_client.openapi.call(operation_id, json=body, options=options)
+                    is None
+                )
+        return
+
     with _client(handler) as client:
-        options = OpenAPIOptions(path_params=path_params)
         if operation_id in STREAMING_OPERATION_IDS:
             with client.openapi.stream(operation_id, json=body, options=options) as response:
                 assert response.status_code == 204
@@ -263,7 +280,7 @@ async def test_async_openapi_call_and_stream_match_sync_behavior() -> None:
         return httpx.Response(200, json={"id": 9})
 
     async with _async_client(handler) as client:
-        assert len(client.openapi.operation_ids) == 218
+        assert len(client.openapi.operation_ids) == 227
         assert client.openapi.operation("getApiV1TasksByTaskId").method == "GET"
         result = await client.openapi.call(
             "getApiV1TasksByTaskId",
@@ -312,7 +329,7 @@ def test_openapi_binary_empty_and_operation_metadata() -> None:
     )
 
     with _client(lambda request: next(responses)) as client:
-        assert len(client.openapi.operation_ids) == 218
+        assert len(client.openapi.operation_ids) == 227
         assert client.openapi.operation("getApiV1Config").path == "/api/v1/config"
         assert client.openapi.call("getApiV1Config") == b"\x00\x01"
         assert client.openapi.call("getApiV1Config") is None

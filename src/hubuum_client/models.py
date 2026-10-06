@@ -7,20 +7,35 @@ from dataclasses import dataclass
 from dataclasses import field as dataclass_field
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, Any, Literal, Self, TypeAlias
+from typing import Annotated, Any, Literal, Self, TypeAlias, TypeVar
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    JsonValue,
+    ModelWrapValidatorHandler,
+    RootModel,
+    ValidationError,
+    model_validator,
+)
+from pydantic_core import InitErrorDetails, PydanticCustomError
 
 from .types import (
     ClassId,
     ClassRelationId,
     CollectionId,
+    CredentialApprovalId,
+    CredentialApprovalSecret,
+    EventSinkId,
+    EventSubscriptionId,
     GroupId,
     ImportResultId,
     ObjectId,
     ObjectRelationId,
     PrincipalId,
     ResourceRevision,
+    RestoreJobId,
     SchemaRevision,
     TaskEventId,
     TaskId,
@@ -537,7 +552,7 @@ class ExportJsonResponse(HubuumModel):
 class RestoreTimestamps(RequestModel):
     """Original UTC timestamps restored by an authorized import.
 
-    Hubuum v0.0.15 accepts timezone-free ISO 8601 values and interprets them as
+    Hubuum v0.0.17 accepts timezone-free ISO 8601 values and interprets them as
     UTC. The update timestamp must not precede the creation timestamp.
     """
 
@@ -937,7 +952,7 @@ class ImportGraph(RequestModel):
     """Complete import graph with typed core resources.
 
     Identity and integration sections remain JSON-object sequences so the
-    complete v0.0.15 graph is accepted without exposing unstable or
+    complete v0.0.17 graph is accepted without exposing unstable or
     secret-bearing integration configuration in representations. Core
     collection, class, object, relation, and collection-permission sections
     are fully typed.
@@ -1110,6 +1125,152 @@ class RenewTokenRequest(RequestModel):
     expires_at: datetime | None = None
 
 
+TokenRequestT = TypeVar("TokenRequestT", NewTokenRequest, RenewTokenRequest)
+
+
+class RestoreConfirmRequest(RequestModel):
+    """Exact confirmation bound to a staged restore and its capability."""
+
+    restore_capability: str = Field(repr=False)
+    sha256: str
+    confirmation: str
+
+
+class CreateTokenOperation(RequestModel):
+    kind: Literal["create_token"] = "create_token"
+    principal_id: PrincipalId
+    token: NewTokenRequest
+
+
+class RenewTokenOperation(RequestModel):
+    kind: Literal["renew_token"] = "renew_token"
+    principal_id: PrincipalId
+    token_id: TokenId
+    token: RenewTokenRequest
+
+
+class CreateUserOperation(RequestModel):
+    kind: Literal["create_user"] = "create_user"
+    user: UserCreate = Field(repr=False)
+
+
+class UpdateUserOperation(RequestModel):
+    kind: Literal["update_user"] = "update_user"
+    user_id: UserId
+    user: UserUpdate = Field(repr=False)
+
+
+class ImportCredentialsOperation(RequestModel):
+    kind: Literal["import_credentials"] = "import_credentials"
+    import_: ImportRequest = Field(alias="import", repr=False)
+
+
+class ConfirmRestoreOperation(RequestModel):
+    kind: Literal["confirm_restore"] = "confirm_restore"
+    restore_id: RestoreJobId
+    confirmation: RestoreConfirmRequest = Field(repr=False)
+
+
+CredentialOperation: TypeAlias = Annotated[
+    CreateTokenOperation
+    | RenewTokenOperation
+    | CreateUserOperation
+    | UpdateUserOperation
+    | ImportCredentialsOperation
+    | ConfirmRestoreOperation,
+    Field(discriminator="kind"),
+]
+
+
+class CredentialApprovalRequest(RequestModel):
+    """Authenticate the acting human for exactly one intended mutation."""
+
+    model_config = ConfigDict(hide_input_in_errors=True)
+
+    password: str = Field(repr=False)
+    operation: CredentialOperation = Field(repr=False)
+
+    @classmethod
+    def _safe_validation_error(cls, error: ValidationError) -> ValidationError:
+        # Nested inputs, messages, context, and even unknown field names can
+        # contain credentials. Retain only error codes and known root fields.
+        details: list[InitErrorDetails] = [
+            {
+                "type": PydanticCustomError(item["type"], "Invalid credential approval input"),
+                "loc": item["loc"][:1]
+                if item["loc"] and item["loc"][0] in cls.model_fields
+                else (),
+                "input": "<redacted>",
+            }
+            for item in error.errors(include_input=False, include_context=False, include_url=False)
+        ]
+        return ValidationError.from_exception_data(cls.__name__, details, hide_input=True)
+
+    @model_validator(mode="wrap")
+    @classmethod
+    def _validate_without_secret_inputs(
+        cls, value: Any, handler: ModelWrapValidatorHandler[Self]
+    ) -> Self:
+        try:
+            return handler(value)
+        except ValidationError as error:
+            safe_error = cls._safe_validation_error(error)
+        # Raising outside the handler avoids retaining the original exception.
+        raise safe_error
+
+    @classmethod
+    def model_validate_json(cls, json_data: str | bytes | bytearray, **kwargs: Any) -> Self:
+        """Validate JSON without retaining credentials in JSON-parser errors."""
+        try:
+            return super().model_validate_json(json_data, **kwargs)
+        except ValidationError as error:
+            safe_error = cls._safe_validation_error(error)
+        raise safe_error
+
+    def payload(self) -> dict[str, Any]:
+        # Defaulted discriminator values must survive exclude_unset serialization.
+        result = super().payload()
+        result["operation"]["kind"] = self.operation.kind
+        if isinstance(self.operation, ImportCredentialsOperation):
+            result["operation"]["import"] = self.operation.import_.payload()
+        return result
+
+
+class CredentialApprovalRecord(HubuumModel):
+    """Retained non-secret evidence, including consumption and invalidation."""
+
+    id: CredentialApprovalId
+    actor_id: PrincipalId
+    token_id: TokenId
+    operation: str
+    authenticated_at: datetime
+    expires_at: datetime
+    target_id: PrincipalId | None = None
+    restore_job_id: RestoreJobId | None = None
+    consumed_at: datetime | None = None
+    invalidated_at: datetime | None = None
+
+
+class CredentialApprovalResponse(HubuumModel):
+    """Transient approval; token expiry must be copied into the final mutation."""
+
+    model_config = ConfigDict(hide_input_in_errors=True)
+
+    approval: CredentialApprovalSecret = Field(repr=False)
+    record: CredentialApprovalRecord
+    token_expires_at: datetime | None = None
+
+    def headers(self) -> dict[str, str]:
+        """Explicitly expose the approval header for one protected request."""
+        return {"X-Hubuum-Credential-Approval": self.approval.get_secret_value()}
+
+    def token_request(self, payload: TokenRequestT) -> TokenRequestT:
+        """Copy the server-normalized expiry without changing the original request."""
+        if self.token_expires_at is None:
+            raise ValueError("token approval must include token_expires_at")
+        return payload.model_copy(update={"expires_at": self.token_expires_at})
+
+
 class TokenResourceScopeDetails(HubuumModel):
     """One resource returned in token scope metadata."""
 
@@ -1237,20 +1398,108 @@ class TaskLinks(HubuumModel):
     backup_output: str | None = Field(default=None, repr=False)
 
 
+class TaskOutputDiscoveryState(StrEnum):
+    AVAILABLE = "available"
+    EXPIRED = "expired"
+    NOT_PRODUCED = "not_produced"
+    UNKNOWN = "unknown"
+
+
+class TaskCollectionTarget(HubuumModel):
+    type: Literal["collection"]
+    collection_id: CollectionId
+
+
+class TaskClassTarget(HubuumModel):
+    type: Literal["class"]
+    class_id: ClassId
+
+
+class TaskObjectTarget(HubuumModel):
+    type: Literal["object"]
+    object_id: ObjectId
+    class_id: ClassId | None = None
+
+
+class TaskClassRelationTarget(HubuumModel):
+    type: Literal["class_relation"]
+    relation_id: ClassRelationId
+
+
+class TaskObjectRelationTarget(HubuumModel):
+    type: Literal["object_relation"]
+    relation_id: ObjectRelationId
+
+
+TaskDiscoveryTarget: TypeAlias = Annotated[
+    TaskCollectionTarget
+    | TaskClassTarget
+    | TaskObjectTarget
+    | TaskClassRelationTarget
+    | TaskObjectRelationTarget,
+    Field(discriminator="type"),
+]
+
+
+class RetainedImportDetails(HubuumModel):
+    atomicity: ImportAtomicity | None = None
+    collision_policy: ImportCollisionPolicy | None = None
+    permission_policy: ImportPermissionPolicy | None = None
+    dry_run: bool | None = None
+    has_failed_items: bool | None = None
+
+
+class RetainedExportDetails(HubuumModel):
+    output_state: TaskOutputDiscoveryState
+    max_items: int | None = None
+    max_output_bytes: int | None = None
+    missing_data_policy: ExportMissingDataPolicy | None = None
+    scope_kind: ExportScopeKind | None = None
+    target: TaskDiscoveryTarget | None = None
+    template_id: int | None = None
+    truncated: bool | None = None
+    warning_count: int | None = None
+
+
+class RetainedBackupDetails(HubuumModel):
+    output_state: TaskOutputDiscoveryState
+    include_history: bool | None = None
+
+
+class SchemaTaskDetails(HubuumModel):
+    class_id: ClassId | None = None
+    schema_revision: SchemaRevision | None = None
+    work_kind: SchemaWorkKind | None = None
+    work_status: SchemaWorkStatus | None = None
+    results_url: str | None = Field(default=None, repr=False)
+
+
+class RebuildTaskDetails(HubuumModel):
+    class_id: ClassId | None = None
+    computation_revision: int | None = None
+
+
+class RemoteCallTaskDetails(HubuumModel):
+    remote_target_id: int | None = None
+    target: TaskDiscoveryTarget | None = None
+
+
 class ImportTaskDetails(HubuumModel):
     """Import-specific task metadata."""
 
     results_url: str = Field(repr=False)
+    retained: RetainedImportDetails | None = None
 
 
 class ExportTaskDetails(HubuumModel):
-    """Export output state and v0.0.15 phase-duration measurements."""
+    """Export output state and v0.0.17 phase-duration measurements."""
 
     output_url: str = Field(repr=False)
     output_available: bool
     output_expired: bool
     output_content_type: str | None = None
     output_expires_at: datetime | None = None
+    retained: RetainedExportDetails | None = None
     template_name: str | None = None
     truncated: bool | None = None
     warning_count: int | None = None
@@ -1266,17 +1515,21 @@ class BackupTaskDetails(HubuumModel):
     output_url: str = Field(repr=False)
     output_available: bool
     output_expired: bool
+    retained: RetainedBackupDetails | None = None
     byte_size: int | None = None
     output_expires_at: datetime | None = None
     sha256: str | None = None
 
 
 class TaskDetails(HubuumModel):
-    """Kind-specific task metadata exposed by Hubuum v0.0.15."""
+    """Kind-specific task metadata exposed by Hubuum v0.0.17."""
 
     import_: ImportTaskDetails | None = Field(default=None, alias="import")
     export: ExportTaskDetails | None = None
     backup: BackupTaskDetails | None = None
+    schema_validation: SchemaTaskDetails | None = None
+    reindex: RebuildTaskDetails | None = None
+    remote_call: RemoteCallTaskDetails | None = None
 
 
 class Task(HubuumModel):
@@ -1370,3 +1623,107 @@ class ImportRunResult:
 class ApiErrorResponse(HubuumModel):
     error: str
     message: str
+    reason: str | None = None
+
+
+class EventSinkRouting(StrEnum):
+    FIXED = "fixed"
+    WEBHOOK_URL = "webhook_url"
+    EMAIL_RECIPIENTS = "email_recipients"
+    VALKEY_STREAM = "valkey_stream"
+    AMQP = "amqp"
+
+
+class CollectionEventSink(HubuumModel):
+    """Permitted destination metadata, without URLs, configuration or credentials."""
+
+    id: EventSinkId
+    name: str
+    kind: str
+    enabled: bool
+    collection_id: CollectionId | None
+    revision: ResourceRevision
+    routing: EventSinkRouting
+
+
+class EventSink(HubuumModel):
+    """Administrator sink configuration; sensitive values are hidden from repr."""
+
+    id: EventSinkId
+    name: str
+    kind: str
+    config: dict[str, JsonValue] = Field(repr=False)
+    enabled: bool
+    collection_id: CollectionId | None = None
+    secret_ref: str | None = Field(default=None, repr=False)
+    delivery_policy: dict[str, JsonValue] | None = None
+    created_at: datetime
+    updated_at: datetime
+    revision: ResourceRevision
+
+
+class EventSinkCreate(RequestModel):
+    name: str
+    kind: Literal["webhook", "email", "amqp", "valkey_stream"]
+    config: dict[str, JsonValue] = Field(default_factory=dict, repr=False)
+    enabled: bool | None = None
+    secret_ref: str | None = Field(default=None, repr=False)
+    delivery_policy: dict[str, JsonValue] | None = None
+
+
+class EventSinkUpdate(RequestModel):
+    name: str | None = None
+    kind: Literal["webhook", "email", "amqp", "valkey_stream"] | None = None
+    config: dict[str, JsonValue] | None = Field(default=None, repr=False)
+    enabled: bool | None = None
+    secret_ref: str | None = Field(default=None, repr=False)
+    delivery_policy: dict[str, JsonValue] | None = None
+
+    def payload(self) -> dict[str, Any]:
+        """Preserve explicit credential removal without clearing omitted fields."""
+        payload = super().payload()
+        if "secret_ref" in self.model_fields_set:
+            payload["secret_ref"] = self.secret_ref
+        return payload
+
+
+class EventSubscription(HubuumModel):
+    id: EventSubscriptionId
+    collection_id: CollectionId | None
+    sink_id: EventSinkId
+    name: str
+    description: str | None = None
+    entity_types: tuple[str, ...]
+    actions: tuple[str, ...]
+    filter: dict[str, JsonValue] = Field(default_factory=dict, repr=False)
+    routing: dict[str, JsonValue] = Field(default_factory=dict, repr=False)
+    enabled: bool
+    created_at: datetime
+    updated_at: datetime
+    revision: ResourceRevision
+
+
+class EventSubscriptionCreate(RequestModel):
+    sink_id: EventSinkId
+    name: str
+    description: str | None = None
+    entity_types: tuple[str, ...]
+    actions: tuple[str, ...]
+    filter: dict[str, JsonValue] | None = Field(default=None, repr=False)
+    routing: dict[str, JsonValue] | None = Field(default=None, repr=False)
+    enabled: bool | None = None
+
+
+class EventSubscriptionUpdate(RequestModel):
+    sink_id: EventSinkId | None = None
+    name: str | None = None
+    description: str | None = None
+    entity_types: tuple[str, ...] | None = None
+    actions: tuple[str, ...] | None = None
+    filter: dict[str, JsonValue] | None = Field(default=None, repr=False)
+    routing: dict[str, JsonValue] | None = Field(default=None, repr=False)
+    enabled: bool | None = None
+
+
+class _EventSinkCollectionIds(RootModel[list[CollectionId]]):
+    """Internal decoder for the administrator's direct collection grant list."""

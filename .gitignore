@@ -10,3 +10,6 @@ build/
 dist/
 htmlcov/
 site/
+
+# Generated documentation and pinned shared tooling.
+/target/

@@ -1,5 +1,5 @@
 site_name: Hubuum Client for Python
-site_description: Typed synchronous and asynchronous Python client for Hubuum server v0.0.15
+site_description: Typed synchronous and asynchronous Python client for Hubuum server v0.0.17
 site_url: https://hubuum.github.io/hubuum-client-python/
 repo_url: https://github.com/hubuum/hubuum-client-python
 repo_name: hubuum/hubuum-client-python
@@ -54,7 +54,9 @@ markdown_extensions:
 
 nav:
   - Overview: index.md
+  - Atlas example inventory: example-dataset.md
   - Client setup: client.md
+  - Credential approvals: credentials.md
   - Querying and pagination: querying.md
   - Schema evolution: schema.md
   - Advanced usage: advanced.md
@@ -63,5 +65,6 @@ nav:
   - End-to-end tests: e2e.md
   - Releasing: releasing.md
   - Changelog: changelog.md
+  - Documentation website: documentation.md
 
 strict: true

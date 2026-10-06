@@ -4,7 +4,9 @@
 
 | Python client | Hubuum server contract | Status | End-to-end evidence |
 | --- | --- | --- | --- |
-| Unreleased | [`v0.0.15`](https://github.com/hubuum/hubuum/tree/v0.0.15) | Verified | 16 core and 4 recovery tests passed locally on 2026-09-15 (Python 3.11.12, Podman, Linux AMD64 server) |
+| 0.0.10 | [`v0.0.17`](https://github.com/hubuum/hubuum/tree/v0.0.17) | Verified | [22 core and 4 recovery tests passed on 2026-10-05](https://github.com/hubuum/hubuum-client-python/actions/runs/37269468024) (Python 3.11, Docker, Linux AMD64 server) |
+| 0.0.9 | [`v0.0.16`](https://github.com/hubuum/hubuum/tree/v0.0.16) | Verified | 20 core and 4 recovery tests passed locally on 2026-09-22 (Python 3.13.3, Podman, Linux AMD64 server) |
+| [7165240](https://github.com/hubuum/hubuum-client-python/commit/7165240) | [`v0.0.15`](https://github.com/hubuum/hubuum/tree/v0.0.15) | Verified | 16 core and 4 recovery tests passed locally on 2026-09-15 (Python 3.11.12, Podman, Linux AMD64 server) |
 | 0.0.8 | [`v0.0.14`](https://github.com/hubuum/hubuum/tree/v0.0.14) | Verified | [14 core and 4 recovery tests passed on 2026-09-10](https://github.com/hubuum/hubuum-client-python/actions/runs/34446685036) (Python 3.11, Docker, Linux AMD64 server) |
 | 0.0.6 | [`v0.0.9`](https://github.com/hubuum/hubuum/tree/v0.0.9) | Verified | [Pinned e2e passed on 2026-08-07](https://github.com/hubuum/hubuum-client-python/actions/runs/31214164409) |
 | 0.0.5 | [`v0.0.8`](https://github.com/hubuum/hubuum/tree/v0.0.8) | Verified | Pinned e2e passed locally on 2026-08-05 |
@@ -18,24 +20,111 @@ client/server pair. The current server target is selected by tag and locked to
 an immutable multi-platform image:
 
 ```text
-ghcr.io/hubuum/hubuum-server:v0.0.15@sha256:36af667dbc9e221a40448496d4a87e168c999d0834df4b69177345ff3d36e821
+ghcr.io/hubuum/hubuum-server:v0.0.17@sha256:cc0518167816bfddb38853b8b7217c4a347511318d51e1abca93ca418f31b302
 ```
 
 The tag identifies the supported server release; the digest prevents that tag
 from resolving to different content later. The same reference is stored in
 `src/hubuum_client/_constants.py`, the e2e wrapper, and CI.
 
-## v0.0.15 target
+## v0.0.17 target
 
 The client pins the released OpenAPI document at commit
-`4bb889c66a5e2a1dfc86d1b6beac7495912fd02e`, with SHA-256
-`d654d5e18aee32e998cb47ce1da5dadbc5fe83ff22a260192ba125b201c3649b`.
-The exact document is [committed with the client](openapi.json), so the default
-contract check runs without network access and detects document or client
+`4a03d56b27f35af62175a80d09d36d0d41c4a663`, with SHA-256
+`ae6a889ac3ac701b0f70b4384a416d21246d60a64dd0e1e26b8b9306efa23acd`.
+The exact document is [committed with the client](openapi.json), and the offline
+contract check compares every operation and media type with the client manifest.
+
+The [v0.0.16 to v0.0.17 comparison](https://github.com/hubuum/hubuum/compare/v0.0.16...v0.0.17)
+adds seven operations and six schemas, with no removed routes or schemas.
+All **227 operations** are registered in both runtimes. The additions cover
+system event subscription CRUD and administrator webhook preview/test requests;
+see [notification operations](advanced.md#webhook-notifications-and-system-subscriptions).
+Sink configuration gains delivery pacing, subscriptions gain task-kind filters,
+and delivery responses include `purpose` and optional `deferred_reason`.
+Event-delivery health accepts `collection_id: null` for system subscriptions.
+These administrative operations return raw JSON, preserving the server's wire
+fields and nulls. Utoipa 6 also changes the ordering of nullable schema
+alternatives; existing typed resource fields remain compatible.
+
+### Upgrade from v0.0.16
+
+- Stop all writers and take a PostgreSQL snapshot before applying the
+  webhook-notification migration. This upgrade requires a maintenance window;
+  restart only matching API, worker, and restore-executor binaries. Binary-only
+  rollback is unsupported after migration. Recovery uses that snapshot and
+  matching v0.0.16 binaries, losing writes made after the snapshot.
+- Backups now use **format 7**. v0.0.17 accepts format 6 with legacy defaults,
+  but older servers cannot restore format 7. Restore preserves notification
+  configuration and terminal delivery history while resetting transient sink
+  scheduling. The live client recovery suite verifies new format 7 backups;
+  it does not claim format 6 migration coverage. Portable imports remain version 2.
+- System subscriptions require an unscoped administrator. Consumers of delivery
+  health must accept null collection IDs; exhaustive delivery readers must
+  allow the added purpose and deferral fields.
+- Webhook URL secrets and bearer authentication use separate aliases. Preview
+  renders without resolving secrets or sending a request; test delivery returns
+  `202 Accepted` when queued. Inspect delivery status to confirm its outcome.
+- Optional Treetop installations require REST and policy bundles on protocol
+  0.1, migrated label targets, and rebuilt/re-signed format 2 bundles. External
+  storage adapters must upgrade the eight SDK crates together to storage SDK
+  0.4; Rust schema consumers must adopt Utoipa 6.
+
+See the [v0.0.17 release notes](https://github.com/hubuum/hubuum/releases/tag/v0.0.17)
+and [notification upgrade reference](https://github.com/hubuum/hubuum/blob/v0.0.17/docs/events.md)
+for deployment details. Updating this Python package does not migrate a server.
+
+## Changes introduced in v0.0.16
+
+Client 0.0.9 pinned the released OpenAPI document at commit
+`8f4194ffe25d172d579b676f109efbdc71d9aab7`, with SHA-256
+`f0266a8e4399d4fe8d470e0ceecf05580a9e0b6acd976eaafbad1dfa2635c37d`.
+The contract check runs without network access and detects document or client
 manifest drift. An explicit upstream check/update workflow is documented in
 [CONTRIBUTING.md](https://github.com/hubuum/hubuum-client-python/blob/main/CONTRIBUTING.md#openapi-contract-updates).
 
-All 218 operations are registered, up from 204 in v0.0.14, with no removals.
+The [v0.0.15 to v0.0.16 comparison](https://github.com/hubuum/hubuum/compare/v0.0.15...v0.0.16)
+adds two operations (approval creation and evidence lookup), with no removed
+routes or schemas. All **220 operations** were registered. Fifteen schemas are
+added, including credential operations and records, retained task options,
+explicit discovery targets, output state, and the three missing task-detail
+variants. Existing error bodies gain an optional machine-readable `reason`.
+
+The client provides matching sync/async [credential approval services](credentials.md),
+including server-normalized token expiry, and [task discovery](querying.md#task-discovery)
+with plain query parameters and typed details for all six task kinds.
+
+### Upgrade from v0.0.15
+
+- **Breaking credential policy:** token creation/renewal, local user creation,
+  password changes, credential-bearing imports (including dry runs), and restore
+  confirmation require fresh operation-bound password approval. Bearer-only
+  requests receive `403 reauthentication_required`. Update callers before
+  directing them to v0.0.16; there is no compatibility bypass.
+- Apply `2026-09-18-000001_task_discovery` and
+  `2026-09-19-000001_credential_approvals` before starting upgraded processes.
+  Quiesce protected mutations until every API replica and worker is upgraded.
+  The task backfill takes write locks and may need a quiet migration window.
+- Approval audit events add `credential_approval.created` and
+  `credential_approval.succeeded`; update exhaustive event readers. Completed
+  restores preserve local evidence and invalidate outstanding approvals.
+- Task metadata backfill uses retained data only. Missing historical facts stay
+  unknown, and resource authorization can suppress details/output links.
+  Existing backup format **6** and portable import version **2** remain unchanged;
+  older format-6 backups without task discovery metadata remain accepted.
+- External storage adapters have breaking approval, task metadata/search, restore
+  confirmation, and authorization batching contracts. Update adapters before
+  their consumers. These interfaces are server concerns, not Python wire fields.
+- The release also adds operational dashboards/alerts and fixes SMTP trust-store
+  handling, metrics accounting, and task-discovery edge cases; these need no
+  additional Python endpoints. See the [v0.0.16 release notes](https://github.com/hubuum/hubuum/releases/tag/v0.0.16)
+  and [rollout guide](https://github.com/hubuum/hubuum/blob/v0.0.16/docs/credential_approvals.md#deployment-transition).
+
+Updating this Python package does not migrate a server installation.
+
+## Changes introduced in v0.0.15
+
+The previous target registered all 218 operations, up from 204 in v0.0.14.
 The 14 additions cover schema revision staging, activation and abandonment,
 impact and revalidation tasks, compliance pages, retained HTML repair reports,
 and generic task cancellation. Typed services support these operations in both
@@ -117,7 +206,7 @@ Updating this Python package does not migrate a server installation.
 
 ## Meaning of compatibility
 
-For this project, targeting server v0.0.15 means:
+For this project, targeting server v0.0.17 means:
 
 - authentication, public probes, client configuration, typed CRUD, natural keys,
   nested object-data filtering, JSON Patch, IAM, relations, forced multi-page
@@ -128,21 +217,27 @@ For this project, targeting server v0.0.15 means:
   export durations, and task events;
 - structured JSON and SSE search, schema impact/repair/activation, import
   activation, and terminal task cancellation are exercised in both runtimes;
+- live approval tests cover bearer-only rejection, single-use consumption,
+  token renewal, password changes, credential-import dry runs and idempotency,
+  and lifecycle/resource task discovery in both runtimes;
+- notification tests cover system subscription CRUD, task-kind filters, null
+  collection IDs in delivery health, delivery pacing, and webhook preview/test
+  admission in both runtimes, using an unavailable secret alias to prevent delivery;
 - the disposable stack runs eight consecutive full backup/restore cycles,
   covering sync-then-async and async-then-sync order without restarting the
-  server or executor. Version 6 backups include and omit history; restored
+  server or executor. Version 7 backups include and omit history; restored
   objects retain data, JSON `null`, and revisions, post-backup objects disappear, old tokens
   are rejected, and login works after an administrator password reset. Default
   backups after history-free restores and further mutations remain restorable;
   enforced class schemas also survive full restores;
 - every method, path, request media type, and successful response media type
-  matches the 218-operation manifest;
+  matches the 227-operation manifest;
 - request models follow the wire contract, while response models tolerate
   additive fields.
 
 The live suite imports the built wheel in an isolated environment. Contract
 completeness and live behavioral coverage are separate claims: representative
-workflows are tested, not all 218 operations. Full restore tests run after the
+workflows are tested, not all 227 operations. Full restore tests run after the
 core suite and only against the wrapper-owned disposable stack in the default
 `single` database role mode. Caller-managed servers never run this recovery
 suite. Administrative features such as backups, restores, computed fields,
@@ -160,7 +255,51 @@ stable `collection_id` from the expansion when needed.
 ## Forward compatibility
 
 Runs against Hubuum `main`, a release candidate, or an overridden image can
-identify drift early. They do not replace the immutable v0.0.15 e2e run or
+identify drift early. They do not replace the immutable v0.0.17 e2e run or
 change a released client's declared target. Breaking server changes require a
 new compatibility row, changelog entry, and successful evidence for the new
 tag-and-digest image.
+
+## Optional collection integration extension
+
+Collection-owned webhook endpoints require the server update after `v0.0.17`.
+`docs/collection-integrations.json` records this additional contract separately
+from the pinned released-server baseline. Unsupported servers return their normal
+route error; the client never falls back to global discovery for a collection.
+
+Both synchronous and asynchronous clients provide the same service interface:
+
+```python
+from hubuum_client import EventSinkCreate, EventSubscriptionCreate
+
+sinks = client.collections.event_sinks(collection_id)
+sink = sinks.create(
+    EventSinkCreate(
+        name="notifications",
+        kind="webhook",
+        config={"destination_url": webhook_url},
+    )
+)
+client.collections.event_subscriptions(collection_id).create(
+    EventSubscriptionCreate(
+        name="object changes",
+        sink_id=sink.id,
+        entity_types=("object",),
+        actions=("updated",),
+    )
+)
+```
+
+Await the calls with `AsyncClient`. Management and audit-read permissions are
+required for creation and editing. Destination URLs are omitted from collection
+responses; rotating one requires a replacement configuration. The destination is
+owned by the collection and survives the creator losing access.
+
+Administrators can call `client.event_sinks.grant(sink_id, collection_id)`,
+`.collections(sink_id)`, and `.revoke(sink_id, collection_id)`. Shared grants do not
+inherit, and credential-bearing webhooks must bind their destination on the sink.
+
+To verify delegated access against the updated server, set
+`HUBUUM_E2E_COLLECTION_INTEGRATIONS=1` together with `HUBUUM_E2E_BASE_URL` and
+`HUBUUM_E2E_ADMIN_PASSWORD`, then run `./scripts/run-e2e-tests.sh`. The additional
+tests cover sync and async collection managers and remain skipped on v0.0.17.

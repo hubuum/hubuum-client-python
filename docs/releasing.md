@@ -59,8 +59,11 @@ script with an authenticated GitHub CLI session after changing the baseline.
    request remains open.
 7. Approve the waiting `pypi` environment deployment. The release workflow
    publishes the distributions through PyPI trusted publishing.
-8. Optionally publish a GitHub release from the tag after the PyPI job
-   succeeds.
+8. Publish a stable GitHub release from the tag after the PyPI job succeeds.
+   The documentation workflow uses published GitHub releases to select its
+   latest-version default and preserve the tagged API reference. Publishing
+   that release triggers the site update; a manual Documentation workflow run
+   can retry it if necessary.
 
 The workflow verifies that the pushed tag equals `v` followed by the package
 version before it builds or publishes distributions. PyPI releases cannot be

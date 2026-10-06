@@ -10,9 +10,98 @@ All notable changes to this project are documented here. The format follows
 
 - Make the e2e readiness unit tests use a fully simulated clock, preventing
   intermittent timeout failures when Bash's wall clock crosses a second.
+- Explicit `EventSinkUpdate(secret_ref=None)` clears a sink credential reference;
+  omitted references remain unchanged in both client modes.
 
 ### Added
 
+- Typed synchronous and asynchronous collection destination services through
+  `client.collections.event_sinks(collection_id)`, with CRUD and cursor pagination.
+- Typed collection subscription services, global administrator sink CRUD, and
+  sink collection grants. Configuration, webhook URLs and secret aliases are
+  omitted from model representations or collection discovery as appropriate.
+- These optional integration methods require the matching server update after
+  `v0.0.17`. Existing APIs retain the pinned `v0.0.17` compatibility baseline.
+
+## [0.0.10] - 2026-10-05
+
+### Changed
+
+- Target Hubuum v0.0.17 at release commit
+  `4a03d56b27f35af62175a80d09d36d0d41c4a663`, with its immutable OpenAPI document
+  and multi-platform image digest
+  `sha256:cc0518167816bfddb38853b8b7217c4a347511318d51e1abca93ca418f31b302`.
+  Register all 227 operations, including system event subscription CRUD and
+  webhook preview/test admission in both runtimes.
+- Verify format 7 backups and repeated restores; document the required offline
+  server migration, snapshot-based rollback, notification fields, and Treetop
+  and storage SDK upgrade requirements.
+- Documentation uses the shared warm Hubuum theme from the ecosystem site's
+  unversioned stylesheet, including retained release editions. Future styling
+  updates no longer require changes or rebuilds in this repository.
+
+### Maintenance
+
+- Refresh Python locks with `uv lock --upgrade`, including mypy 2.4.0,
+  Ruff 0.16.10, Zensical 0.0.67, coverage 7.16.2, Markdown 3.11,
+  pymdown-extensions 12.1, ast-serialize 0.12.1, librt 0.16.0,
+  charset-normalizer 3.5.2, MarkupSafe 3.0.4, and platformdirs 4.12.3.
+  This supersedes the Zensical/Ruff updates in Dependabot #60. HTTPX 0.28.1
+  and Pydantic 2.13.5 remain current within the supported runtime bounds.
+- Advance the shared documentation workflow/tooling pin to `c803fa3` after
+  reviewing its changes. Audit every third-party action pin and Twine; all
+  already match their latest stable releases. Require Hatchling 1.32.4 and
+  align the development-tool minimums with the audited versions.
+
+### Added
+
+- Live sync/async notification coverage and request-construction regression
+  coverage for every registered operation in both runtimes.
+- A walkthrough using the shared Atlas example inventory, with classes, objects,
+  relations, and permissions linked to the server-owned import and backup.
+
+- A searchable, versioned documentation site with shared Hubuum navigation,
+  automatic GitHub Pages publishing, the latest release as its default,
+  immutable release snapshots, and an explicit development edition.
+
+### Fixed
+
+- Documentation tables keep long environment-variable names readable, use wider
+  reference layouts, and scroll within the table on small screens. Shared style
+  fixes also reach retained release documentation.
+
+## [0.0.9] - 2026-09-22
+
+### Fixed
+
+- Remove credential-bearing inputs, messages, and nested exception context from
+  approval request validation errors, including structured and JSON diagnostics.
+- Classify reauthentication failures before redaction so passwords overlapping
+  the server's reason code do not suppress `ReauthenticationRequiredError`.
+- Bound live task discovery to the submitted task's server timestamp so
+  caller-managed servers with extensive task history do not exhaust pagination.
+
+### Maintenance
+
+- Refresh all Python dependency locks, including ast-serialize 0.11.2,
+  coverage 7.16.1, IDNA 3.20, mkdocstrings-python 2.0.9, platformdirs 4.11.12,
+  pymdown-extensions 12.0.1, Ruff 0.16.8, and urllib3 2.8.0. Existing direct
+  dependency bounds accept the latest stable releases, including HTTPX 0.28.1
+  and Pydantic 2.13.5.
+- Update the pinned `astral-sh/setup-uv` action to v10.2.0 after auditing all
+  Python, build, and workflow dependencies. Other workflow pins are current;
+  the Dependabot queue was empty before release preparation.
+
+### Added
+
+- Typed sync/async credential approvals for token creation/renewal, user creation
+  and password changes, credential-bearing imports, and restore confirmation.
+  Protected typed mutations accept `approval=`; token methods preserve the
+  server's normalized expiry. Approval evidence is readable after consumption.
+- `ReauthenticationRequiredError` and `APIError.reason` for the server's stable
+  fresh-authentication recovery signal, plus redacted approval secret values.
+- Immutable `TaskQuery` discovery filters and typed retained options, explicit
+  targets, output state, schema-validation, rebuild, and remote-call details.
 - Typed synchronous and asynchronous class schema services for revision staging,
   impact analysis with retained diagnostics, explicit activation, revalidation,
   compliance pages, abandonment, cancellation, and retained HTML repair reports.
@@ -23,19 +112,20 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
-- Target Hubuum v0.0.15 at release commit
-  `4bb889c66a5e2a1dfc86d1b6beac7495912fd02e`, with its immutable OpenAPI document
+- Target Hubuum v0.0.16 at release commit
+  `8f4194ffe25d172d579b676f109efbdc71d9aab7`, with its immutable OpenAPI document
   and multi-platform image digest
-  `sha256:36af667dbc9e221a40448496d4a87e168c999d0834df4b69177345ff3d36e821`.
-  Register all 218 operations, including the 14 new schema and cancellation routes.
+  `sha256:37b3299edd845a0c2aa7772d7d68565233ac8c1802bc44be3fb4bbc6dfa8778e`.
+  Register all 220 operations: 14 schema/cancellation additions from v0.0.15
+  and two credential-approval additions from v0.0.16.
+- Migrate live credential and restore workflows to password approvals, cover
+  their rejection/consumption behavior, and document coordinated server/worker
+  migrations.
+- Stop chaining transport and model-decoding exceptions that retain raw
+  secret-bearing requests/responses; redact approval values from diagnostics.
 - Document staged schema-policy updates on nonempty classes, format 6 backup
   migration, coordinated worker upgrades, validation/report budgets, and changed
   string cursor ordering. Portable imports remain version 2.
-- Refresh all Python dependencies with `uv lock --upgrade`: ast-serialize
-  0.11.2, coverage 7.16.1, pymdown-extensions 12.0, Ruff 0.16.7, and urllib3 2.8.0.
-  Existing direct dependency bounds accept the latest stable releases, including
-  HTTPX 0.28.1 and Pydantic 2.13.5. Update the pinned `astral-sh/setup-uv` action
-  to v10.1.0; other workflow pins are current. The Dependabot queue was empty.
 
 ## [0.0.8] - 2026-09-10
 
@@ -297,7 +387,9 @@ All notable changes to this project are documented here. The format follows
   error diagnostics.
 - Redacted login tokens from model representations.
 
-[Unreleased]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.8...HEAD
+[Unreleased]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.10...HEAD
+[0.0.10]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.9...v0.0.10
+[0.0.9]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.8...v0.0.9
 [0.0.8]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.7...v0.0.8
 [0.0.7]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.6...v0.0.7
 [0.0.6]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.5...v0.0.6

@@ -135,6 +135,11 @@ class AsyncClient:
         return await self.request("GET", "/api/v1/iam/me", response_model=MeResponse)
 
     @cached_property
+    def event_sinks(self) -> AsyncEventSinksService:
+        """Administrator sink management and explicit collection grants."""
+        return AsyncEventSinksService(self)
+
+    @cached_property
     def collections(self) -> AsyncCollectionsService:
         """Return typed collection CRUD and hierarchy operations."""
         return AsyncCollectionsService(self)
@@ -153,6 +158,11 @@ class AsyncClient:
     def groups(self) -> AsyncGroupsService:
         """Return typed group and membership operations."""
         return AsyncGroupsService(self)
+
+    @cached_property
+    def credential_approvals(self) -> AsyncCredentialApprovalsService:
+        """Return operation-bound password approval and evidence operations."""
+        return AsyncCredentialApprovalsService(self)
 
     @cached_property
     def tokens(self) -> AsyncTokensService:
@@ -186,7 +196,7 @@ class AsyncClient:
 
     @property
     def openapi(self) -> AsyncOpenAPIOperations:
-        """Return the complete operation-ID interface for all 218 v0.0.15 operations."""
+        """Return the complete operation-ID interface for all 227 v0.0.17 operations."""
         return AsyncOpenAPIOperations(self)
 
     @overload
@@ -293,11 +303,13 @@ class AsyncClient:
                 request_body,
                 request.url.params,
             )
-            raise TransportError(
+            transport_error = TransportError(
                 request.method,
                 str(request.url.copy_with(query=None, fragment=None)),
                 redact_text(str(error), secrets),
-            ) from error
+            )
+        # Do not chain an HTTPX exception retaining secret-bearing requests.
+        raise transport_error
 
     async def _request_response(
         self,
@@ -345,6 +357,8 @@ from .async_services import (  # noqa: E402
     AsyncClassesService,
     AsyncClassRelationsService,
     AsyncCollectionsService,
+    AsyncCredentialApprovalsService,
+    AsyncEventSinksService,
     AsyncExportsService,
     AsyncGroupsService,
     AsyncImportsService,

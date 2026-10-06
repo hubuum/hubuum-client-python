@@ -6,6 +6,7 @@ import asyncio
 import builtins
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from dataclasses import replace
 from math import isfinite
 from time import monotonic
 from typing import TYPE_CHECKING, Generic, TypeVar
@@ -30,8 +31,18 @@ from .models import (
     ClassUpdate,
     Collection,
     CollectionCreate,
+    CollectionEventSink,
     CollectionUpdate,
     ComplianceStatus,
+    CredentialApprovalRecord,
+    CredentialApprovalRequest,
+    CredentialApprovalResponse,
+    EventSink,
+    EventSinkCreate,
+    EventSinkUpdate,
+    EventSubscription,
+    EventSubscriptionCreate,
+    EventSubscriptionUpdate,
     ExportContentType,
     ExportJsonResponse,
     ExportOutput,
@@ -72,6 +83,7 @@ from .models import (
     UserCreate,
     UserPoint,
     UserUpdate,
+    _EventSinkCollectionIds,
     _object_data_patch_payload,
 )
 from .options import Params, RequestOptions
@@ -81,6 +93,8 @@ from .types import (
     AccessToken,
     ClassId,
     CollectionId,
+    CredentialApprovalId,
+    EventSinkId,
     GroupId,
     PrincipalId,
     SchemaRevision,
@@ -245,6 +259,16 @@ class AsyncCollectionsService(
             list_model=Collection,
             point_model=Collection,
         )
+
+    def event_sinks(self, collection_id: CollectionId | int) -> AsyncCollectionEventSinksService:
+        """Permitted destinations and owned-webhook management (server after v0.0.17)."""
+        return AsyncCollectionEventSinksService(self._client, CollectionId(collection_id))
+
+    def event_subscriptions(
+        self, collection_id: CollectionId | int
+    ) -> AsyncEventSubscriptionsService:
+        """Collection subscriptions; writes require management and audit permissions."""
+        return AsyncEventSubscriptionsService(self._client, CollectionId(collection_id))
 
     async def children(self, collection_id: CollectionId | int) -> builtins.list[Collection]:
         return await _model_list(
@@ -667,6 +691,28 @@ class AsyncNamedClassService:
         )
 
 
+class AsyncCredentialApprovalsService:
+    """Obtain single-use password approval and inspect retained evidence."""
+
+    def __init__(self, client: AsyncClient) -> None:
+        self._client = client
+
+    async def create(self, payload: CredentialApprovalRequest) -> CredentialApprovalResponse:
+        return await self._client.request(
+            "POST",
+            "/api/v1/iam/credential-approvals",
+            json=payload,
+            response_model=CredentialApprovalResponse,
+        )
+
+    async def get(self, approval_id: CredentialApprovalId | int) -> CredentialApprovalRecord:
+        return await self._client.request(
+            "GET",
+            f"/api/v1/iam/credential-approvals/{_segment(approval_id)}",
+            response_model=CredentialApprovalRecord,
+        )
+
+
 class AsyncUsersService(AsyncResourceService[User, UserPoint, UserCreate, UserUpdate]):
     """Async user lists with canonical point responses for reads and mutations."""
 
@@ -677,6 +723,39 @@ class AsyncUsersService(AsyncResourceService[User, UserPoint, UserCreate, UserUp
             item_path="/api/v1/iam/users/{id}",
             list_model=User,
             point_model=UserPoint,
+        )
+
+    async def create(
+        self, payload: UserCreate, *, approval: CredentialApprovalResponse | None = None
+    ) -> UserPoint:
+        """Create a local user using an operation-bound approval."""
+        return await self._client.request(
+            "POST",
+            self._collection_path,
+            json=payload,
+            response_model=UserPoint,
+            options=RequestOptions(headers=approval.headers() if approval else None),
+        )
+
+    async def update(
+        self,
+        resource_id: object,
+        payload: UserUpdate,
+        *,
+        approval: CredentialApprovalResponse | None = None,
+        options: RequestOptions | None = None,
+    ) -> UserPoint:
+        """Update a profile or approved password, preserving revision preconditions."""
+        request_options = options or RequestOptions()
+        headers = dict(request_options.headers or {})
+        if approval is not None:
+            headers.update(approval.headers())
+        return await self._client.request(
+            "PATCH",
+            self._item_path.format(id=_segment(resource_id)),
+            json=payload,
+            response_model=UserPoint,
+            options=replace(request_options, headers=headers),
         )
 
     async def get_by_name(self, name: str) -> User:
@@ -840,12 +919,15 @@ class AsyncPrincipalTokensService(_AsyncTokenListService):
             response_model=PrincipalTokenPoint,
         )
 
-    async def create(self, payload: NewTokenRequest) -> AccessToken:
+    async def create(
+        self, payload: NewTokenRequest, *, approval: CredentialApprovalResponse | None = None
+    ) -> AccessToken:
         response = await self._client.request(
             "POST",
             self._base,
-            json=payload,
+            json=approval.token_request(payload) if approval else payload,
             response_model=LoginResponse,
+            options=RequestOptions(headers=approval.headers() if approval else None),
         )
         return AccessToken(response.token, expires_at=response.expires_at)
 
@@ -859,12 +941,17 @@ class AsyncPrincipalTokensService(_AsyncTokenListService):
         self,
         token_id: TokenId | int,
         payload: RenewTokenRequest | None = None,
+        *,
+        approval: CredentialApprovalResponse | None = None,
     ) -> AccessToken:
         response = await self._client.request(
             "POST",
             f"{self._base}/{_segment(token_id)}/renew",
-            json=payload if payload is not None else RenewTokenRequest(),
+            json=approval.token_request(payload or RenewTokenRequest())
+            if approval
+            else payload or RenewTokenRequest(),
             response_model=LoginResponse,
+            options=RequestOptions(headers=approval.headers() if approval else None),
         )
         return AccessToken(response.token, expires_at=response.expires_at)
 
@@ -1054,9 +1141,17 @@ class AsyncImportsService:
     def __init__(self, client: AsyncClient) -> None:
         self._client = client
 
-    async def submit(self, payload: ImportRequest, *, idempotency_key: str | None = None) -> Task:
+    async def submit(
+        self,
+        payload: ImportRequest,
+        *,
+        idempotency_key: str | None = None,
+        approval: CredentialApprovalResponse | None = None,
+    ) -> Task:
         """Submit an import task, optionally with a replay-safe idempotency key."""
-        headers = {"Idempotency-Key": idempotency_key} if idempotency_key is not None else None
+        headers = approval.headers() if approval else {}
+        if idempotency_key is not None:
+            headers["Idempotency-Key"] = idempotency_key
         return await self._client.request(
             "POST",
             "/api/v1/imports",
@@ -1112,11 +1207,12 @@ class AsyncImportsService:
         payload: ImportRequest,
         *,
         idempotency_key: str | None = None,
+        approval: CredentialApprovalResponse | None = None,
         timeout_seconds: float = 300.0,
         poll_interval: float = 0.5,
     ) -> ImportRunResult:
         """Submit, await, and collect all outcomes for one import task."""
-        submitted = await self.submit(payload, idempotency_key=idempotency_key)
+        submitted = await self.submit(payload, idempotency_key=idempotency_key, approval=approval)
         task = await self._client.tasks.wait(
             submitted.id,
             timeout_seconds=timeout_seconds,
@@ -1265,3 +1361,74 @@ async def _model_page(
         total_count=_header_int(response.headers.get("x-total-count")),
         page_limit=_header_int(response.headers.get("x-page-limit")),
     )
+
+
+class AsyncCollectionEventSinksService(
+    AsyncResourceService[CollectionEventSink, CollectionEventSink, EventSinkCreate, EventSinkUpdate]
+):
+    """Create fixed-destination webhooks owned by a collection and discover permitted sinks."""
+
+    def __init__(self, client: AsyncClient, collection_id: CollectionId) -> None:
+        base = f"/api/v1/collections/{_segment(collection_id)}/event-sinks"
+        super().__init__(
+            client,
+            collection_path=base,
+            item_path=base + "/{id}",
+            list_model=CollectionEventSink,
+            point_model=CollectionEventSink,
+        )
+
+
+class AsyncEventSubscriptionsService(
+    AsyncResourceService[
+        EventSubscription, EventSubscription, EventSubscriptionCreate, EventSubscriptionUpdate
+    ]
+):
+    """Collection event subscriptions with bounded cursor pagination."""
+
+    def __init__(self, client: AsyncClient, collection_id: CollectionId) -> None:
+        base = f"/api/v1/collections/{_segment(collection_id)}/event-subscriptions"
+        super().__init__(
+            client,
+            collection_path=base,
+            item_path=base + "/{id}",
+            list_model=EventSubscription,
+            point_model=EventSubscription,
+        )
+
+
+class AsyncEventSinksService(
+    AsyncResourceService[EventSink, EventSink, EventSinkCreate, EventSinkUpdate]
+):
+    """Administrator sink CRUD and explicit collection-use grants."""
+
+    def __init__(self, client: AsyncClient) -> None:
+        super().__init__(
+            client,
+            collection_path="/api/v1/event-sinks",
+            item_path="/api/v1/event-sinks/{id}",
+            list_model=EventSink,
+            point_model=EventSink,
+        )
+
+    async def collections(self, sink_id: EventSinkId | int) -> builtins.list[CollectionId]:
+        """List direct grants; requires server collection-integration support."""
+        result = await self._client.request(
+            "GET",
+            f"/api/v1/event-sinks/{_segment(sink_id)}/collections",
+            response_model=_EventSinkCollectionIds,
+        )
+        return result.root
+
+    async def grant(self, sink_id: EventSinkId | int, collection_id: CollectionId | int) -> None:
+        """Permit one collection to use a global sink."""
+        await self._client.request(
+            "PUT", f"/api/v1/event-sinks/{_segment(sink_id)}/collections/{_segment(collection_id)}"
+        )
+
+    async def revoke(self, sink_id: EventSinkId | int, collection_id: CollectionId | int) -> None:
+        """Revoke a grant, including admission of queued deliveries."""
+        await self._client.request(
+            "DELETE",
+            f"/api/v1/event-sinks/{_segment(sink_id)}/collections/{_segment(collection_id)}",
+        )
