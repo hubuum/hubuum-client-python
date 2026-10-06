@@ -8,6 +8,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- Make the e2e readiness unit tests use a fully simulated clock, preventing
+  intermittent timeout failures when Bash's wall clock crosses a second.
 - Explicit `EventSinkUpdate(secret_ref=None)` clears a sink credential reference;
   omitted references remain unchanged in both client modes.
 

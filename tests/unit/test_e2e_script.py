@@ -61,6 +61,9 @@ def test_health_wait_ignores_temporary_socket_server_and_shutdown(tmp_path: Path
     result = _run_helper(
         r"""
 set -euo pipefail
+# Disable Bash's wall clock so only the sleep stub advances simulated time.
+unset SECONDS
+SECONDS=0
 source "${HELPER_PATH}"
 printf '0\n' > "${STATE_FILE}"
 
@@ -96,6 +99,9 @@ def test_health_wait_honors_startup_deadline(tmp_path: Path) -> None:
     result = _run_helper(
         r"""
 set -euo pipefail
+# Disable Bash's wall clock so only the sleep stub advances simulated time.
+unset SECONDS
+SECONDS=0
 source "${HELPER_PATH}"
 printf '0\n' > "${STATE_FILE}"
 
