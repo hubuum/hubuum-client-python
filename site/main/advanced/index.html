@@ -1645,7 +1645,7 @@ safety.</p>
 <h2 id="typed-imports-exports-and-task-events">Typed imports, exports, and task events<a class="headerlink" href="#typed-imports-exports-and-task-events" title="Permanent link">&para;</a></h2>
 <p>Core import graphs use strict import-v2 request models, including the timestamps
 Hubuum v0.0.17 can restore. <code>run()</code> submits the task, waits with a bounded poller, and
-collects every per-entity result through guarded cursor pagination:</p>
+collects per-entity results through guarded cursor pagination:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
 <a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>
 <a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -1678,6 +1678,17 @@ collects every per-entity result through guarded cursor pagination:</p>
 <a id="__codelineno-13-30" name="__codelineno-13-30" href="#__codelineno-13-30"></a><span class="p">)</span>
 <a id="__codelineno-13-31" name="__codelineno-13-31" href="#__codelineno-13-31"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">succeeded</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">failed</span><span class="p">)</span>
 </code></pre></div>
+<p>Result collection defaults to at most <strong>100 pages</strong> and <strong>10,000 items</strong>. For
+larger imports, set <code>max_pages</code> and <code>max_items</code> explicitly on <code>run()</code>; both must
+be positive and are checked before the import is submitted:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="n">result</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">imports</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">max_pages</span><span class="o">=</span><span class="mi">1_000</span><span class="p">,</span> <span class="n">max_items</span><span class="o">=</span><span class="mi">100_000</span><span class="p">)</span>
+</code></pre></div>
+<p>The asynchronous client accepts the same controls with <code>await</code>. Exceeding a
+result bound raises <code>RuntimeError</code> after the server has completed the import;
+it does not roll back committed changes. Retrieve the existing task's results
+with <code>client.imports.all_results(task_id, max_pages=..., max_items=...)</code> instead
+of resubmitting the import. To retain the task ID independently of result
+collection, use <code>submit()</code>, <code>client.tasks.wait()</code>, and <code>all_results()</code> separately.</p>
 <p>The Python field <code>ref_</code> is serialized as the contract's <code>ref</code>. Import graphs,
 object data, result details, and error strings are excluded from model
 representations. Integration-oriented import sections remain strict JSON
@@ -1685,17 +1696,17 @@ objects so the full v0.0.17 graph can be submitted without representing secret
 configuration in diagnostic output. Core resources can use <code>create_only</code>,
 unconditional <code>overwrite</code>, or <code>if_revision</code> per-item write conditions.</p>
 <p>Direct exports are similarly typed:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExportRequest</span><span class="p">,</span> <span class="n">ExportScope</span><span class="p">,</span> <span class="n">ExportScopeKind</span>
-<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>
-<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="n">output</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">exports</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
-<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>    <span class="n">ExportRequest</span><span class="p">(</span>
-<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>        <span class="n">scope</span><span class="o">=</span><span class="n">ExportScope</span><span class="p">(</span>
-<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>            <span class="n">kind</span><span class="o">=</span><span class="n">ExportScopeKind</span><span class="o">.</span><span class="n">OBJECTS_IN_CLASS</span><span class="p">,</span>
-<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>            <span class="n">class_id</span><span class="o">=</span><span class="n">class_id</span><span class="p">,</span>
-<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>        <span class="p">)</span>
-<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>    <span class="p">),</span>
-<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a>    <span class="n">idempotency_key</span><span class="o">=</span><span class="s2">"servers-export-1"</span><span class="p">,</span>
-<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExportRequest</span><span class="p">,</span> <span class="n">ExportScope</span><span class="p">,</span> <span class="n">ExportScopeKind</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="n">output</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">exports</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>    <span class="n">ExportRequest</span><span class="p">(</span>
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>        <span class="n">scope</span><span class="o">=</span><span class="n">ExportScope</span><span class="p">(</span>
+<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>            <span class="n">kind</span><span class="o">=</span><span class="n">ExportScopeKind</span><span class="o">.</span><span class="n">OBJECTS_IN_CLASS</span><span class="p">,</span>
+<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>            <span class="n">class_id</span><span class="o">=</span><span class="n">class_id</span><span class="p">,</span>
+<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>        <span class="p">)</span>
+<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>    <span class="p">),</span>
+<a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a>    <span class="n">idempotency_key</span><span class="o">=</span><span class="s2">"servers-export-1"</span><span class="p">,</span>
+<a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a><span class="p">)</span>
 </code></pre></div>
 <p>JSON output is returned as <code>ExportJsonResponse</code>; text, HTML, and CSV are
 returned as <code>RenderedExport</code>. Use <code>client.exports.output_stream(task_id)</code> for
@@ -1706,13 +1717,13 @@ Task history is available through <code>client.tasks.events()</code>, <code>even
 <h2 id="custom-extension-routes">Custom extension routes<a class="headerlink" href="#custom-extension-routes" title="Permanent link">&para;</a></h2>
 <p><code>request()</code> remains the lower-level escape hatch for a server extension that is
 not part of the pinned v0.0.17 OpenAPI document:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">RequestOptions</span>
-<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>
-<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">request</span><span class="p">(</span>
-<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>    <span class="s2">"GET"</span><span class="p">,</span>
-<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>    <span class="s2">"/api/v1/custom-extension"</span><span class="p">,</span>
-<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>    <span class="n">options</span><span class="o">=</span><span class="n">RequestOptions</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">"scope"</span><span class="p">:</span> <span class="s2">"example"</span><span class="p">}),</span>
-<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">RequestOptions</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">request</span><span class="p">(</span>
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>    <span class="s2">"GET"</span><span class="p">,</span>
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>    <span class="s2">"/api/v1/custom-extension"</span><span class="p">,</span>
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>    <span class="n">options</span><span class="o">=</span><span class="n">RequestOptions</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">"scope"</span><span class="p">:</span> <span class="s2">"example"</span><span class="p">}),</span>
+<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="p">)</span>
 </code></pre></div>
 <p>The path must begin with one slash and may not contain an origin, traversal
 segment, query string, or fragment. Pass query values and additional headers
@@ -1721,8 +1732,8 @@ through <code>RequestOptions</code>, and request bodies through <code>json</code
 <h2 id="task-polling">Task polling<a class="headerlink" href="#task-polling" title="Permanent link">&para;</a></h2>
 <p>Imports, exports, backups, and computed-field rebuilds return tasks.
 Once a task ID is known, wait for a terminal state with a bounded poller:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="n">task</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">wait</span><span class="p">(</span><span class="n">task_id</span><span class="p">,</span> <span class="n">timeout_seconds</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">poll_interval</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
-<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="n">task</span><span class="o">.</span><span class="n">progress</span><span class="o">.</span><span class="n">processed_items</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="n">task</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">wait</span><span class="p">(</span><span class="n">task_id</span><span class="p">,</span> <span class="n">timeout_seconds</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">poll_interval</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="n">task</span><span class="o">.</span><span class="n">progress</span><span class="o">.</span><span class="n">processed_items</span><span class="p">)</span>
 </code></pre></div>
 <p>The async equivalent uses the same <code>timeout_seconds</code> and <code>poll_interval</code>
 keywords and awaits without blocking the event loop. Both pollers reject
