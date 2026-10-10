@@ -24,6 +24,7 @@ nav = [
     { "Release notes" = "changelog.md" },
   ] },
   { "Contributing" = [
+    { "Compatibility evidence" = "compatibility-evidence.md" },
     { "Contributor guide" = "contributing.md" },
     { "End-to-end tests" = "e2e.md" },
     { "Release process" = "releasing.md" },

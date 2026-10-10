@@ -62,6 +62,7 @@ nav:
   - Advanced usage: advanced.md
   - API reference: api.md
   - Server compatibility: compatibility.md
+  - Compatibility evidence: compatibility-evidence.md
   - End-to-end tests: e2e.md
   - Releasing: releasing.md
   - Changelog: changelog.md

@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Pinned introductory examples to the documented client and server releases and added public documentation verification to release completion.
+
 ## [0.0.11] - 2026-10-06
 
 ### Changed

@@ -4,12 +4,24 @@
 0.0.11 targets Hubuum server v0.0.18 and gives synchronous and
 asynchronous applications the same typed resource model.
 
+## Installation
+
+```bash
+python -m pip install "hubuum-client==0.0.11"
+```
+
+Python 3.11 and later are supported.
+
+## First request
+
+Load the [Atlas inventory](example-dataset.md) and use an account with read access:
+
 ```python
 from hubuum_client import Client, Credentials, Query
 
 with Client("https://hubuum.example.com") as client:
     client.login(Credentials("alice", "secret"))
-    page = client.classes.by_name("Servers").objects.page(
+    page = client.classes.by_name("Server").objects.page(
         Query().where("name", "web-01").limit(25).include_total()
     )
     for item in page:
@@ -29,14 +41,6 @@ with Client("https://hubuum.example.com") as client:
   request models reject misspelled or unsupported fields.
 - **Bounded automation.** Automatic pagination has cursor-cycle, page-count,
   and item-count guards; task polling has an explicit timeout.
-
-## Installation
-
-```bash
-python -m pip install hubuum-client
-```
-
-Python 3.11 and later are supported.
 
 ## What is typed
 
