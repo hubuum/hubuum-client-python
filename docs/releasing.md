@@ -65,6 +65,12 @@ script with an authenticated GitHub CLI session after changing the baseline.
    that release triggers the site update; a manual Documentation workflow run
    can retry it if necessary.
 
+9. Wait for the Documentation deployment and verify the public root, version
+   menu, and `/vX.Y.Z/` API reference using the
+   [shared publication checks](https://github.com/hubuum/.github/blob/main/docs-tooling/README.md#verify-the-public-release).
+   The release is incomplete while the public site serves an older default or
+   the new edition is missing, even when `gh-pages` contains the new files.
+
 The workflow verifies that the pushed tag equals `v` followed by the package
 version before it builds or publishes distributions. PyPI releases cannot be
 replaced, so never move or reuse a release tag after its workflow begins.
