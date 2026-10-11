@@ -297,7 +297,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="./contributing/" class="md-tabs__link">
+        <a href="./compatibility-evidence/" class="md-tabs__link">
           
   
   Contributing
@@ -481,10 +481,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#design-goals" class="md-nav__link">
+  <a href="#installation" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Design goals
+        Installation
       </span>
     </span>
   </a>
@@ -492,10 +492,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
+  <a href="#first-request" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Installation
+        First request
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#design-goals" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Design goals
       </span>
     </span>
   </a>
@@ -960,6 +971,33 @@
   
   
     <li class="md-nav__item">
+      <a href="./compatibility-evidence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Compatibility evidence
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="./contributing/" class="md-nav__link">
         
   
@@ -1110,10 +1148,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#design-goals" class="md-nav__link">
+  <a href="#installation" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Design goals
+        Installation
       </span>
     </span>
   </a>
@@ -1121,10 +1159,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
+  <a href="#first-request" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Installation
+        First request
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#design-goals" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Design goals
       </span>
     </span>
   </a>
@@ -1187,15 +1236,21 @@
 <p><code>hubuum-client</code> is a small, modern interface to the Hubuum REST API. Version
 0.0.11 targets Hubuum server v0.0.18 and gives synchronous and
 asynchronous applications the same typed resource model.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">Client</span><span class="p">,</span> <span class="n">Credentials</span><span class="p">,</span> <span class="n">Query</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">with</span> <span class="n">Client</span><span class="p">(</span><span class="s2">"https://hubuum.example.com"</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">client</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">Credentials</span><span class="p">(</span><span class="s2">"alice"</span><span class="p">,</span> <span class="s2">"secret"</span><span class="p">))</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">page</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">classes</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="s2">"Servers"</span><span class="p">)</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">page</span><span class="p">(</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        <span class="n">Query</span><span class="p">()</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="s2">"name"</span><span class="p">,</span> <span class="s2">"web-01"</span><span class="p">)</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">25</span><span class="p">)</span><span class="o">.</span><span class="n">include_total</span><span class="p">()</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="p">)</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">page</span><span class="p">:</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">item</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+<h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"hubuum-client==0.0.11"</span>
+</code></pre></div>
+<p>Python 3.11 and later are supported.</p>
+<h2 id="first-request">First request<a class="headerlink" href="#first-request" title="Permanent link">&para;</a></h2>
+<p>Load the <a href="example-dataset/">Atlas inventory</a> and use an account with read access:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">Client</span><span class="p">,</span> <span class="n">Credentials</span><span class="p">,</span> <span class="n">Query</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="k">with</span> <span class="n">Client</span><span class="p">(</span><span class="s2">"https://hubuum.example.com"</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">client</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">Credentials</span><span class="p">(</span><span class="s2">"alice"</span><span class="p">,</span> <span class="s2">"secret"</span><span class="p">))</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">page</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">classes</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="s2">"Server"</span><span class="p">)</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">page</span><span class="p">(</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        <span class="n">Query</span><span class="p">()</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="s2">"name"</span><span class="p">,</span> <span class="s2">"web-01"</span><span class="p">)</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">25</span><span class="p">)</span><span class="o">.</span><span class="n">include_total</span><span class="p">()</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="p">)</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">page</span><span class="p">:</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">item</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="design-goals">Design goals<a class="headerlink" href="#design-goals" title="Permanent link">&para;</a></h2>
 <ul>
@@ -1211,10 +1266,6 @@ asynchronous applications the same typed resource model.</p>
 <li><strong>Bounded automation.</strong> Automatic pagination has cursor-cycle, page-count,
   and item-count guards; task polling has an explicit timeout.</li>
 </ul>
-<h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>hubuum-client
-</code></pre></div>
-<p>Python 3.11 and later are supported.</p>
 <h2 id="what-is-typed">What is typed<a class="headerlink" href="#what-is-typed" title="Permanent link">&para;</a></h2>
 <p>The strongly modeled service surface includes collections, hierarchy
 operations, classes, class-scoped objects, natural-key class/object routes,

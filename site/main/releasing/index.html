@@ -299,7 +299,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../contributing/" class="md-tabs__link">
+        <a href="../compatibility-evidence/" class="md-tabs__link">
           
   
   Contributing
@@ -871,6 +871,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../compatibility-evidence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Compatibility evidence
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../contributing/" class="md-nav__link">
         
   
@@ -1218,11 +1245,20 @@ script with an authenticated GitHub CLI session after changing the baseline.</p>
    request remains open.</li>
 <li>Approve the waiting <code>pypi</code> environment deployment. The release workflow
    publishes the distributions through PyPI trusted publishing.</li>
-<li>Publish a stable GitHub release from the tag after the PyPI job succeeds.
+<li>
+<p>Publish a stable GitHub release from the tag after the PyPI job succeeds.
    The documentation workflow uses published GitHub releases to select its
    latest-version default and preserve the tagged API reference. Publishing
    that release triggers the site update; a manual Documentation workflow run
-   can retry it if necessary.</li>
+   can retry it if necessary.</p>
+</li>
+<li>
+<p>Wait for the Documentation deployment and verify the public root, version
+   menu, and <code>/vX.Y.Z/</code> API reference using the
+   <a href="https://github.com/hubuum/.github/blob/main/docs-tooling/README.md#verify-the-public-release">shared publication checks</a>.
+   The release is incomplete while the public site serves an older default or
+   the new edition is missing, even when <code>gh-pages</code> contains the new files.</p>
+</li>
 </ol>
 <p>The workflow verifies that the pushed tag equals <code>v</code> followed by the package
 version before it builds or publishes distributions. PyPI releases cannot be
