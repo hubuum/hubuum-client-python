@@ -8,6 +8,11 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- Refresh application, test, documentation, and release-tool dependencies and
+  immutable GitHub Actions pins before the coordinated server compatibility release.
+
+### Changed
+
 - Pinned introductory examples to the documented client and server releases and added public documentation verification to release completion.
 
 ## [0.0.11] - 2026-10-06
