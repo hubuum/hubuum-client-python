@@ -255,3 +255,30 @@ async def test_injected_token_logout_uses_versioned_route_when_legacy_is_absent(
             sync_client.logout()
             assert not sync_client.is_authenticated
     assert paths == ["/api/v0/auth/logout", "/api/v1/auth/logout"]
+
+
+async def test_cancelling_refresh_discards_the_single_use_credential() -> None:
+    server = SessionServer()
+    started = asyncio.Event()
+    refresh_calls = 0
+
+    async def handle(request: httpx.Request) -> httpx.Response:
+        nonlocal refresh_calls
+        if request.url.path == "/api/v1/auth/refresh":
+            refresh_calls += 1
+            started.set()
+            await asyncio.Event().wait()
+        return server(request)
+
+    async with AsyncClient("https://hubuum.test", transport=httpx.MockTransport(handle)) as client:
+        await client.login_session(Credentials("alice", "password"), client_id="sdk-tests")
+        expire(client)
+        pending = asyncio.create_task(client.request("GET", "/api/v1/iam/me"))
+        await asyncio.wait_for(started.wait(), timeout=1)
+        pending.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await pending
+        assert client.token is None
+        assert client._session is None
+        await client._ensure_session()
+        assert refresh_calls == 1
