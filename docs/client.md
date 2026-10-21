@@ -219,3 +219,6 @@ creation; use the existing [credential workflow](credentials.md).
 The legacy `login()` method still uses `/api/v0/auth/login`. Upgraded servers that
 remove those routes require `login_session()`. Explicit PAT injection remains
 available for automation and does not trigger refresh.
+
+Injected PATs can also be logged out against the versioned server: logout falls
+back to `/api/v1/auth/logout` only if the legacy route returns HTTP 404.

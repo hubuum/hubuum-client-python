@@ -169,6 +169,14 @@ class Client:
                 # The lock is held; bypass another refresh check for this request.
                 request, body = self._build_request("POST", endpoint, json=None, options=None)
                 response = self._send_request(request, body, stream=False)
+                if (
+                    endpoint == "/api/v0/auth/logout"
+                    and response.status_code == httpx.codes.NOT_FOUND
+                ):
+                    request, body = self._build_request(
+                        "POST", "/api/v1/auth/logout", json=None, options=None
+                    )
+                    response = self._send_request(request, body, stream=False)
                 raise_api_error(response)
             finally:
                 self._session = None

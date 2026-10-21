@@ -11,6 +11,7 @@ from uuid import uuid4
 
 import httpx
 import pytest
+from pydantic import ValidationError
 
 from hubuum_client import (
     APIError,
@@ -205,8 +206,6 @@ def test_session_model_serialization_redacts_both_credentials() -> None:
 
 @pytest.mark.parametrize("invalid", ["deadline", "secret_type", "same_secret", "ordering"])
 def test_session_validation_errors_do_not_retain_credentials(invalid: str) -> None:
-    from pydantic import ValidationError
-
     payload = SessionServer().pair()
     if invalid == "deadline":
         payload["access_expires_at"] = "secret-in-invalid-date"
@@ -230,3 +229,29 @@ def test_session_does_not_retain_unknown_secret_fields() -> None:
     response = SessionResponse.model_validate(payload)
     assert "do-not-retain" not in repr(response)
     assert "unexpected_secret" not in response.model_dump()
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+async def test_injected_token_logout_uses_versioned_route_when_legacy_is_absent(
+    asynchronous: bool,
+) -> None:
+    paths: list[str] = []
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        paths.append(request.url.path)
+        assert request.headers["authorization"] == "Bearer pat-secret"
+        return httpx.Response(404 if len(paths) == 1 else 200, json={})
+
+    if asynchronous:
+        async with AsyncClient(
+            "https://hubuum.test", token="pat-secret", transport=httpx.MockTransport(handle)
+        ) as client:
+            await client.logout()
+            assert not client.is_authenticated
+    else:
+        with Client(
+            "https://hubuum.test", token="pat-secret", transport=httpx.MockTransport(handle)
+        ) as sync_client:
+            sync_client.logout()
+            assert not sync_client.is_authenticated
+    assert paths == ["/api/v0/auth/logout", "/api/v1/auth/logout"]
