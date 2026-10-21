@@ -46,6 +46,14 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Opt-in `Client.login_session()` and `AsyncClient.login_session()` for the
+  server's new `/api/v1/auth` contract. Credentials remain in memory; both
+  runtimes serialize refresh before requests and streams and discard the pair
+  on failure or uncertain rotation. Logout revokes the current family.
+- Redacted `SessionResponse` and `SessionExpiredError`. Interactive access alone
+  still requires fresh credential approval to mint PATs. Existing `login()` and
+  explicit PAT injection retain their released-server behavior.
+
 - Typed synchronous and asynchronous collection destination services through
   `client.collections.event_sinks(collection_id)`, with CRUD and cursor pagination.
 - Typed collection subscription services, global administrator sink CRUD, and

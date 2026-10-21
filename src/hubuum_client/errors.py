@@ -30,6 +30,10 @@ class TaskUnsuccessfulError(HubuumError):
         return f"task {self.task_id} finished with status {self.status}"
 
 
+class SessionExpiredError(HubuumError):
+    """An interactive session is no longer usable; authenticate again."""
+
+
 class ConfigurationError(HubuumError, ValueError):
     """Raised when client configuration is unsafe or invalid."""
 

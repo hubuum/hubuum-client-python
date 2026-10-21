@@ -95,3 +95,13 @@ See [collection integrations](compatibility-evidence.md#collection-integrations)
 | <span id="server-upgrade-considerations"></span>Server upgrade considerations | [Details](compatibility-evidence.md#server-upgrade-considerations) |
 
 <!-- markdownlint-enable MD033 -->
+
+## Optional rotating session API
+
+`login_session()` in both runtimes targets the versioned contract introduced by
+[hubuum/hubuum#178](https://github.com/hubuum/hubuum/issues/178). It requires a server
+with `/api/v1/auth/login` and `/api/v1/auth/refresh`, and does not fall back to
+legacy login after an error. Upgrade older callers from `login()` when deploying
+servers that remove `/api/v0/auth`. The pinned OpenAPI operation registry and
+released-server baseline remain v0.0.18; session support is a separate opt-in
+extension with dedicated live verification against the candidate server.

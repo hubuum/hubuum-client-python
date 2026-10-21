@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from asyncio import Lock
 from collections.abc import AsyncIterator, Mapping
 from contextlib import asynccontextmanager
 from functools import cached_property
@@ -11,6 +12,7 @@ import httpx
 from pydantic import BaseModel
 
 from ._constants import __version__
+from ._sessions import SessionState, validate_client_id
 from ._transport import (
     decode_json,
     decode_model,
@@ -23,7 +25,7 @@ from ._transport import (
     validate_relative_path,
 )
 from .errors import TransportError
-from .models import ClientConfig, LoginResponse, MeResponse, ProbeResponse
+from .models import ClientConfig, LoginResponse, MeResponse, ProbeResponse, SessionResponse
 from .options import ClientOptions, RequestOptions
 from .streaming import AsyncResponseStream
 from .types import AccessToken, Credentials
@@ -46,6 +48,8 @@ class AsyncClient:
         client_options = options or ClientOptions()
         self._base_url = normalize_base_url(base_url)
         self._token = AccessToken(token) if isinstance(token, str) else token
+        self._session: SessionState | None = None
+        self._session_lock = Lock()
         self._http = httpx.AsyncClient(
             base_url=self._base_url,
             timeout=client_options.timeout,
@@ -82,23 +86,98 @@ class AsyncClient:
         await self._http.aclose()
 
     async def login(self, credentials: Credentials) -> Self:
-        """Authenticate this client in place and retain the returned token."""
-        response = await self.request(
-            "POST",
-            "/api/v0/auth/login",
-            json=credentials.as_payload(),
-            response_model=LoginResponse,
-            options=_PUBLIC_REQUEST,
-        )
-        self._token = AccessToken(response.token, expires_at=response.expires_at)
+        """Use legacy single-token login on servers providing /api/v0/auth."""
+        async with self._session_lock:
+            response = await self.request(
+                "POST",
+                "/api/v0/auth/login",
+                json=credentials.as_payload(),
+                response_model=LoginResponse,
+                options=_PUBLIC_REQUEST,
+            )
+            self._session = None
+            self._token = AccessToken(response.token, expires_at=response.expires_at)
         return self
 
-    async def logout(self) -> None:
-        """Revoke the current session and clear the local token in all cases."""
+    async def login_session(
+        self, credentials: Credentials, *, client_id: str = "hubuum-python"
+    ) -> Self:
+        """Opt into rotating interactive credentials, retained only in memory.
+
+        Requires the versioned session API. Refresh is serialized per client;
+        failed or uncertain refresh destroys local credentials and is never retried.
+        """
+        client_id = validate_client_id(client_id)
+        async with self._session_lock:
+            response = await self.request(
+                "POST",
+                "/api/v1/auth/login",
+                json={**credentials.as_payload(), "client_id": client_id},
+                response_model=SessionResponse,
+                options=_PUBLIC_REQUEST,
+            )
+            self._install_session(SessionState.receive(response, client_id))
+        return self
+
+    def _install_session(self, session: SessionState) -> None:
+        self._session = session
+        self._token = AccessToken(
+            session.credentials.access_token.get_secret_value(),
+            expires_at=session.credentials.access_expires_at,
+        )
+
+    async def _ensure_session(self) -> None:
+        if self._session is None or not self._session.needs_refresh():
+            return
+        async with self._session_lock:
+            await self._refresh_session()
+
+    async def _refresh_session(self) -> None:
+        session = self._session
+        if session is None or not session.needs_refresh():
+            return
         try:
-            await self.request("POST", "/api/v0/auth/logout")
-        finally:
+            session.require_refreshable()
+            response = await self.request(
+                "POST",
+                "/api/v1/auth/refresh",
+                json={
+                    "client_id": session.client_id,
+                    "refresh_token": session.credentials.refresh_token.get_secret_value(),
+                },
+                response_model=SessionResponse,
+                options=_PUBLIC_REQUEST,
+            )
+            self._install_session(SessionState.receive(response, session.client_id, session))
+        except BaseException:
+            # Cancellation/interrupt can also leave the server's rotation committed.
+            self._session = None
             self._token = None
+            raise
+
+    async def logout(self) -> None:
+        """Revoke the current session and clear local credentials in all cases."""
+        async with self._session_lock:
+            try:
+                endpoint = (
+                    "/api/v1/auth/logout" if self._session is not None else "/api/v0/auth/logout"
+                )
+                await self._refresh_session()
+                # The lock is held; bypass another refresh check for this request.
+                request, body = self._build_request("POST", endpoint, json=None, options=None)
+                response = await self._send_request(request, body, stream=False)
+                if (
+                    endpoint == "/api/v0/auth/logout"
+                    and response.status_code == httpx.codes.NOT_FOUND
+                ):
+                    request, body = self._build_request(
+                        "POST", "/api/v1/auth/logout", json=None, options=None
+                    )
+                    response = await self._send_request(request, body, stream=False)
+                raise_api_error(response)
+            finally:
+                self._session = None
+                self._token = None
 
     async def healthz(self) -> ProbeResponse:
         """Return the unauthenticated process-health probe."""
@@ -319,6 +398,8 @@ class AsyncClient:
         json: BaseModel | Mapping[str, Any] | list[Any] | None = None,
         options: RequestOptions | None = None,
     ) -> httpx.Response:
+        if options is None or options.authenticated:
+            await self._ensure_session()
         request, request_body = self._build_request(
             method,
             path,
@@ -337,6 +418,8 @@ class AsyncClient:
         json: BaseModel | Mapping[str, Any] | list[Any] | None = None,
         options: RequestOptions | None = None,
     ) -> httpx.Response:
+        if options is None or options.authenticated:
+            await self._ensure_session()
         request, request_body = self._build_request(
             method,
             path,
