@@ -8,7 +8,19 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- Refresh application, test, documentation, and release-tool dependencies and
+  immutable GitHub Actions pins before the coordinated server compatibility release.
 - Pinned introductory examples to the documented client and server releases and added public documentation verification to release completion.
+
+### Added
+
+- Opt-in `Client.login_session()` and `AsyncClient.login_session()` for the
+  server's new `/api/v1/auth` contract. Credentials remain in memory; both
+  runtimes serialize refresh before requests and streams and discard the pair
+  on failure or uncertain rotation. Logout revokes the current family.
+- Redacted `SessionResponse` and `SessionExpiredError`. Interactive access alone
+  still requires fresh credential approval to mint PATs. Existing `login()` and
+  explicit PAT injection retain their released-server behavior.
 
 ## [0.0.11] - 2026-10-06
 
@@ -45,14 +57,6 @@ All notable changes to this project are documented here. The format follows
   omitted references remain unchanged in both client modes.
 
 ### Added
-
-- Opt-in `Client.login_session()` and `AsyncClient.login_session()` for the
-  server's new `/api/v1/auth` contract. Credentials remain in memory; both
-  runtimes serialize refresh before requests and streams and discard the pair
-  on failure or uncertain rotation. Logout revokes the current family.
-- Redacted `SessionResponse` and `SessionExpiredError`. Interactive access alone
-  still requires fresh credential approval to mint PATs. Existing `login()` and
-  explicit PAT injection retain their released-server behavior.
 
 - Typed synchronous and asynchronous collection destination services through
   `client.collections.event_sinks(collection_id)`, with CRUD and cursor pagination.

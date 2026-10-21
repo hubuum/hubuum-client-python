@@ -23,9 +23,9 @@ concurrency:
 jobs:
   build:
     name: Build documentation
-    uses: hubuum/.github/.github/workflows/docs-build.yml@c803fa34c35f70c92cca317ef61950d9b8684f08 # shared documentation platform
+    uses: hubuum/.github/.github/workflows/docs-build.yml@5f6c90b3696048f9d092b1aee37c90829f17f0f9 # main
     with:
-      tooling_revision: 'c803fa34c35f70c92cca317ef61950d9b8684f08'
+      tooling_revision: '5f6c90b3696048f9d092b1aee37c90829f17f0f9'
       source_ref: ${{ github.event_name == 'release' && 'main' || github.sha }}
       versioned: true
       python_api: true
@@ -52,7 +52,7 @@ jobs:
       contents: write
       pages: write
       id-token: write
-    uses: hubuum/.github/.github/workflows/docs-publish.yml@c803fa34c35f70c92cca317ef61950d9b8684f08 # shared documentation platform
+    uses: hubuum/.github/.github/workflows/docs-publish.yml@5f6c90b3696048f9d092b1aee37c90829f17f0f9 # main
     with:
-      tooling_revision: 'c803fa34c35f70c92cca317ef61950d9b8684f08'
+      tooling_revision: '5f6c90b3696048f9d092b1aee37c90829f17f0f9'
       source_sha: ${{ needs.build.outputs.source_sha }}
