@@ -8,14 +8,17 @@ from dataclasses import field as dataclass_field
 from datetime import datetime
 from enum import StrEnum
 from typing import Annotated, Any, Literal, Self, TypeAlias, TypeVar
+from uuid import UUID
 
 from pydantic import (
+    AwareDatetime,
     BaseModel,
     ConfigDict,
     Field,
     JsonValue,
     ModelWrapValidatorHandler,
     RootModel,
+    SecretStr,
     ValidationError,
     model_validator,
 )
@@ -94,6 +97,47 @@ class ClientConfig(HubuumModel):
 class LoginResponse(HubuumModel):
     token: str = Field(repr=False)
     expires_at: datetime
+
+
+class SessionResponse(HubuumModel):
+    """Versioned interactive credentials; secret representations and dumps are redacted."""
+
+    model_config = ConfigDict(extra="ignore", hide_input_in_errors=True)
+
+    session_id: UUID
+    token_type: Literal["Bearer"]
+    access_token: SecretStr = Field(min_length=1, repr=False)
+    refresh_token: SecretStr = Field(min_length=1, repr=False)
+    access_expires_at: AwareDatetime
+    refresh_expires_at: AwareDatetime
+    absolute_expires_at: AwareDatetime
+
+    @model_validator(mode="after")
+    def valid_deadlines(self) -> Self:
+        if self.access_token == self.refresh_token:
+            raise ValueError("access and refresh credentials must differ")
+        if not self.access_expires_at <= self.refresh_expires_at <= self.absolute_expires_at:
+            raise ValueError("session deadlines must be ordered access <= refresh <= absolute")
+        return self
+
+    @model_validator(mode="wrap")
+    @classmethod
+    def redact_validation_errors(cls, value: Any, handler: ModelWrapValidatorHandler[Self]) -> Self:
+        try:
+            return handler(value)
+        except ValidationError:
+            safe_error = ValidationError.from_exception_data(
+                cls.__name__,
+                [
+                    {
+                        "type": PydanticCustomError("session_response", "Invalid session response"),
+                        "loc": (),
+                        "input": "<redacted>",
+                    }
+                ],
+                hide_input=True,
+            )
+        raise safe_error
 
 
 class Collection(HubuumModel):

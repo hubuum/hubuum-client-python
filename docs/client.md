@@ -173,3 +173,49 @@ default_hours = config.authentication.default_token_lifetime_hours
 default_page_size = config.pagination.default_page_limit
 maximum_page_size = config.pagination.max_page_limit
 ```
+
+## Rotating human sessions
+
+On servers with the versioned session API, opt in explicitly:
+
+```python
+from hubuum_client import Client, Credentials
+
+with Client("https://hubuum.example.org") as client:
+    client.login_session(Credentials("alice", "secret"), client_id="my-cli")
+    print(client.me().principal.name)
+    client.logout()
+```
+
+The asynchronous equivalent is `await client.login_session(...)`. Client IDs
+contain 1–128 ASCII letters, digits, `-`, `.`, `_`, or `:`. They identify the
+client binding and are not embedded client secrets. The default is `hubuum-python`.
+
+Each client serializes refresh across its concurrent requests and streams,
+checks again after acquiring the lock, and atomically installs the new pair.
+Refresh starts before access expiry using a bounded skew allowance, capped at
+30 seconds or one tenth of the received access lifetime. Idle and absolute
+expiry remain server-authoritative. The original absolute deadline and family
+identity must be preserved in every rotation response.
+
+Neither credential is persisted. `client.token` exposes the current redacted
+access-token wrapper. `SessionResponse` secret fields redact representations and
+JSON dumps; explicit `get_secret_value()` is required to extract them. The SDK
+does not retain the password or offer automatic refresh-token disk storage.
+Use one client instance for concurrent work; separate clients do not coordinate
+refresh. Application-owned secure storage needs its own coordination strategy.
+
+An uncertain refresh may already have committed on the server. Transport errors,
+invalid/rejected responses and async cancellation therefore clear the local
+session without retry. Expiry raises `SessionExpiredError`; HTTP and transport
+failures use their existing exception types. Authenticate again. Ordinary
+resource `401`/`403` responses are never retried as a refresh side effect.
+
+`logout()` uses the versioned endpoint for interactive sessions and clears both
+credentials even if revocation fails. Closing the HTTP client is not server-side
+logout. Fresh authentication approvals remain required for PAT/service-token
+creation; use the existing [credential workflow](credentials.md).
+
+The legacy `login()` method still uses `/api/v0/auth/login`. Upgraded servers that
+remove those routes require `login_session()`. Explicit PAT injection remains
+available for automation and does not trigger refresh.

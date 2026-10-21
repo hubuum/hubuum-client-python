@@ -125,3 +125,20 @@ resource-filtered reads in both runtimes.
 Discovery uses the submitted task's server timestamp to exclude unrelated
 history, including on caller-managed servers, without relying on clock agreement
 between the client and server.
+
+## Session API candidate verification
+
+Keep the full default run as released v0.0.17 compatibility evidence. For a
+caller-managed disposable server implementing the versioned session API, run:
+
+```bash
+HUBUUM_E2E_SESSION_API=1 \
+HUBUUM_E2E_BASE_URL=http://127.0.0.1:8080 \
+HUBUUM_E2E_ADMIN_PASSWORD="${TEST_ADMIN_PASSWORD}" \
+./scripts/run-e2e-tests.sh -k 'live_session or live_async_session'
+```
+
+These checks cover both runtimes and
+exercise real rotation, family replay invalidation and logout without waiting
+for the access-token deadline. They do not perform restore on caller-managed
+servers and are skipped in the pinned older-server run.

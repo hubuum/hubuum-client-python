@@ -235,3 +235,22 @@ failed checks, and unexpectedly skipped required jobs fail it. Keep that check
 required in branch protection. Add the `ci:full` pull-request label or dispatch
 the CI workflow manually to request complete validation. Release validation
 and separately scheduled checks retain their existing coverage.
+
+## Rotating human sessions
+
+For servers implementing [hubuum/hubuum#178](https://github.com/hubuum/hubuum/issues/178),
+use `client.login_session(Credentials("alice", "secret"))`, or
+`await client.login_session(...)`. This opts into `/api/v1/auth/login` and
+serialized automatic refresh before requests and streams. `login()` remains the
+single-token `/api/v0/auth/login` flow for older servers. Servers that remove v0
+authentication require callers to use `login_session()`.
+
+Access and refresh credentials stay in memory; the password is not retained.
+Do not share credentials between independently constructed clients: each client
+owns its refresh lock. Refresh errors, invalid responses, expiry and cancellation
+clear local credentials; authenticate again instead of retrying an uncertain
+rotation. Resource `401`/`403` responses are not automatically retried. `logout()`
+revokes the current session family. PAT/service tokens still use `Client(token=...)`.
+
+The new session methods require the matching server update and are not part of
+the pinned v0.0.17 compatibility claim. See [session details](docs/client.md#rotating-human-sessions).
