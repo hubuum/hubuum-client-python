@@ -706,6 +706,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#optional-rotating-session-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Optional rotating session API
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1380,6 +1391,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#optional-rotating-session-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Optional rotating session API
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1557,6 +1579,15 @@ image identities, dates, suite results, and earlier compatibility limits.</p>
 </tbody>
 </table>
 <!-- markdownlint-enable MD033 -->
+
+<h2 id="optional-rotating-session-api">Optional rotating session API<a class="headerlink" href="#optional-rotating-session-api" title="Permanent link">&para;</a></h2>
+<p><code>login_session()</code> in both runtimes targets the versioned contract introduced by
+<a href="https://github.com/hubuum/hubuum/issues/178">hubuum/hubuum#178</a>. It requires a server
+with <code>/api/v1/auth/login</code> and <code>/api/v1/auth/refresh</code>, and does not fall back to
+legacy login after an error. Upgrade older callers from <code>login()</code> when deploying
+servers that remove <code>/api/v0/auth</code>. The pinned OpenAPI operation registry and
+released-server baseline remain v0.0.18; session support is a separate opt-in
+extension with dedicated live verification against the candidate server.</p>
 
 
 

@@ -602,6 +602,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#rotating-human-sessions" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Rotating human sessions
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1226,6 +1237,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#rotating-human-sessions" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Rotating human sessions
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1388,6 +1410,44 @@ omits an explicit expiry:</p>
 <a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="n">default_page_size</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">pagination</span><span class="o">.</span><span class="n">default_page_limit</span>
 <a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="n">maximum_page_size</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">pagination</span><span class="o">.</span><span class="n">max_page_limit</span>
 </code></pre></div>
+<h2 id="rotating-human-sessions">Rotating human sessions<a class="headerlink" href="#rotating-human-sessions" title="Permanent link">&para;</a></h2>
+<p>On servers with the versioned session API, opt in explicitly:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">Client</span><span class="p">,</span> <span class="n">Credentials</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="k">with</span> <span class="n">Client</span><span class="p">(</span><span class="s2">"https://hubuum.example.org"</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="n">client</span><span class="o">.</span><span class="n">login_session</span><span class="p">(</span><span class="n">Credentials</span><span class="p">(</span><span class="s2">"alice"</span><span class="p">,</span> <span class="s2">"secret"</span><span class="p">),</span> <span class="n">client_id</span><span class="o">=</span><span class="s2">"my-cli"</span><span class="p">)</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">client</span><span class="o">.</span><span class="n">me</span><span class="p">()</span><span class="o">.</span><span class="n">principal</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>    <span class="n">client</span><span class="o">.</span><span class="n">logout</span><span class="p">()</span>
+</code></pre></div>
+<p>The asynchronous equivalent is <code>await client.login_session(...)</code>. Client IDs
+contain 1–128 ASCII letters, digits, <code>-</code>, <code>.</code>, <code>_</code>, or <code>:</code>. They identify the
+client binding and are not embedded client secrets. The default is <code>hubuum-python</code>.</p>
+<p>Each client serializes refresh across its concurrent requests and streams,
+checks again after acquiring the lock, and atomically installs the new pair.
+Refresh starts before access expiry using a bounded skew allowance, capped at
+30 seconds or one tenth of the received access lifetime. Idle and absolute
+expiry remain server-authoritative. The original absolute deadline and family
+identity must be preserved in every rotation response.</p>
+<p>Neither credential is persisted. <code>client.token</code> exposes the current redacted
+access-token wrapper. <code>SessionResponse</code> secret fields redact representations and
+JSON dumps; explicit <code>get_secret_value()</code> is required to extract them. The SDK
+does not retain the password or offer automatic refresh-token disk storage.
+Use one client instance for concurrent work; separate clients do not coordinate
+refresh. Application-owned secure storage needs its own coordination strategy.</p>
+<p>An uncertain refresh may already have committed on the server. Transport errors,
+invalid/rejected responses and async cancellation therefore clear the local
+session without retry. Expiry raises <code>SessionExpiredError</code>; HTTP and transport
+failures use their existing exception types. Authenticate again. Ordinary
+resource <code>401</code>/<code>403</code> responses are never retried as a refresh side effect.</p>
+<p><code>logout()</code> uses the versioned endpoint for interactive sessions and clears both
+credentials even if revocation fails. Closing the HTTP client is not server-side
+logout. Fresh authentication approvals remain required for PAT/service-token
+creation; use the existing <a href="../credentials/">credential workflow</a>.</p>
+<p>The legacy <code>login()</code> method still uses <code>/api/v0/auth/login</code>. Upgraded servers that
+remove those routes require <code>login_session()</code>. Explicit PAT injection remains
+available for automation and does not trigger refresh.</p>
+<p>Injected PATs can also be logged out against the versioned server: logout falls
+back to <code>/api/v1/auth/logout</code> only if the legacy route returns HTTP 404.</p>
 
 
 

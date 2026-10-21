@@ -1027,6 +1027,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#session-api-candidate-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Session API candidate verification
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1176,6 +1187,17 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         Passing pytest options
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#session-api-candidate-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Session API candidate verification
       </span>
     </span>
   </a>
@@ -1348,6 +1370,18 @@ resource-filtered reads in both runtimes.
 Discovery uses the submitted task's server timestamp to exclude unrelated
 history, including on caller-managed servers, without relying on clock agreement
 between the client and server.</p>
+<h2 id="session-api-candidate-verification">Session API candidate verification<a class="headerlink" href="#session-api-candidate-verification" title="Permanent link">&para;</a></h2>
+<p>Keep the full default run as released v0.0.17 compatibility evidence. For a
+caller-managed disposable server implementing the versioned session API, run:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nv">HUBUUM_E2E_SESSION_API</span><span class="o">=</span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nv">HUBUUM_E2E_BASE_URL</span><span class="o">=</span>http://127.0.0.1:8080<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="nv">HUBUUM_E2E_ADMIN_PASSWORD</span><span class="o">=</span><span class="s2">"</span><span class="si">${</span><span class="nv">TEST_ADMIN_PASSWORD</span><span class="si">}</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>./scripts/run-e2e-tests.sh<span class="w"> </span>-k<span class="w"> </span><span class="s1">'live_session or live_async_session'</span>
+</code></pre></div>
+<p>These checks cover both runtimes and
+exercise real rotation, family replay invalidation and logout without waiting
+for the access-token deadline. They do not perform restore on caller-managed
+servers and are skipped in the pinned older-server run.</p>
 
 
 
