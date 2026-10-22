@@ -231,7 +231,7 @@ async def test_async_etag_preconditions_cover_updates_and_deletes(
     unique_name: str,
 ) -> None:
     async with AsyncClient(base_url) as client:
-        await client.login(Credentials("admin", admin_password))
+        await client.login_session(Credentials("admin", admin_password))
         collection = await client.collections.create(
             CollectionCreate(
                 name=f"{unique_name}-async-precondition-collection",
@@ -830,7 +830,7 @@ def test_non_admin_permissions_and_live_error_mapping(
             assert unauthenticated.value.status_code == 401
 
         with Client(base_url) as limited:
-            limited.login(Credentials(user.name, password))
+            limited.login_session(Credentials(user.name, password))
             assert limited.collections.get(collection.id).id == collection.id
             with pytest.raises(PermissionDeniedError) as forbidden:
                 limited.collections.update(
@@ -873,7 +873,7 @@ async def test_async_scoped_token_full_lifecycle(
     unique_name: str,
 ) -> None:
     async with AsyncClient(base_url) as admin:
-        await admin.login(Credentials("admin", admin_password))
+        await admin.login_session(Credentials("admin", admin_password))
         admin_group_id = (await admin.groups.get_by_name("admin")).id
         collection = await admin.collections.create(
             CollectionCreate(
@@ -979,7 +979,7 @@ async def test_async_client_full_resource_lifecycle(
     unique_name: str,
 ) -> None:
     async with AsyncClient(base_url) as async_client:
-        await async_client.login(Credentials("admin", admin_password))
+        await async_client.login_session(Credentials("admin", admin_password))
         admin_group_id = (await async_client.groups.get_by_name("admin")).id
         collection = await async_client.collections.create(
             CollectionCreate(
@@ -1089,7 +1089,7 @@ async def test_async_structured_search_json_and_sse(
     base_url: str, admin_password: str, admin_group_id: GroupId, unique_name: str
 ) -> None:
     async with AsyncClient(base_url) as client:
-        await client.login(Credentials("admin", admin_password))
+        await client.login_session(Credentials("admin", admin_password))
         collection = await client.collections.create(
             CollectionCreate(
                 name=unique_name, description="Async structured search", group_id=admin_group_id

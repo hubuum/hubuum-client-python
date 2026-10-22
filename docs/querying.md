@@ -56,7 +56,7 @@ objects = client.classes.by_id(class_id).objects.all(query)
 The path is passed as one key per argument. For example,
 `data("network", "address")` selects `data["network"]["address"]` and encodes
 the server value `network,address=...`. Commas and equals signs cannot be used
-in path keys because Hubuum v0.0.18 does not define escaping for those
+in path keys because Hubuum v0.0.20 does not define escaping for those
 delimiters.
 
 Common scalar and textual filters use direct method names:
@@ -161,7 +161,7 @@ is independent of the enclosing membership revision.
 
 ## Exact-name routes
 
-Hubuum v0.0.18 supports explicit natural-key aliases for classes and objects.
+Hubuum v0.0.20 supports explicit natural-key aliases for classes and objects.
 Use the complete name-addressed service when class and object names are already
 known:
 
@@ -231,4 +231,4 @@ is `available`, `expired`, `not_produced`, or `unknown`. Discovery checks curren
 resource authorization before matching/counting and may suppress details and
 output links while retaining basic task status. Resource filters match explicit
 captured targets, not present-day membership or resources inferred from an
-import payload or export query. See the [server task reference](https://github.com/hubuum/hubuum/blob/v0.0.18/docs/task_api.md).
+import payload or export query. See the [server task reference](https://github.com/hubuum/hubuum/blob/v0.0.20/docs/task_api.md).

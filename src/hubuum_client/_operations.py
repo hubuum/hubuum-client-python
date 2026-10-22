@@ -1,4 +1,4 @@
-"""Immutable Hubuum v0.0.18 OpenAPI operation manifest."""
+"""Immutable Hubuum v0.0.20 OpenAPI operation manifest."""
 
 from __future__ import annotations
 
@@ -50,6 +50,12 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "deleteApiV1ClassesByClassIdComputedFieldsByFieldId",
         "DELETE",
         "/api/v1/classes/{class_id}/computed-fields/{field_id}",
+        None,
+    ),
+    (
+        "deleteApiV1ClassesByClassIdQueryUsageByDeclarationId",
+        "DELETE",
+        "/api/v1/classes/{class_id}/query-usage/{declaration_id}",
         None,
     ),
     (
@@ -161,13 +167,14 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "/api/v1/system-event-subscriptions/{subscription_id}",
         None,
     ),
-    ("getApiV0AuthProviders", "GET", "/api/v0/auth/providers", None),
-    ("getApiV0AuthValidate", "GET", "/api/v0/auth/validate", None),
     ("getApiV0MetaCounts", "GET", "/api/v0/meta/counts", None),
     ("getApiV0MetaDb", "GET", "/api/v0/meta/db", None),
     ("getApiV0MetaLoginRateLimit", "GET", "/api/v0/meta/login-rate-limit", None),
     ("getApiV0MetaTasks", "GET", "/api/v0/meta/tasks", None),
     ("getApiV1AdminConfig", "GET", "/api/v1/admin/config", None),
+    ("getApiV1AdminQueryObservations", "GET", "/api/v1/admin/query-observations", None),
+    ("getApiV1AuthProviders", "GET", "/api/v1/auth/providers", None),
+    ("getApiV1AuthValidate", "GET", "/api/v1/auth/validate", None),
     ("getApiV1BackupsByTaskId", "GET", "/api/v1/backups/{task_id}", None),
     ("getApiV1BackupsByTaskIdOutput", "GET", "/api/v1/backups/{task_id}/output", None),
     ("getApiV1Classes", "GET", "/api/v1/classes", None),
@@ -198,6 +205,36 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         None,
     ),
     (
+        "getApiV1ClassesByClassIdByObjectIdHistoryComputedAsOf",
+        "GET",
+        "/api/v1/classes/{class_id}/{object_id}/history/computed/as-of",
+        None,
+    ),
+    (
+        "getApiV1ClassesByClassIdByObjectIdHistoryEntriesByHistoryId",
+        "GET",
+        "/api/v1/classes/{class_id}/{object_id}/history/entries/{history_id}",
+        None,
+    ),
+    (
+        "getApiV1ClassesByClassIdByObjectIdHistoryTimeline",
+        "GET",
+        "/api/v1/classes/{class_id}/{object_id}/history/timeline",
+        None,
+    ),
+    (
+        "getApiV1ClassesByClassIdByObjectIdRelationsHistory",
+        "GET",
+        "/api/v1/classes/{class_id}/{object_id}/relations/history",
+        None,
+    ),
+    (
+        "getApiV1ClassesByClassIdByObjectIdRelationsHistoryAsOf",
+        "GET",
+        "/api/v1/classes/{class_id}/{object_id}/relations/history/as-of",
+        None,
+    ),
+    (
         "getApiV1ClassesByClassIdComputedFields",
         "GET",
         "/api/v1/classes/{class_id}/computed-fields",
@@ -215,6 +252,18 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "getApiV1ClassesByClassIdHistoryAsOf",
         "GET",
         "/api/v1/classes/{class_id}/history/as-of",
+        None,
+    ),
+    (
+        "getApiV1ClassesByClassIdHistoryEntriesByHistoryId",
+        "GET",
+        "/api/v1/classes/{class_id}/history/entries/{history_id}",
+        None,
+    ),
+    (
+        "getApiV1ClassesByClassIdHistoryTimeline",
+        "GET",
+        "/api/v1/classes/{class_id}/history/timeline",
         None,
     ),
     (
@@ -241,7 +290,20 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "/api/v1/classes/{class_id}/objects/{object_id}/related/relations",
         None,
     ),
+    (
+        "getApiV1ClassesByClassIdObjectsHistory",
+        "GET",
+        "/api/v1/classes/{class_id}/objects/history",
+        None,
+    ),
+    (
+        "getApiV1ClassesByClassIdObjectsHistoryAsOf",
+        "GET",
+        "/api/v1/classes/{class_id}/objects/history/as-of",
+        None,
+    ),
     ("getApiV1ClassesByClassIdPermissions", "GET", "/api/v1/classes/{class_id}/permissions", None),
+    ("getApiV1ClassesByClassIdQueryUsage", "GET", "/api/v1/classes/{class_id}/query-usage", None),
     (
         "getApiV1ClassesByClassIdRelatedClasses",
         "GET",
@@ -264,6 +326,18 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "getApiV1ClassesByClassIdRelationsByRelationId",
         "GET",
         "/api/v1/classes/{class_id}/relations/{relation_id}",
+        None,
+    ),
+    (
+        "getApiV1ClassesByClassIdRelationsHistory",
+        "GET",
+        "/api/v1/classes/{class_id}/relations/history",
+        None,
+    ),
+    (
+        "getApiV1ClassesByClassIdRelationsHistoryAsOf",
+        "GET",
+        "/api/v1/classes/{class_id}/relations/history/as-of",
         None,
     ),
     ("getApiV1ClassesByClassIdSchema", "GET", "/api/v1/classes/{class_id}/schema", None),
@@ -550,6 +624,12 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "/api/v1/iam/principals/{principal_id}/tokens/{token_id}",
         None,
     ),
+    (
+        "getApiV1IamPrincipalsByPrincipalIdTokensByTokenIdActivity",
+        "GET",
+        "/api/v1/iam/principals/{principal_id}/tokens/{token_id}/activity",
+        None,
+    ),
     ("getApiV1IamServiceAccounts", "GET", "/api/v1/iam/service-accounts", None),
     (
         "getApiV1IamServiceAccountsByServiceAccountId",
@@ -695,6 +775,12 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
     ),
     ("patchApiV1IamUsersByUserId", "PATCH", "/api/v1/iam/users/{user_id}", "application/json"),
     (
+        "patchApiV1RelationsClassesByRelationId",
+        "PATCH",
+        "/api/v1/relations/classes/{relation_id}",
+        "application/json",
+    ),
+    (
         "patchApiV1RemoteTargetsByTargetId",
         "PATCH",
         "/api/v1/remote-targets/{target_id}",
@@ -706,11 +792,12 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "/api/v1/system-event-subscriptions/{subscription_id}",
         "application/json",
     ),
-    ("postApiV0AuthLogin", "POST", "/api/v0/auth/login", "application/json"),
-    ("postApiV0AuthLogout", "POST", "/api/v0/auth/logout", None),
-    ("postApiV0AuthLogoutAll", "POST", "/api/v0/auth/logout_all", None),
-    ("postApiV0AuthLogoutToken", "POST", "/api/v0/auth/logout/token", "application/json"),
-    ("postApiV0AuthLogoutUidByUserId", "POST", "/api/v0/auth/logout/uid/{user_id}", None),
+    ("postApiV1AuthLogin", "POST", "/api/v1/auth/login", "application/json"),
+    ("postApiV1AuthLogout", "POST", "/api/v1/auth/logout", None),
+    ("postApiV1AuthLogoutAll", "POST", "/api/v1/auth/logout_all", None),
+    ("postApiV1AuthLogoutToken", "POST", "/api/v1/auth/logout/token", "application/json"),
+    ("postApiV1AuthLogoutUidByUserId", "POST", "/api/v1/auth/logout/uid/{user_id}", None),
+    ("postApiV1AuthRefresh", "POST", "/api/v1/auth/refresh", "application/json"),
     ("postApiV1Backups", "POST", "/api/v1/backups", "application/json"),
     ("postApiV1Classes", "POST", "/api/v1/classes", "application/json"),
     (
@@ -736,6 +823,18 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "POST",
         "/api/v1/classes/{class_id}/computed-fields/rebuild",
         None,
+    ),
+    (
+        "postApiV1ClassesByClassIdQueryUsage",
+        "POST",
+        "/api/v1/classes/{class_id}/query-usage",
+        "application/json",
+    ),
+    (
+        "postApiV1ClassesByClassIdQueryUsageAnalysis",
+        "POST",
+        "/api/v1/classes/{class_id}/query-usage/analysis",
+        "application/json",
     ),
     (
         "postApiV1ClassesByClassIdRelations",
@@ -908,6 +1007,7 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "application/json",
     ),
     ("postApiV1Search", "POST", "/api/v1/search", "application/json"),
+    ("postApiV1SearchHydrate", "POST", "/api/v1/search/hydrate", "application/json"),
     ("postApiV1SearchStream", "POST", "/api/v1/search/stream", "application/json"),
     (
         "postApiV1SystemEventSubscriptions",
@@ -916,6 +1016,18 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "application/json",
     ),
     ("postApiV1TasksByTaskIdCancel", "POST", "/api/v1/tasks/{task_id}/cancel", "application/json"),
+    (
+        "putApiV1AdminQueryObservations",
+        "PUT",
+        "/api/v1/admin/query-observations",
+        "application/json",
+    ),
+    (
+        "putApiV1ClassesByClassIdQueryUsageByDeclarationId",
+        "PUT",
+        "/api/v1/classes/{class_id}/query-usage/{declaration_id}",
+        "application/json",
+    ),
     (
         "putApiV1CollectionsByCollectionIdParent",
         "PUT",
@@ -952,6 +1064,7 @@ _NO_SUCCESS_RESPONSE_MEDIA = frozenset(
         "deleteApiV1ClassesByClassId",
         "deleteApiV1ClassesByClassIdByFromObjectIdRelationsByToClassIdByToObjectId",
         "deleteApiV1ClassesByClassIdByObjectId",
+        "deleteApiV1ClassesByClassIdQueryUsageByDeclarationId",
         "deleteApiV1ClassesByClassIdRelationsByRelationId",
         "deleteApiV1ClassesByNameByClassName",
         "deleteApiV1ClassesByNameByClassNameObjectsByNameByObjectName",
@@ -992,24 +1105,20 @@ _REQUEST_MEDIA_TYPE_OVERRIDES = {
 }
 _SUCCESS_RESPONSE_MEDIA_OVERRIDES = {
     "getApiV1ClassesByClassIdSchemaTasksByTaskIdReport": ("text/html",),
-    "postApiV1ClassesByClassIdSchemaTasksByTaskIdReport": ("text/html",),
+    "getApiV1ExportsByTaskIdOutput": ("application/json", "text/csv", "text/html", "text/plain"),
     "getApiV1SearchStream": ("text/event-stream",),
+    "postApiV1ClassesByClassIdSchemaTasksByTaskIdReport": ("text/html",),
     "postApiV1SearchStream": ("text/event-stream",),
-    "getApiV1ExportsByTaskIdOutput": (
-        "application/json",
-        "text/csv",
-        "text/html",
-        "text/plain",
-    ),
 }
 SUPPORTED_OPERATIONS = frozenset((item.method.lower(), item.path) for item in OPERATIONS.values())
 PUBLIC_OPERATION_IDS = frozenset(
     {
-        "getApiV0AuthProviders",
+        "getApiV1AuthProviders",
         "getApiV1Config",
         "getHealthz",
         "getReadyz",
-        "postApiV0AuthLogin",
+        "postApiV1AuthLogin",
+        "postApiV1AuthRefresh",
     }
 )
 CAPABILITY_OPERATION_IDS = frozenset({"getApiV1RestoresByRestoreIdStatus"})

@@ -6,21 +6,35 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.0.12] - 2026-10-22
+
 ### Changed
 
+- **Breaking server target:** target Hubuum v0.0.20 and register all 257 OpenAPI
+  operations. Change interactive callers from `login()` to `login_session()`;
+  the new server removes `/api/v0/auth`. Legacy `login()` remains available
+  for older servers, and explicit PAT injection remains supported.
+- **Breaking operation registry:** replace removed v0 authentication operation
+  IDs with their v1 equivalents (`ApiV0Auth` becomes `ApiV1Auth`). New history,
+  query-observation, relation-label,
+  credential-activity, and search-hydration operations are available through
+  `openapi.call()`; typed services retain their documented projections.
+- Require rotating-session checks in the pinned live suite and verify format 10
+  backup recovery. Upgrade server, worker, and restore executor together after
+  stopping writers and taking a PostgreSQL snapshot; sign in again afterward.
 - Refresh application, test, documentation, and release-tool dependencies and
   immutable GitHub Actions pins before the coordinated server compatibility release.
 - Pinned introductory examples to the documented client and server releases and added public documentation verification to release completion.
 
 ### Added
 
-- Opt-in `Client.login_session()` and `AsyncClient.login_session()` for the
+- Add `Client.login_session()` and `AsyncClient.login_session()` for the
   server's new `/api/v1/auth` contract. Credentials remain in memory; both
   runtimes serialize refresh before requests and streams and discard the pair
   on failure or uncertain rotation. Logout revokes the current family.
 - Redacted `SessionResponse` and `SessionExpiredError`. Interactive access alone
-  still requires fresh credential approval to mint PATs. Existing `login()` and
-  explicit PAT injection retain their released-server behavior.
+  still requires fresh credential approval to mint PATs. Legacy `login()` remains for older servers; explicit PAT injection remains
+  supported on the new target.
 
 ## [0.0.11] - 2026-10-06
 
@@ -429,7 +443,8 @@ All notable changes to this project are documented here. The format follows
   error diagnostics.
 - Redacted login tokens from model representations.
 
-[Unreleased]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.11...HEAD
+[Unreleased]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.12...HEAD
+[0.0.12]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.11...v0.0.12
 [0.0.11]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.10...v0.0.11
 [0.0.10]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.9...v0.0.10
 [0.0.9]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.8...v0.0.9

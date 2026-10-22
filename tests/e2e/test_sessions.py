@@ -1,21 +1,14 @@
-"""Opt-in checks for a caller-managed server implementing hubuum/hubuum#178."""
+"""Required rotating-session checks against the pinned server."""
 
 from __future__ import annotations
 
-import os
 from dataclasses import replace
 
 import pytest
 
 from hubuum_client import AsyncClient, AuthenticationError, Client, Credentials, RequestOptions
 
-pytestmark = [
-    pytest.mark.e2e,
-    pytest.mark.skipif(
-        os.environ.get("HUBUUM_E2E_SESSION_API") != "1",
-        reason="rotating sessions require the versioned session API",
-    ),
-]
+pytestmark = pytest.mark.e2e
 
 
 def test_live_session_rotation_and_replay(base_url: str, admin_password: str) -> None:

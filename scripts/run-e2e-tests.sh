@@ -7,7 +7,7 @@ REPO_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 source "${SCRIPT_DIR}/_e2e_helpers.sh"
 cd "${REPO_ROOT}"
 
-SERVER_IMAGE="${HUBUUM_E2E_SERVER_IMAGE:-ghcr.io/hubuum/hubuum-server:v0.0.18@sha256:5b54248f19171200dfa497174d385a48f90666a415cb31732797043d5e182fc4}"
+SERVER_IMAGE="${HUBUUM_E2E_SERVER_IMAGE:-ghcr.io/hubuum/hubuum-server:v0.0.20@sha256:eaf59f8a4b4793030a78bc1637a8e2b9fad2f810b8621ff9a874dca534b9a23a}"
 POSTGRES_IMAGE="${HUBUUM_E2E_POSTGRES_IMAGE:-postgres:18}"
 CONTAINER_RUNTIME="${HUBUUM_E2E_CONTAINER_RUNTIME:-}"
 STARTUP_TIMEOUT="${HUBUUM_E2E_TIMEOUT:-300}"
@@ -193,7 +193,7 @@ fi
 export HUBUUM_E2E_BASE_URL="${base_url}"
 export HUBUUM_E2E_ADMIN_PASSWORD="${admin_password}"
 
-echo "Running Python e2e tests against Hubuum v0.0.18 at ${base_url}"
+echo "Running Python e2e tests against Hubuum v0.0.20 at ${base_url}"
 run_e2e_tests
 
 # Full restores only run against this wrapper's disposable stack. Caller-managed

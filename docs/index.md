@@ -1,13 +1,13 @@
 # Hubuum client for Python
 
 `hubuum-client` is a small, modern interface to the Hubuum REST API. Version
-0.0.11 targets Hubuum server v0.0.18 and gives synchronous and
+0.0.12 targets Hubuum server v0.0.20 and gives synchronous and
 asynchronous applications the same typed resource model.
 
 ## Installation
 
 ```bash
-python -m pip install "hubuum-client==0.0.11"
+python -m pip install "hubuum-client==0.0.12"
 ```
 
 Python 3.11 and later are supported.
@@ -20,7 +20,7 @@ Load the [Atlas inventory](example-dataset.md) and use an account with read acce
 from hubuum_client import Client, Credentials, Query
 
 with Client("https://hubuum.example.com") as client:
-    client.login(Credentials("alice", "secret"))
+    client.login_session(Credentials("alice", "secret"))
     page = client.classes.by_name("Server").objects.page(
         Query().where("name", "web-01").limit(25).include_total()
     )
@@ -33,7 +33,7 @@ with Client("https://hubuum.example.com") as client:
 - **Predictable typing.** Request and response bodies are Pydantic v2 models;
   resource identities use distinct `NewType` declarations.
 - **Runtime parity.** `Client` and `AsyncClient` expose matching resources,
-  errors, authentication behavior, pagination semantics, and all 235 pinned
+  errors, authentication behavior, pagination semantics, and all 257 pinned
   OpenAPI operations.
 - **Secure defaults.** TLS validation is enabled, tokens and credentials are
   redacted, and raw requests cannot switch origin or traverse URL paths.
@@ -52,7 +52,7 @@ measures, task events, import v2, and exports. Health, readiness, and public
 configuration are available before authentication.
 
 The `openapi` service deliberately registers every operation in the immutable
-v0.0.18 specification. Administrative domains that do not yet
+v0.0.20 specification. Administrative domains that do not yet
 have dedicated Pydantic resources are invoked by `operationId` and return
 standard typed JSON, text, or byte values. CI compares that manifest with the
 authoritative server contract so an endpoint cannot silently fall out of
@@ -61,7 +61,7 @@ coverage.
 Continue with [client setup](client.md), then see
 [queries and pagination](querying.md).
 
-Use [credential approvals](credentials.md) for the v0.0.18 protected mutations,
+Use [credential approvals](credentials.md) for the v0.0.20 protected mutations,
 and [task discovery](querying.md#task-discovery) for lifecycle and resource filters.
 
 ## Explore a shared example

@@ -28,7 +28,7 @@ def admin_password() -> str:
 @pytest.fixture
 def client(base_url: str, admin_password: str) -> Iterator[Client]:
     with Client(base_url) as value:
-        value.login(Credentials("admin", admin_password))
+        value.login_session(Credentials("admin", admin_password))
         yield value
 
 

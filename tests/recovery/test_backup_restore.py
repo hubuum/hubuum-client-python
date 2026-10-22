@@ -124,7 +124,7 @@ def _sync_roundtrip(stack: RecoveryStack, *, include_history: bool | None = None
     prefix = f"recovery-sync-{uuid.uuid4().hex}"
     with Client(stack.base_url) as client:
         password = stack.reset_password()
-        client.login(Credentials("admin", password))
+        client.login_session(Credentials("admin", password))
         collection = client.collections.create(
             CollectionCreate(
                 name=prefix,
@@ -164,7 +164,7 @@ def _sync_roundtrip(stack: RecoveryStack, *, include_history: bool | None = None
             options=OpenAPIOptions(path_params={"task_id": task.id}),
         )
         assert isinstance(backup, dict)
-        assert backup["backup_version"] == 8
+        assert backup["backup_version"] == 10
         assert (backup.get("history") is not None) is (include_history is not False)
         objects.update(original.id, ObjectUpdate(data={"phase": "after"}))
         objects.update(nullable.id, ObjectUpdate(data={"phase": "after"}))
@@ -205,7 +205,7 @@ def _sync_roundtrip(stack: RecoveryStack, *, include_history: bool | None = None
                 pytest.fail("disposable restore did not complete within 90 seconds")
         with pytest.raises(AuthenticationError):
             client.me()
-        client.login(Credentials("admin", stack.reset_password()))
+        client.login_session(Credentials("admin", stack.reset_password()))
         assert client.classes.by_id(cls.id).schema.get().active.json_schema == cls.json_schema
         restored = objects.get(original.id)
         assert restored.data == original.data
@@ -223,7 +223,7 @@ async def _async_roundtrip(stack: RecoveryStack, *, include_history: bool | None
     prefix = f"recovery-async-{uuid.uuid4().hex}"
     async with AsyncClient(stack.base_url) as client:
         password = await asyncio.to_thread(stack.reset_password)
-        await client.login(Credentials("admin", password))
+        await client.login_session(Credentials("admin", password))
         group = await client.groups.get_by_name("admin")
         collection = await client.collections.create(
             CollectionCreate(name=prefix, description="Recovery regression", group_id=group.id)
@@ -264,7 +264,7 @@ async def _async_roundtrip(stack: RecoveryStack, *, include_history: bool | None
             options=OpenAPIOptions(path_params={"task_id": task.id}),
         )
         assert isinstance(backup, dict)
-        assert backup["backup_version"] == 8
+        assert backup["backup_version"] == 10
         assert (backup.get("history") is not None) is (include_history is not False)
         await objects.update(original.id, ObjectUpdate(data={"phase": "after"}))
         await objects.update(nullable.id, ObjectUpdate(data={"phase": "after"}))
@@ -305,7 +305,9 @@ async def _async_roundtrip(stack: RecoveryStack, *, include_history: bool | None
                 pytest.fail("disposable restore did not complete within 90 seconds")
         with pytest.raises(AuthenticationError):
             await client.me()
-        await client.login(Credentials("admin", await asyncio.to_thread(stack.reset_password)))
+        await client.login_session(
+            Credentials("admin", await asyncio.to_thread(stack.reset_password))
+        )
         assert (
             await client.classes.by_id(cls.id).schema.get()
         ).active.json_schema == cls.json_schema
