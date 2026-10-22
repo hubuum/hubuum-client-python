@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the immutable Hubuum v0.0.18 OpenAPI source."""
+"""Validate the immutable Hubuum v0.0.20 OpenAPI source."""
 
 from __future__ import annotations
 
@@ -14,11 +14,11 @@ from pathlib import Path
 from typing import Any, TypeAlias
 from urllib.parse import urlsplit
 
-TARGET_REVISION = "35fcf6696d4d564e2d89534db0c5194c14129d9f"
+TARGET_REVISION = "3bede6e5b815585f3ac5372cc829734b2ae14a68"
 TARGET_URL = f"https://raw.githubusercontent.com/hubuum/hubuum/{TARGET_REVISION}/docs/openapi.json"
-TARGET_SHA256 = "9983bdefeb9bea3e7af1c7696bf6a7af32db3d9e4a2fb776ffad72c3c56f342c"
-TARGET_VERSION = "0.0.18"
-TARGET_OPERATION_COUNT = 235
+TARGET_SHA256 = "7ad82a5d64f7c01966eb34b9b82009955c2d5d246206190d2210c6bdf03e8dbb"
+TARGET_VERSION = "0.0.20"
+TARGET_OPERATION_COUNT = 257
 MAX_SOURCE_BYTES = 10 * 1024 * 1024
 HTTP_METHODS = {"get", "put", "post", "delete", "patch", "head", "options", "trace"}
 REPOSITORY_ROOT = Path(__file__).parents[1]
@@ -39,7 +39,7 @@ REQUIRED_OPERATIONS = {
     ("get", "/api/v1/system-event-subscriptions/{subscription_id}"),
     ("patch", "/api/v1/system-event-subscriptions/{subscription_id}"),
     ("delete", "/api/v1/system-event-subscriptions/{subscription_id}"),
-    ("post", "/api/v0/auth/login"),
+    ("post", "/api/v1/auth/login"),
     ("get", "/api/v1/config"),
     ("get", "/api/v1/collections"),
     ("post", "/api/v1/collections"),

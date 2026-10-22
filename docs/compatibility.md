@@ -4,6 +4,7 @@
 
 | Python client | Hubuum server contract | Status | End-to-end evidence |
 | --- | --- | --- | --- |
+| 0.0.12 | [`v0.0.20`](https://github.com/hubuum/hubuum/tree/v0.0.20) | Verified | [26 core and 4 recovery tests, including rotating sessions and eight complete restore cycles](compatibility-evidence.md#v0020-target) |
 | 0.0.11 | [`v0.0.18`](https://github.com/hubuum/hubuum/tree/v0.0.18) | Verified | [Evidence](compatibility-evidence.md#compatibility-matrix) |
 | 0.0.10 | [`v0.0.17`](https://github.com/hubuum/hubuum/tree/v0.0.17) | Verified | [Evidence](compatibility-evidence.md#compatibility-matrix) |
 | 0.0.9 | [`v0.0.16`](https://github.com/hubuum/hubuum/tree/v0.0.16) | Verified | [Evidence](compatibility-evidence.md#compatibility-matrix) |
@@ -21,7 +22,7 @@ client/server pair. The current server target is selected by tag and locked to
 an immutable multi-platform image:
 
 ```text
-ghcr.io/hubuum/hubuum-server:v0.0.18@sha256:5b54248f19171200dfa497174d385a48f90666a415cb31732797043d5e182fc4
+ghcr.io/hubuum/hubuum-server:v0.0.20@sha256:eaf59f8a4b4793030a78bc1637a8e2b9fad2f810b8621ff9a874dca534b9a23a
 ```
 
 The tag identifies the supported server release; the digest prevents that tag
@@ -30,23 +31,27 @@ from resolving to different content later. The same reference is stored in
 
 ## Before upgrading
 
-Client 0.0.11 targets server v0.0.18 with matching sync and async behavior.
+Client 0.0.12 targets server v0.0.20 with matching sync and async behavior.
 Use [credential approvals](credentials.md) before protected mutations and
 [schema evolution](schema.md) when changing validation policy on populated
-classes. The registered OpenAPI surface covers all 235 operations; dedicated
+classes. The registered OpenAPI surface covers all 257 operations; dedicated
 typed services and generic operation calls are distinguished in the API guides.
 
-Server v0.0.18 requires an offline upgrade from v0.0.17 and emits backup format 8;
-older servers cannot restore that format. Follow the canonical
-[server upgrade and recovery instructions](https://hubuum.github.io/hubuum/v0.0.18/events/#upgrade-and-rollback)
-and [backup compatibility](https://hubuum.github.io/hubuum/v0.0.18/backup-restore/).
-Use the server guide for the actual version transition rather than copying
-migration commands from an older client release.
+Server v0.0.20 requires an offline migration from v0.0.19 and emits backup
+format 10. Upgrade every API, worker, and restore executor together, retain a
+pre-upgrade backup and matching binaries for rollback, and sign in again.
+Follow the [server deployment guide](https://hubuum.github.io/hubuum/v0.0.20/deployment/)
+and [backup compatibility](https://hubuum.github.io/hubuum/v0.0.20/backup-restore/).
 
 ## Verification evidence
 
 [Detailed evidence and historical migrations](compatibility-evidence.md) retain tested
 image identities, dates, suite results, and earlier compatibility limits.
+
+## v0.0.20 target
+
+See [v0.0.20 evidence](compatibility-evidence.md#v0020-target) for the exact
+OpenAPI provenance and completed live/recovery checks.
 
 ## v0.0.18 target
 
@@ -96,12 +101,17 @@ See [collection integrations](compatibility-evidence.md#collection-integrations)
 
 <!-- markdownlint-enable MD033 -->
 
-## Optional rotating session API
+## Rotating session API
 
-`login_session()` in both runtimes targets the versioned contract introduced by
-[hubuum/hubuum#178](https://github.com/hubuum/hubuum/issues/178). It requires a server
-with `/api/v1/auth/login` and `/api/v1/auth/refresh`, and does not fall back to
-legacy login after an error. Upgrade older callers from `login()` when deploying
-servers that remove `/api/v0/auth`. The pinned OpenAPI operation registry and
-released-server baseline remain v0.0.18; session support is a separate opt-in
-extension with dedicated live verification against the candidate server.
+`login_session()` in both runtimes uses the required `/api/v1/auth` contract.
+Migrate interactive callers from `login()`, which remains available only for
+older servers. There is no automatic authentication downgrade. The server no
+longer supports legacy interactive clients; explicit PAT injection remains valid.
+The complete live suite requires rotation, replay revocation, and logout checks.
+
+The operation registry includes all 257 server operations. The seven generic
+authentication operation IDs replace `ApiV0Auth` with `ApiV1Auth`; callers using
+those identifiers must update them. Dedicated
+typed services remain projections of that contract: newly added history,
+search hydration, credential activity, and observation-management operations can
+be called through `client.openapi.call()` or authenticated relative `request()`.

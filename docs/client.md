@@ -8,13 +8,17 @@ Use a context manager to close pooled connections deterministically:
 from hubuum_client import Client, Credentials
 
 with Client("https://hubuum.example.com") as client:
-    client.login(Credentials("alice", "secret"))
+    client.login_session(Credentials("alice", "secret"))
     me = client.request("GET", "/api/v1/iam/me")
 ```
 
-`login()` authenticates the current client and returns it for optional chaining.
+`login_session()` authenticates the current client and returns it for optional chaining.
+Access and refresh credentials stay in memory. Requests and streams refresh
+expired access credentials under a shared lock; uncertain rotation clears the
+credentials and requires a new login. The legacy `login()` method remains
+available only for older servers that still expose `/api/v0/auth`.
 The resulting `client.token.expires_at` contains the authoritative expiry
-persisted by Hubuum v0.0.18. A token supplied directly at construction has no
+persisted by Hubuum v0.0.20. A token supplied directly at construction has no
 known expiry unless its `AccessToken` value includes one.
 An existing bearer token can be supplied at construction:
 
@@ -36,7 +40,7 @@ fits naturally into one scope:
 from hubuum_client import Client, Credentials
 
 with Client("https://hubuum.example.com") as client:
-    client.login(Credentials("alice", "secret"))
+    client.login_session(Credentials("alice", "secret"))
     run_application(client)
 ```
 
@@ -49,7 +53,7 @@ from hubuum_client import Client, Credentials
 
 client = Client("https://hubuum.example.com")
 try:
-    client.login(Credentials("alice", "secret"))
+    client.login_session(Credentials("alice", "secret"))
     servers = client.classes.by_name("Server").objects
     for server in servers.all():
         print(server.name)
@@ -64,7 +68,7 @@ from hubuum_client import AsyncClient, Credentials
 
 client = AsyncClient("https://hubuum.example.com")
 try:
-    await client.login(Credentials("alice", "secret"))
+    await client.login_session(Credentials("alice", "secret"))
     servers = client.classes.by_name("Server").objects
     for server in await servers.all():
         print(server.name)
@@ -87,7 +91,7 @@ pool:
 from hubuum_client import AsyncClient, Credentials
 
 async with AsyncClient("https://hubuum.example.com") as client:
-    await client.login(Credentials("alice", "secret"))
+    await client.login_session(Credentials("alice", "secret"))
     collections = await client.collections.list()
 ```
 
@@ -112,7 +116,7 @@ credentials = Credentials(
     password="secret",
     identity_scope="company-directory",
 )
-client.login(credentials)
+client.login_session(credentials)
 ```
 
 ## HTTP configuration
@@ -165,7 +169,7 @@ with a non-default metrics route, use `metrics_at("/custom/metrics")`; the path
 is subject to the same origin and traversal protections as every request.
 
 The typed client configuration contains the server's effective pagination
-defaults and the default token lifetime applied when login or token minting
+defaults and the default PAT lifetime applied when token minting
 omits an explicit expiry:
 
 ```python
@@ -176,7 +180,7 @@ maximum_page_size = config.pagination.max_page_limit
 
 ## Rotating human sessions
 
-On servers with the versioned session API, opt in explicitly:
+On the supported Server v0.0.20, use the versioned session API:
 
 ```python
 from hubuum_client import Client, Credentials

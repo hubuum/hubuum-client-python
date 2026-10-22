@@ -4,6 +4,7 @@
 
 | Python client | Hubuum server contract | Status | End-to-end evidence |
 | --- | --- | --- | --- |
+| 0.0.12 | [`v0.0.20`](https://github.com/hubuum/hubuum/tree/v0.0.20) | Verified | 26 core and 4 recovery tests passed on 2026-10-22 using the installed 0.0.12 wheel (Python 3.12.15, Podman, released Linux AMD64 image), including rotation, replay revocation, logout, approvals, and eight complete restore cycles |
 | 0.0.11 | [`v0.0.18`](https://github.com/hubuum/hubuum/tree/v0.0.18) | Verified | 24 core and 4 recovery tests passed on 2026-10-06 using the installed wheel (Python 3.13.3, Podman, released Linux AMD64 image), including delegated setup in both runtimes and eight complete restore cycles |
 | 0.0.10 | [`v0.0.17`](https://github.com/hubuum/hubuum/tree/v0.0.17) | Verified | [22 core and 4 recovery tests passed on 2026-10-05](https://github.com/hubuum/hubuum-client-python/actions/runs/37269468024) (Python 3.11, Docker, Linux AMD64 server) |
 | 0.0.9 | [`v0.0.16`](https://github.com/hubuum/hubuum/tree/v0.0.16) | Verified | 20 core and 4 recovery tests passed locally on 2026-09-22 (Python 3.13.3, Podman, Linux AMD64 server) |
@@ -21,12 +22,40 @@ client/server pair. The current server target is selected by tag and locked to
 an immutable multi-platform image:
 
 ```text
-ghcr.io/hubuum/hubuum-server:v0.0.18@sha256:5b54248f19171200dfa497174d385a48f90666a415cb31732797043d5e182fc4
+ghcr.io/hubuum/hubuum-server:v0.0.20@sha256:eaf59f8a4b4793030a78bc1637a8e2b9fad2f810b8621ff9a874dca534b9a23a
 ```
 
 The tag identifies the supported server release; the digest prevents that tag
 from resolving to different content later. The same reference is stored in
 `src/hubuum_client/_constants.py`, the e2e wrapper, and CI.
+
+## v0.0.20 target
+
+Client 0.0.12 targets the immutable v0.0.20 image above. Both Linux image
+architectures identify server commit `3bede6e5b815585f3ac5372cc829734b2ae14a68`.
+The [committed OpenAPI document](openapi.json) contains 257 operations and has
+SHA-256 `7ad82a5d64f7c01966eb34b9b82009955c2d5d246206190d2210c6bdf03e8dbb`.
+The upstream contract check verifies the source revision, checksum, operation
+registry, and media types against that exact server commit.
+
+On 2026-10-22, the complete wrapper passed all 26 core and 4 recovery tests using
+the installed 0.0.12 wheel, Python 3.12.15, Podman, and the released Linux AMD64
+image. Both runtimes exercised rotating sessions, replay revocation, logout,
+credential approvals, delegated integrations, and full recovery. The recovery
+suite completed eight full restore cycles with and without history.
+
+**Breaking authentication upgrade:** use `login_session()` for interactive
+password authentication. Legacy `login()` remains only for older servers.
+Replace `ApiV0Auth` with `ApiV1Auth` in the seven generic authentication
+operation IDs. Explicit PAT injection remains supported. Dedicated typed
+services retain their documented projections; the generic registry provides
+the complete contract, including newly added history, credential activity,
+search hydration, and query-observation operations.
+
+New backups use format 10 and retain shared computed-definition history.
+Upgrade API, worker, and restore processes together during the server's offline
+migration, retain a pre-upgrade PostgreSQL snapshot and matching binaries,
+and sign in again. See the [server release notes](https://github.com/hubuum/hubuum/releases/tag/v0.0.20).
 
 ## v0.0.18 target
 
@@ -38,8 +67,10 @@ live suite requires delegated collection setup and explicit grants for shared si
 The pinned OpenAPI document comes from server commit
 `35fcf6696d4d564e2d89534db0c5194c14129d9f`, with SHA-256
 `9983bdefeb9bea3e7af1c7696bf6a7af32db3d9e4a2fb776ffad72c3c56f342c`.
-The exact document is [committed with this client](openapi.json). The contract
-checker verifies every registered operation and media type against that source.
+The exact document remains in the
+[0.0.11 client release](https://github.com/hubuum/hubuum-client-python/blob/v0.0.11/docs/openapi.json).
+That release's contract checker verified every registered operation and media
+type against this source.
 
 Collection setup requires `ManageEventSubscription` and `ReadAudit`. Grants do not
 inherit to child collections. Credentials and static headers require fixed webhook
@@ -236,9 +267,9 @@ Updating this Python package does not migrate a server installation.
 
 ## Meaning of compatibility
 
-For this project, targeting server v0.0.18 means:
+For this project, targeting server v0.0.20 means:
 
-- authentication, public probes, client configuration, typed CRUD, natural keys,
+- rotating-session login, automatic refresh, replay revocation, logout, public probes, client configuration, typed CRUD, natural keys,
   nested object-data filtering, JSON Patch, IAM, relations, forced multi-page
   pagination, and sync/async mutation workflows are exercised by the live suite;
 - live tests check non-administrator read grants and denied writes, mappings for
@@ -255,19 +286,19 @@ For this project, targeting server v0.0.18 means:
   admission in both runtimes, using an unavailable secret alias to prevent delivery;
 - the disposable stack runs eight consecutive full backup/restore cycles,
   covering sync-then-async and async-then-sync order without restarting the
-  server or executor. Version 8 backups include and omit history; restored
+  server or executor. Version 10 backups include and omit history; restored
   objects retain data, JSON `null`, and revisions, post-backup objects disappear, old tokens
   are rejected, and login works after an administrator password reset. Default
   backups after history-free restores and further mutations remain restorable;
   enforced class schemas also survive full restores;
 - every method, path, request media type, and successful response media type
-  matches the 235-operation manifest;
+  matches the 257-operation manifest;
 - request models follow the wire contract, while response models tolerate
   additive fields.
 
 The live suite imports the built wheel in an isolated environment. Contract
 completeness and live behavioral coverage are separate claims: representative
-workflows are tested, not all 235 operations. Full restore tests run after the
+workflows are tested, not all 257 operations. Full restore tests run after the
 core suite and only against the wrapper-owned disposable stack in the default
 `single` database role mode. Caller-managed servers never run this recovery
 suite. Administrative features such as backups, restores, computed fields,

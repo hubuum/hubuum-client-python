@@ -53,7 +53,7 @@ async def test_delegated_webhook_lifecycle(
         collection = client.collections.create(
             CollectionCreate(name=unique_name, description="Delegated webhooks", group_id=group.id)
         )
-        await resolve(delegated.login(Credentials(unique_name, password)))
+        await resolve(delegated.login_session(Credentials(unique_name, password)))
         with pytest.raises(PermissionDeniedError):
             await resolve(delegated.event_sinks.list())
         sinks = delegated.collections.event_sinks(collection.id)
