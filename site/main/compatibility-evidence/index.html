@@ -939,6 +939,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#v0020-target" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        v0.0.20 target
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0018-target" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1265,6 +1276,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#v0020-target" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        v0.0.20 target
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0018-target" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1458,6 +1480,12 @@
 </thead>
 <tbody>
 <tr>
+<td>0.0.12</td>
+<td><a href="https://github.com/hubuum/hubuum/tree/v0.0.20"><code>v0.0.20</code></a></td>
+<td>Verified</td>
+<td>26 core and 4 recovery tests passed on 2026-10-22 using the installed 0.0.12 wheel (Python 3.12.15, Podman, released Linux AMD64 image), including rotation, replay revocation, logout, approvals, and eight complete restore cycles</td>
+</tr>
+<tr>
 <td>0.0.11</td>
 <td><a href="https://github.com/hubuum/hubuum/tree/v0.0.18"><code>v0.0.18</code></a></td>
 <td>Verified</td>
@@ -1528,11 +1556,34 @@
 <p><code>Verified</code> means the complete Docker-backed suite passed for the exact
 client/server pair. The current server target is selected by tag and locked to
 an immutable multi-platform image:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>ghcr.io/hubuum/hubuum-server:v0.0.18@sha256:5b54248f19171200dfa497174d385a48f90666a415cb31732797043d5e182fc4
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>ghcr.io/hubuum/hubuum-server:v0.0.20@sha256:eaf59f8a4b4793030a78bc1637a8e2b9fad2f810b8621ff9a874dca534b9a23a
 </code></pre></div>
 <p>The tag identifies the supported server release; the digest prevents that tag
 from resolving to different content later. The same reference is stored in
 <code>src/hubuum_client/_constants.py</code>, the e2e wrapper, and CI.</p>
+<h2 id="v0020-target">v0.0.20 target<a class="headerlink" href="#v0020-target" title="Permanent link">&para;</a></h2>
+<p>Client 0.0.12 targets the immutable v0.0.20 image above. Both Linux image
+architectures identify server commit <code>3bede6e5b815585f3ac5372cc829734b2ae14a68</code>.
+The <a href="../openapi.json">committed OpenAPI document</a> contains 257 operations and has
+SHA-256 <code>7ad82a5d64f7c01966eb34b9b82009955c2d5d246206190d2210c6bdf03e8dbb</code>.
+The upstream contract check verifies the source revision, checksum, operation
+registry, and media types against that exact server commit.</p>
+<p>On 2026-10-22, the complete wrapper passed all 26 core and 4 recovery tests using
+the installed 0.0.12 wheel, Python 3.12.15, Podman, and the released Linux AMD64
+image. Both runtimes exercised rotating sessions, replay revocation, logout,
+credential approvals, delegated integrations, and full recovery. The recovery
+suite completed eight full restore cycles with and without history.</p>
+<p><strong>Breaking authentication upgrade:</strong> use <code>login_session()</code> for interactive
+password authentication. Legacy <code>login()</code> remains only for older servers.
+Replace <code>ApiV0Auth</code> with <code>ApiV1Auth</code> in the seven generic authentication
+operation IDs. Explicit PAT injection remains supported. Dedicated typed
+services retain their documented projections; the generic registry provides
+the complete contract, including newly added history, credential activity,
+search hydration, and query-observation operations.</p>
+<p>New backups use format 10 and retain shared computed-definition history.
+Upgrade API, worker, and restore processes together during the server's offline
+migration, retain a pre-upgrade PostgreSQL snapshot and matching binaries,
+and sign in again. See the <a href="https://github.com/hubuum/hubuum/releases/tag/v0.0.20">server release notes</a>.</p>
 <h2 id="v0018-target">v0.0.18 target<a class="headerlink" href="#v0018-target" title="Permanent link">&para;</a></h2>
 <p>Client 0.0.11 targets the released v0.0.18 contract with 235 registered operations.
 Typed collection destinations, subscriptions, global sinks, and direct collection
@@ -1541,8 +1592,10 @@ live suite requires delegated collection setup and explicit grants for shared si
 <p>The pinned OpenAPI document comes from server commit
 <code>35fcf6696d4d564e2d89534db0c5194c14129d9f</code>, with SHA-256
 <code>9983bdefeb9bea3e7af1c7696bf6a7af32db3d9e4a2fb776ffad72c3c56f342c</code>.
-The exact document is <a href="../openapi.json">committed with this client</a>. The contract
-checker verifies every registered operation and media type against that source.</p>
+The exact document remains in the
+<a href="https://github.com/hubuum/hubuum-client-python/blob/v0.0.11/docs/openapi.json">0.0.11 client release</a>.
+That release's contract checker verified every registered operation and media
+type against this source.</p>
 <p>Collection setup requires <code>ManageEventSubscription</code> and <code>ReadAudit</code>. Grants do not
 inherit to child collections. Credentials and static headers require fixed webhook
 destinations, and subscription routing cannot redirect them. Collection-owned
@@ -1722,9 +1775,9 @@ also cover migrations, coordinated server/admin/template-worker deployment,
 external authorization policy changes, token-key rotation, and rollback.
 Updating this Python package does not migrate a server installation.</p>
 <h2 id="meaning-of-compatibility">Meaning of compatibility<a class="headerlink" href="#meaning-of-compatibility" title="Permanent link">&para;</a></h2>
-<p>For this project, targeting server v0.0.18 means:</p>
+<p>For this project, targeting server v0.0.20 means:</p>
 <ul>
-<li>authentication, public probes, client configuration, typed CRUD, natural keys,
+<li>rotating-session login, automatic refresh, replay revocation, logout, public probes, client configuration, typed CRUD, natural keys,
   nested object-data filtering, JSON Patch, IAM, relations, forced multi-page
   pagination, and sync/async mutation workflows are exercised by the live suite;</li>
 <li>live tests check non-administrator read grants and denied writes, mappings for
@@ -1741,19 +1794,19 @@ Updating this Python package does not migrate a server installation.</p>
   admission in both runtimes, using an unavailable secret alias to prevent delivery;</li>
 <li>the disposable stack runs eight consecutive full backup/restore cycles,
   covering sync-then-async and async-then-sync order without restarting the
-  server or executor. Version 8 backups include and omit history; restored
+  server or executor. Version 10 backups include and omit history; restored
   objects retain data, JSON <code>null</code>, and revisions, post-backup objects disappear, old tokens
   are rejected, and login works after an administrator password reset. Default
   backups after history-free restores and further mutations remain restorable;
   enforced class schemas also survive full restores;</li>
 <li>every method, path, request media type, and successful response media type
-  matches the 235-operation manifest;</li>
+  matches the 257-operation manifest;</li>
 <li>request models follow the wire contract, while response models tolerate
   additive fields.</li>
 </ul>
 <p>The live suite imports the built wheel in an isolated environment. Contract
 completeness and live behavioral coverage are separate claims: representative
-workflows are tested, not all 235 operations. Full restore tests run after the
+workflows are tested, not all 257 operations. Full restore tests run after the
 core suite and only against the wrapper-owned disposable stack in the default
 <code>single</code> database role mode. Caller-managed servers never run this recovery
 suite. Administrative features such as backups, restores, computed fields,

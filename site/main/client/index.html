@@ -1283,12 +1283,16 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">Client</span><span class="p">,</span> <span class="n">Credentials</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">with</span> <span class="n">Client</span><span class="p">(</span><span class="s2">"https://hubuum.example.com"</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">client</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">Credentials</span><span class="p">(</span><span class="s2">"alice"</span><span class="p">,</span> <span class="s2">"secret"</span><span class="p">))</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">client</span><span class="o">.</span><span class="n">login_session</span><span class="p">(</span><span class="n">Credentials</span><span class="p">(</span><span class="s2">"alice"</span><span class="p">,</span> <span class="s2">"secret"</span><span class="p">))</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">me</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s2">"GET"</span><span class="p">,</span> <span class="s2">"/api/v1/iam/me"</span><span class="p">)</span>
 </code></pre></div>
-<p><code>login()</code> authenticates the current client and returns it for optional chaining.
+<p><code>login_session()</code> authenticates the current client and returns it for optional chaining.
+Access and refresh credentials stay in memory. Requests and streams refresh
+expired access credentials under a shared lock; uncertain rotation clears the
+credentials and requires a new login. The legacy <code>login()</code> method remains
+available only for older servers that still expose <code>/api/v0/auth</code>.
 The resulting <code>client.token.expires_at</code> contains the authoritative expiry
-persisted by Hubuum v0.0.18. A token supplied directly at construction has no
+persisted by Hubuum v0.0.20. A token supplied directly at construction has no
 known expiry unless its <code>AccessToken</code> value includes one.
 An existing bearer token can be supplied at construction:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="s2">"https://hubuum.example.com"</span><span class="p">,</span> <span class="n">token</span><span class="o">=</span><span class="n">token</span><span class="p">)</span>
@@ -1303,7 +1307,7 @@ fits naturally into one scope:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">Client</span><span class="p">,</span> <span class="n">Credentials</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="k">with</span> <span class="n">Client</span><span class="p">(</span><span class="s2">"https://hubuum.example.com"</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">client</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">Credentials</span><span class="p">(</span><span class="s2">"alice"</span><span class="p">,</span> <span class="s2">"secret"</span><span class="p">))</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">client</span><span class="o">.</span><span class="n">login_session</span><span class="p">(</span><span class="n">Credentials</span><span class="p">(</span><span class="s2">"alice"</span><span class="p">,</span> <span class="s2">"secret"</span><span class="p">))</span>
 <a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">run_application</span><span class="p">(</span><span class="n">client</span><span class="p">)</span>
 </code></pre></div>
 <p>Frameworks, workers, and dependency-injection containers can instead create the
@@ -1313,7 +1317,7 @@ class below comes from the <a href="../example-dataset/">Atlas example inventory
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="s2">"https://hubuum.example.com"</span><span class="p">)</span>
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">client</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">Credentials</span><span class="p">(</span><span class="s2">"alice"</span><span class="p">,</span> <span class="s2">"secret"</span><span class="p">))</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">client</span><span class="o">.</span><span class="n">login_session</span><span class="p">(</span><span class="n">Credentials</span><span class="p">(</span><span class="s2">"alice"</span><span class="p">,</span> <span class="s2">"secret"</span><span class="p">))</span>
 <a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">servers</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">classes</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="s2">"Server"</span><span class="p">)</span><span class="o">.</span><span class="n">objects</span>
 <a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="k">for</span> <span class="n">server</span> <span class="ow">in</span> <span class="n">servers</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
 <a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">server</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
@@ -1325,7 +1329,7 @@ class below comes from the <a href="../example-dataset/">Atlas example inventory
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">client</span> <span class="o">=</span> <span class="n">AsyncClient</span><span class="p">(</span><span class="s2">"https://hubuum.example.com"</span><span class="p">)</span>
 <a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">Credentials</span><span class="p">(</span><span class="s2">"alice"</span><span class="p">,</span> <span class="s2">"secret"</span><span class="p">))</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">login_session</span><span class="p">(</span><span class="n">Credentials</span><span class="p">(</span><span class="s2">"alice"</span><span class="p">,</span> <span class="s2">"secret"</span><span class="p">))</span>
 <a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">servers</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">classes</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="s2">"Server"</span><span class="p">)</span><span class="o">.</span><span class="n">objects</span>
 <a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="k">for</span> <span class="n">server</span> <span class="ow">in</span> <span class="k">await</span> <span class="n">servers</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
 <a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">server</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
@@ -1343,7 +1347,7 @@ pool:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncClient</span><span class="p">,</span> <span class="n">Credentials</span>
 <a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
 <a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="k">async</span> <span class="k">with</span> <span class="n">AsyncClient</span><span class="p">(</span><span class="s2">"https://hubuum.example.com"</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">Credentials</span><span class="p">(</span><span class="s2">"alice"</span><span class="p">,</span> <span class="s2">"secret"</span><span class="p">))</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">login_session</span><span class="p">(</span><span class="n">Credentials</span><span class="p">(</span><span class="s2">"alice"</span><span class="p">,</span> <span class="s2">"secret"</span><span class="p">))</span>
 <a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">collections</span> <span class="o">=</span> <span class="k">await</span> <span class="n">client</span><span class="o">.</span><span class="n">collections</span><span class="o">.</span><span class="n">list</span><span class="p">()</span>
 </code></pre></div>
 <p>Only I/O methods are awaited. Query construction and Pydantic models are the
@@ -1361,7 +1365,7 @@ requested class.</p>
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">password</span><span class="o">=</span><span class="s2">"secret"</span><span class="p">,</span>
 <a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">identity_scope</span><span class="o">=</span><span class="s2">"company-directory"</span><span class="p">,</span>
 <a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="p">)</span>
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="n">client</span><span class="o">.</span><span class="n">login</span><span class="p">(</span><span class="n">credentials</span><span class="p">)</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="n">client</span><span class="o">.</span><span class="n">login_session</span><span class="p">(</span><span class="n">credentials</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="http-configuration">HTTP configuration<a class="headerlink" href="#http-configuration" title="Permanent link">&para;</a></h2>
 <p>Both clients accept a shared <code>ClientOptions</code> value:</p>
@@ -1403,14 +1407,14 @@ only for a disposable local system whose network you control.</p>
 with a non-default metrics route, use <code>metrics_at("/custom/metrics")</code>; the path
 is subject to the same origin and traversal protections as every request.</p>
 <p>The typed client configuration contains the server's effective pagination
-defaults and the default token lifetime applied when login or token minting
+defaults and the default PAT lifetime applied when token minting
 omits an explicit expiry:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">default_hours</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">authentication</span><span class="o">.</span><span class="n">default_token_lifetime_hours</span>
 <a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="n">default_page_size</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">pagination</span><span class="o">.</span><span class="n">default_page_limit</span>
 <a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="n">maximum_page_size</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">pagination</span><span class="o">.</span><span class="n">max_page_limit</span>
 </code></pre></div>
 <h2 id="rotating-human-sessions">Rotating human sessions<a class="headerlink" href="#rotating-human-sessions" title="Permanent link">&para;</a></h2>
-<p>On servers with the versioned session API, opt in explicitly:</p>
+<p>On the supported Server v0.0.20, use the versioned session API:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">Client</span><span class="p">,</span> <span class="n">Credentials</span>
 <a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
 <a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="k">with</span> <span class="n">Client</span><span class="p">(</span><span class="s2">"https://hubuum.example.org"</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
