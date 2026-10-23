@@ -938,8 +938,28 @@ class ClassRelationsService:
             point_model=ClassRelation,
         )
 
+    def page(self, query: Query | None = None) -> Page[ClassRelation]:
+        """Return one cursor page of class relations."""
+        return self._service.page(query)
+
     def list(self, query: Query | None = None) -> builtins.list[ClassRelation]:
         return self._service.list(query)
+
+    def pages(
+        self, query: Query | None = None, *, max_pages: int = 100
+    ) -> Iterator[Page[ClassRelation]]:
+        """Iterate class relation pages with cursor-cycle and page-count guards."""
+        return self._service.pages(query, max_pages=max_pages)
+
+    def all(
+        self,
+        query: Query | None = None,
+        *,
+        max_pages: int = 100,
+        max_items: int = 10_000,
+    ) -> builtins.list[ClassRelation]:
+        """Collect class relations with explicit page and item bounds."""
+        return self._service.all(query, max_pages=max_pages, max_items=max_items)
 
     def one(self, query: Query) -> ClassRelation:
         return self._service.one(query)
@@ -978,8 +998,28 @@ class ObjectRelationsService:
             point_model=ObjectRelation,
         )
 
+    def page(self, query: Query | None = None) -> Page[ObjectRelation]:
+        """Return one cursor page of object relations."""
+        return self._service.page(query)
+
     def list(self, query: Query | None = None) -> builtins.list[ObjectRelation]:
         return self._service.list(query)
+
+    def pages(
+        self, query: Query | None = None, *, max_pages: int = 100
+    ) -> Iterator[Page[ObjectRelation]]:
+        """Iterate object relation pages with cursor-cycle and page-count guards."""
+        return self._service.pages(query, max_pages=max_pages)
+
+    def all(
+        self,
+        query: Query | None = None,
+        *,
+        max_pages: int = 100,
+        max_items: int = 10_000,
+    ) -> builtins.list[ObjectRelation]:
+        """Collect object relations with explicit page and item bounds."""
+        return self._service.all(query, max_pages=max_pages, max_items=max_items)
 
     def one(self, query: Query) -> ObjectRelation:
         return self._service.one(query)

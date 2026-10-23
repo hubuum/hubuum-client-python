@@ -111,10 +111,11 @@ unchanged with both synchronous and asynchronous object services.
 
 ## Result shapes
 
-Resource services expose four common terminals:
+Resource services expose these common terminals:
 
 - `list(query)` returns the current page's items as a list;
 - `page(query)` returns `Page[T]` with items and cursor metadata;
+- `pages(query)` iterates cursor pages;
 - `all(query)` follows cursors and collects bounded results;
 - `one(query)` requires exactly one item and raises
   `ResultCardinalityError` otherwise.
@@ -145,6 +146,26 @@ async iterator.
 The default bounds are intentionally conservative. Increase them explicitly for
 a known large result set, or consume pages individually when streaming work is
 more appropriate.
+
+Class and object relation services expose the same pagination methods. Use
+`page()` to inspect metadata, `pages()` to process one page at a time, or `all()`
+to collect bounded results. `list()` continues to return only one page:
+
+```python
+query = Query().limit(50).sort("id.asc").include_total()
+page = client.class_relations.page(query)
+relations = client.object_relations.all(query, max_pages=20, max_items=1_000)
+
+async for page in async_client.class_relations.pages(query, max_pages=20):
+    for relation in page:
+        print(relation.id)
+```
+
+With `AsyncClient`, await `page()` and `all()`; consume `pages()` with `async for`.
+Both relation services preserve filters and sorting as they follow cursors.
+Relation filters use the server's query names: for example,
+`Query().where("from_classes", class_id)` for class relations and
+`Query().where("from_objects", object_id)` for object relations.
 
 Group members are returned as typed `PrincipalMember` values. Membership
 pagination follows the same bounds and cursor rules through `members_page()`,

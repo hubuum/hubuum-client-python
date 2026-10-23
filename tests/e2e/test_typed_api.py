@@ -8,7 +8,17 @@ from typing import Any
 
 import pytest
 
-from hubuum_client import APIError, AsyncClient, Client, Credentials, ObjectRelationCreate
+from hubuum_client import (
+    APIError,
+    AsyncClient,
+    ClassCreate,
+    ClassRelationCreate,
+    Client,
+    Credentials,
+    ObjectCreate,
+    ObjectRelationCreate,
+    Query,
+)
 from hubuum_client.api import models, query
 
 pytestmark = pytest.mark.e2e
@@ -103,6 +113,78 @@ async def graph(typed_client: Any, unique_name: str) -> AsyncIterator[tuple[Any,
     finally:
         with suppress(APIError):
             await resolve(api.collections.delete(collection.id))
+
+
+async def test_relation_service_pagination(
+    typed_client: Any, graph: tuple[Any, ...], unique_name: str
+) -> None:
+    collection, classes, objects, relation, edge = graph
+    target_class = await resolve(
+        typed_client.classes.create(
+            ClassCreate(
+                name=f"{unique_name}-extra",
+                collection_id=collection.id,
+                description="Relation pagination target",
+            )
+        )
+    )
+    target_object = await resolve(
+        typed_client.classes.by_id(target_class.id).objects.create(
+            ObjectCreate(
+                name=f"{unique_name}-extra",
+                collection_id=collection.id,
+                hubuum_class_id=target_class.id,
+                description="Relation pagination target",
+                data={},
+            )
+        )
+    )
+    extra_relation = await resolve(
+        typed_client.class_relations.create(
+            ClassRelationCreate(
+                from_hubuum_class_id=classes[0].id, to_hubuum_class_id=target_class.id
+            )
+        )
+    )
+    extra_edge = await resolve(
+        typed_client.object_relations.create(
+            ObjectRelationCreate(
+                from_hubuum_object_id=objects[0].id,
+                to_hubuum_object_id=target_object.id,
+                class_relation_id=extra_relation.id,
+            )
+        )
+    )
+    for service, field, source_id, expected_ids in (
+        (
+            typed_client.class_relations,
+            "from_classes",
+            classes[0].id,
+            [relation.id, extra_relation.id],
+        ),
+        (
+            typed_client.object_relations,
+            "from_objects",
+            objects[0].id,
+            [edge.id, extra_edge.id],
+        ),
+    ):
+        controls = Query().where(field, source_id).limit(1).sort("id.asc").include_total()
+        first = await resolve(service.page(controls))
+        assert [item.id for item in first] == expected_ids[:1]
+        assert first.has_next
+        assert [item.id for item in await resolve(service.list(controls))] == expected_ids[:1]
+        iterator = service.pages(controls, max_pages=2)
+        pages = (
+            [page async for page in iterator] if hasattr(iterator, "__aiter__") else list(iterator)
+        )
+        assert [item.id for page in pages for item in page] == expected_ids
+        assert [page.total_count for page in pages] == [2, 2]
+        assert [page.page_limit for page in pages] == [1, 1]
+        assert [page.has_next for page in pages] == [True, False]
+        assert [
+            item.id for item in await resolve(service.all(controls, max_pages=2, max_items=2))
+        ] == expected_ids
 
 
 async def test_typed_history_and_relations(typed_client: Any, graph: tuple[Any, ...]) -> None:
