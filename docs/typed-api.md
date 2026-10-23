@@ -87,7 +87,7 @@ from datetime import UTC, datetime
 history = client.api.classes.get_object_history_computed_as_of(
     class_id,
     object_id,
-    query=query.ClassesGetObjectHistoryComputedAsOfQuery(at=datetime.now(UTC)),
+    query=query.ClassesGetObjectHistoryComputedAsOfQuery(at=datetime.now(UTC).isoformat()),
 ).body
 print(history.mode, history.shared.status)
 ```

@@ -66,7 +66,7 @@ async def graph(typed_client: Any, unique_name: str) -> AsyncIterator[tuple[Any,
                 await resolve(
                     api.classes.post_objects(
                         cls.id,
-                        body=models.NewHubuumObject(
+                        body=models.NewHubuumObjectRequest(
                             name=cls.name,
                             collection_id=collection.id,
                             hubuum_class_id=cls.id,
@@ -108,7 +108,7 @@ async def graph(typed_client: Any, unique_name: str) -> AsyncIterator[tuple[Any,
 async def test_typed_history_and_relations(typed_client: Any, graph: tuple[Any, ...]) -> None:
     _, classes, objects, relation, _ = graph
     api, cls, obj = typed_client.api, classes[0], objects[0]
-    at = datetime.now(UTC)
+    at = datetime.now(UTC).isoformat()
     updated = (
         await resolve(
             api.relations.patch_classes_by_relation_id(
@@ -284,7 +284,7 @@ async def test_typed_credential_activity(typed_client: Any) -> None:
     activity = (
         await resolve(
             api.principals.get_principals_by_principal_id_tokens_by_token_id_activity(
-                me.principal.id, me.token.id
+                me.principal.principal_id, me.token.id
             )
         )
     ).body
