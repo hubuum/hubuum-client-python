@@ -8,11 +8,18 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- Count successfully planned dry-run import items as successes in
+  `ImportRunResult.succeeded` and `failed`.
 - Redact frozen typed-model assignment and deletion errors, including replacement
   secrets and unknown attribute names, without retaining the original exception.
 
 ### Added
 
+- Strict request models for all nine IAM and integration `ImportGraph` sections,
+  including principal and remote-authentication variants, natural-key selectors,
+  membership sources, and delivery policies. Valid mapping inputs remain supported;
+  invalid fields and conflicting selectors now fail locally with redacted errors.
+  Import payloads preserve explicitly supplied JSON nulls.
 - Cursor pagination through `page()`, `pages()`, and `all()` on class and object
   relation services in both runtimes, with cursor-cycle, page-count, and item-count
   guards. `list()` continues to return a single page.
