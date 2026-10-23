@@ -57,6 +57,7 @@ nav:
   - Atlas example inventory: example-dataset.md
   - Client setup: client.md
   - Credential approvals: credentials.md
+  - Service accounts: service-accounts.md
   - Querying and pagination: querying.md
   - Schema evolution: schema.md
   - Advanced usage: advanced.md

@@ -22,6 +22,11 @@ old report is stale, activate a fresh compatible analysis, inspect compliance
 evidence, and remove the schema through import activation. Terminal task
 cancellation is checked for idempotence.
 
+Service-account tests exercise both runtimes: create local accounts with unique
+owner groups, paginate and discover them, transfer ownership, reject a stale
+ETag, mint a token through a password approval, disable the account, verify that
+the token is rejected, and delete the accounts and groups.
+
 Notification tests cover system subscription create/list/get/update/delete,
 task-kind filters, nullable collection IDs in delivery health, sink pacing,
 and webhook preview and test admission in both runtimes. Each sink uses a

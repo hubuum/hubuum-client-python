@@ -41,6 +41,7 @@ from .types import (
     ResourceRevision,
     RestoreJobId,
     SchemaRevision,
+    ServiceAccountId,
     TaskEventId,
     TaskId,
     TokenId,
@@ -509,6 +510,53 @@ class UserUpdate(RequestModel):
     password: str | None = Field(default=None, repr=False)
     email: str | None = None
     proper_name: str | None = None
+
+
+class _ServiceAccountBase(HubuumModel):
+    """Service-account lifecycle fields shared by list and point responses."""
+
+    id: ServiceAccountId
+    name: str
+    description: str
+    owner_group_id: GroupId
+    created_by: PrincipalId | None = None
+    disabled_at: datetime | None = None
+    created_at: datetime
+    updated_at: datetime
+    revision: ResourceRevision
+
+    @property
+    def principal_id(self) -> PrincipalId:
+        """Return the same identity for principal-token and membership operations."""
+        return PrincipalId(self.id)
+
+
+class ServiceAccount(_ServiceAccountBase):
+    """Service-account list record, including its identity-scope name."""
+
+    identity_scope: str
+
+
+class ServiceAccountPoint(_ServiceAccountBase):
+    """Revision-owned point response, including the identity-scope ID."""
+
+    identity_scope_id: int
+
+
+class ServiceAccountCreate(RequestModel):
+    """Create an automation identity owned by a group; no password is accepted."""
+
+    name: str
+    owner_group_id: GroupId = Field(ge=1)
+    description: str | None = None
+    identity_scope: str | None = None
+
+
+class ServiceAccountUpdate(RequestModel):
+    """Edit description or ownership. Use an empty string to clear description."""
+
+    description: str | None = None
+    owner_group_id: GroupId | None = None
 
 
 class GroupPoint(HubuumModel):

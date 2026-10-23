@@ -45,6 +45,24 @@ See the [route-to-method table](typed-operations.md) for the full surface.
     options:
       members: true
 
+## Service accounts
+
+::: hubuum_client.services.ServiceAccountsService
+    options:
+      members: true
+
+::: hubuum_client.async_services.AsyncServiceAccountsService
+    options:
+      members: true
+
+::: hubuum_client.ServiceAccount
+
+::: hubuum_client.ServiceAccountPoint
+
+::: hubuum_client.ServiceAccountCreate
+
+::: hubuum_client.ServiceAccountUpdate
+
 ## Task-backed services
 
 ::: hubuum_client.services.TasksService

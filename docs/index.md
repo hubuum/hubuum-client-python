@@ -46,7 +46,8 @@ with Client("https://hubuum.example.com") as client:
 
 The strongly modeled service surface includes collections, hierarchy
 operations, classes, class-scoped objects, natural-key class/object routes,
-atomic object-data JSON Patch, users, groups, group membership, class and
+atomic object-data JSON Patch, users, [service accounts](service-accounts.md),
+groups, group membership, class and
 object relations, nested token scopes and renewal, typed object aggregate
 measures, task events, import v2, and exports. Health, readiness, and public
 configuration are available before authentication.

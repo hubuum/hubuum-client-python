@@ -11,8 +11,7 @@ from time import monotonic, sleep
 from typing import TYPE_CHECKING, Generic, TypeVar
 from urllib.parse import quote
 
-import httpx
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 
 from ._transport import (
     decode_content_type,
@@ -20,10 +19,9 @@ from ._transport import (
     decode_json_object,
     decode_json_object_list,
     decode_model,
-    safe_response_url,
-    validation_error_reason,
+    decode_model_list,
 )
-from .errors import DecodeError, ResultCardinalityError, TaskUnsuccessfulError
+from .errors import ResultCardinalityError, TaskUnsuccessfulError
 from .models import (
     ClassCreate,
     ClassRelation,
@@ -78,6 +76,10 @@ from .models import (
     SchemaRevisionResponse,
     SchemaStageRequest,
     SchemaWorkResponse,
+    ServiceAccount,
+    ServiceAccountCreate,
+    ServiceAccountPoint,
+    ServiceAccountUpdate,
     Task,
     TaskCancelRequest,
     TaskEvent,
@@ -100,6 +102,7 @@ from .types import (
     GroupId,
     PrincipalId,
     SchemaRevision,
+    ServiceAccountId,
     TaskId,
     TokenId,
     UserId,
@@ -141,7 +144,7 @@ class _CursorService(Generic[ModelT]):
             self._collection_path,
             options=RequestOptions(params=[*self._fixed_params, *(query or Query()).as_params()]),
         )
-        items = _decode_model_list(response, self._model)
+        items = decode_model_list(response, self._model)
         return Page(
             items=tuple(items),
             next_cursor=response.headers.get("x-next-cursor"),
@@ -372,7 +375,7 @@ class ClassSchemaService:
             f"{self._base}/revisions",
             options=RequestOptions(params=(options or SchemaPageOptions()).as_params()),
         )
-        return _decode_model_list(response, SchemaRevisionResponse)
+        return decode_model_list(response, SchemaRevisionResponse)
 
     def revision(self, revision: SchemaRevision) -> SchemaRevisionResponse:
         """Read one immutable schema revision."""
@@ -734,6 +737,63 @@ class UsersService(ResourceService[User, UserPoint, UserCreate, UserUpdate]):
 
     def anonymize(self, user_id: UserId | int) -> None:
         self._client.request("POST", f"/api/v1/iam/users/{_segment(user_id)}/anonymize")
+
+
+class ServiceAccountsService(
+    ResourceService[ServiceAccount, ServiceAccountPoint, ServiceAccountCreate, ServiceAccountUpdate]
+):
+    """Manage automation identities with guarded lists and revision-owned mutations."""
+
+    def __init__(self, client: Client) -> None:
+        super().__init__(
+            client,
+            collection_path="/api/v1/iam/service-accounts",
+            item_path="/api/v1/iam/service-accounts/{id}",
+            list_model=ServiceAccount,
+            point_model=ServiceAccountPoint,
+        )
+
+    def get_by_name(self, name: str, *, identity_scope: str | None = None) -> ServiceAccount:
+        """Find exactly one account, optionally restricting its identity scope."""
+        query = Query().where("name", name)
+        if identity_scope is not None:
+            query = query.where("identity_scope", identity_scope)
+        return self.one(query)
+
+    def update(
+        self,
+        resource_id: object,
+        payload: ServiceAccountUpdate,
+        *,
+        if_match: str | None = None,
+    ) -> ServiceAccountPoint:
+        """Edit description or ownership, optionally requiring the current ETag."""
+        return self._client.request(
+            "PATCH",
+            self._item_path.format(id=_segment(resource_id)),
+            json=payload,
+            response_model=ServiceAccountPoint,
+            options=RequestOptions(headers={"If-Match": if_match} if if_match else None),
+        )
+
+    def disable(
+        self, service_account_id: ServiceAccountId | int, *, if_match: str | None = None
+    ) -> ServiceAccountPoint:
+        """Disable the account and revoke its tokens, with an optional ETag check."""
+        return self._client.request(
+            "POST",
+            f"{self._item_path.format(id=_segment(service_account_id))}/disable",
+            response_model=ServiceAccountPoint,
+            options=RequestOptions(headers={"If-Match": if_match} if if_match else None),
+        )
+
+    def delete(self, resource_id: object, *, if_match: str | None = None) -> None:
+        """Delete the account, optionally requiring the current ETag."""
+        self._client.request(
+            "DELETE",
+            self._item_path.format(id=_segment(resource_id)),
+            options=RequestOptions(headers={"If-Match": if_match} if if_match else None),
+        )
 
 
 class GroupsService(ResourceService[Group, GroupPoint, GroupCreate, GroupUpdate]):
@@ -1316,24 +1376,9 @@ class ExportsService:
         return self.output(task.id)
 
 
-def _decode_model_list(response: httpx.Response, model: type[ModelT]) -> builtins.list[ModelT]:
-    try:
-        value = response.json()
-        if not isinstance(value, builtins.list):
-            raise TypeError("expected a JSON array")
-        return [model.model_validate(item) for item in value]
-    except (TypeError, ValueError, ValidationError) as error:
-        raise DecodeError(
-            response.request.method,
-            safe_response_url(response),
-            response.status_code,
-            validation_error_reason(error, response),
-        ) from error
-
-
 def _model_list(client: Client, path: str, model: type[ModelT]) -> builtins.list[ModelT]:
     response = client._request_response("GET", path)
-    return _decode_model_list(response, model)
+    return decode_model_list(response, model)
 
 
 def _required_name(value: str, resource: str) -> str:
@@ -1370,7 +1415,7 @@ def _model_page(
     params: Params,
 ) -> Page[ModelT]:
     response = client._request_response("GET", path, options=RequestOptions(params=params))
-    value = _decode_model_list(response, model)
+    value = decode_model_list(response, model)
     return Page(
         items=tuple(value),
         next_cursor=response.headers.get("x-next-cursor"),
