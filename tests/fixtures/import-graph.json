@@ -1,0 +1,38 @@
+{
+  "collections": [
+    {"ref": "collection", "name": "typed-import-collection", "description": "Mixed import"}
+  ],
+  "classes": [
+    {"ref": "class", "name": "typed-import-class", "description": "Imported class", "collection_ref": "collection"}
+  ],
+  "objects": [
+    {"ref": "object", "name": "typed-import-object", "description": "Imported object", "class_ref": "class", "data": {"name": "Example", "optional": null}}
+  ],
+  "identity_scopes": [
+    {"ref": "scope", "name": "typed-import-scope", "provider_kind": "local", "condition": {"mode": "create_only"}}
+  ],
+  "groups": [
+    {"ref": "group", "groupname": "typed-import-group", "description": "Automation owners", "managed_by": "local", "identity_scope_ref": "scope"}
+  ],
+  "principals": [
+    {"ref": "principal", "kind": "service_account", "name": "typed-import-principal", "description": "Automation", "provider_managed": false, "identity_scope_ref": "scope", "owner_group_ref": "group", "settings": {"optional": null}}
+  ],
+  "group_memberships": [
+    {"ref": "membership", "group_ref": "group", "principal_ref": "principal", "sources": [{"source": "manual", "source_key": "typed-import-membership", "source_scope_ref": "scope", "timestamps": {"created_at": "2024-01-01T00:00:00", "updated_at": "2024-01-02T00:00:00"}}]}
+  ],
+  "export_templates": [
+    {"ref": "template", "name": "typed-import-template.txt", "description": "Reusable fragment", "kind": "fragment", "collection_ref": "collection", "content_type": "text/plain", "template": "Imported fragment"}
+  ],
+  "remote_targets": [
+    {"ref": "target", "name": "typed-import-target", "description": "Disabled remote target", "collection_ref": "collection", "method": "get", "url_template": "https://example.invalid/import", "headers_template": {}, "auth_config": {"type": "none"}, "allowed_subject_types": ["collection"], "timeout_ms": 1000, "enabled": false}
+  ],
+  "event_sinks": [
+    {"ref": "sink", "name": "typed-import-sink", "kind": "webhook", "config": {"destination_url": "https://example.invalid/import"}, "delivery_policy": {"min_interval_ms": 1000}, "enabled": false}
+  ],
+  "event_subscriptions": [
+    {"ref": "subscription", "name": "typed-import-subscription", "description": "Disabled subscription", "collection_ref": "collection", "sink_ref": "sink", "entity_types": ["object"], "actions": ["updated"], "filter": {}, "routing": {}, "enabled": false}
+  ],
+  "computed_fields": [
+    {"ref": "computed", "visibility": "shared", "class_ref": "class", "key": "display_name", "label": "Display name", "operation": {"type": "first_non_null", "paths": ["/name"]}, "result_type": "string", "enabled": true}
+  ]
+}

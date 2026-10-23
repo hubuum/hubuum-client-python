@@ -73,23 +73,27 @@ _APIModelT = TypeVar("_APIModelT", bound=BaseModel)
 _APIValueT = TypeVar("_APIValueT")
 
 
+def _api_validation_error(model: type[BaseModel]) -> ValidationError:
+    return ValidationError.from_exception_data(
+        model.__name__,
+        [
+            {
+                "type": PydanticCustomError("api_model", "Invalid API model"),
+                "loc": (),
+                "input": "<redacted>",
+            }
+        ],
+        hide_input=True,
+    )
+
+
 def _validate_api_model(
     model: type[_APIModelT], value: Any, handler: ModelWrapValidatorHandler[_APIModelT]
 ) -> _APIModelT:
     try:
         return handler(value)
     except ValidationError:
-        error = ValidationError.from_exception_data(
-            model.__name__,
-            [
-                {
-                    "type": PydanticCustomError("api_model", "Invalid API model"),
-                    "loc": (),
-                    "input": "<redacted>",
-                }
-            ],
-            hide_input=True,
-        )
+        error = _api_validation_error(model)
     # Even a hidden exception context can retain a password-bearing input.
     raise error
 
@@ -1122,6 +1126,363 @@ class ImportCollectionPermissionInput(RequestModel):
     condition: ImportWriteCondition | None = None
 
 
+class _ImportModel(RequestModel):
+    """Strict import input with redacted representations and validation failures."""
+
+    model_config = ConfigDict(hide_input_in_errors=True)
+
+    def __repr_args__(self) -> Iterator[tuple[str | None, Any]]:
+        return iter(())
+
+    @model_validator(mode="wrap")
+    @classmethod
+    def _safe_validation(cls, value: Any, handler: ModelWrapValidatorHandler[Self]) -> Self:
+        try:
+            return handler(value)._validate_import()
+        except (ValidationError, ValueError):
+            error = _api_validation_error(cls)
+        raise error
+
+    def _validate_import(self) -> Self:
+        # Keep selector checks inside the wrapper so Pydantic cannot attach the
+        # original import body to an error raised by a subclass validator.
+        return self
+
+    @classmethod
+    def model_validate_json(cls, json_data: str | bytes | bytearray, **kwargs: Any) -> Self:
+        try:
+            return super().model_validate_json(json_data, **kwargs)
+        except ValidationError:
+            error = _api_validation_error(cls)
+        raise error
+
+    def payload(self) -> dict[str, Any]:
+        """Return wire fields, preserving explicitly supplied JSON nulls."""
+        return self.model_dump(mode="json", by_alias=True, exclude_unset=True)
+
+
+def _import_selector(
+    reference: str | None, key: RequestModel | None, *, required: bool = True
+) -> None:
+    if reference is not None and key is not None:
+        raise ValueError("reference and natural key are mutually exclusive")
+    if required and reference is None and key is None:
+        raise ValueError("a reference or natural key is required")
+
+
+def _import_class_selector(
+    reference: str | None, key: ClassKey | None, *, required: bool = False
+) -> None:
+    _import_selector(reference, key, required=required)
+    if key is not None:
+        _import_selector(key.collection_ref, key.collection_key)
+
+
+class IdentityScopeKey(_ImportModel):
+    """Natural key of an imported or existing identity scope."""
+
+    name: str
+
+
+class PrincipalKey(_ImportModel):
+    """Principal name, optionally qualified by its identity scope."""
+
+    name: str
+    identity_scope: str | None = None
+
+
+class EventSinkKey(_ImportModel):
+    """Natural key of an existing event sink."""
+
+    name: str
+
+
+class ImportIdentityScopeInput(_ImportModel):
+    """Identity scope definition in an administrator import."""
+
+    ref_: str | None = Field(default=None, alias="ref")
+    name: str
+    provider_kind: str
+    timestamps: RestoreTimestamps | None = None
+    condition: ImportWriteCondition | None = None
+
+
+class ImportGroupInput(_ImportModel):
+    """Group definition, with exactly one identity-scope selector."""
+
+    ref_: str | None = Field(default=None, alias="ref")
+    groupname: str
+    description: str
+    managed_by: str
+    identity_scope_ref: str | None = None
+    identity_scope_key: IdentityScopeKey | None = None
+    external_key: str | None = None
+    last_sync_attempted_at: datetime | None = None
+    last_sync_success_at: datetime | None = None
+    timestamps: RestoreTimestamps | None = None
+    condition: ImportWriteCondition | None = None
+
+    def _validate_import(self) -> Self:
+        _import_selector(self.identity_scope_ref, self.identity_scope_key)
+        return self
+
+
+class _ImportPrincipalInput(_ImportModel):
+    ref_: str | None = Field(default=None, alias="ref")
+    name: str
+    provider_managed: bool
+    identity_scope_ref: str | None = None
+    identity_scope_key: IdentityScopeKey | None = None
+    external_subject: str | None = None
+    settings: JsonValue = None
+    last_sync_attempted_at: datetime | None = None
+    last_sync_success_at: datetime | None = None
+    timestamps: RestoreTimestamps | None = None
+    condition: ImportWriteCondition | None = None
+
+    def _validate_import(self) -> Self:
+        _import_selector(self.identity_scope_ref, self.identity_scope_key)
+        return self
+
+
+class ImportPrincipalInputHuman(_ImportPrincipalInput):
+    """Human principal; credentials require an import_credentials approval."""
+
+    kind: Literal["human"]
+    email: str | None = None
+    proper_name: str | None = None
+    password: str | None = None
+    password_hash: str | None = None
+    anonymized_at: datetime | None = None
+
+    def _validate_import(self) -> Self:
+        super()._validate_import()
+        if self.password is not None and self.password_hash is not None:
+            raise ValueError("password and password_hash are mutually exclusive")
+        return self
+
+
+class ImportPrincipalInputServiceAccount(_ImportPrincipalInput):
+    """Service account with an owner group and optional creator selector."""
+
+    kind: Literal["service_account"]
+    description: str
+    owner_group_ref: str | None = None
+    owner_group_key: GroupKey | None = None
+    created_by_ref: str | None = None
+    created_by_key: PrincipalKey | None = None
+    disabled_at: datetime | None = None
+
+    def _validate_import(self) -> Self:
+        super()._validate_import()
+        _import_selector(self.owner_group_ref, self.owner_group_key)
+        _import_selector(self.created_by_ref, self.created_by_key, required=False)
+        return self
+
+
+ImportPrincipalInput: TypeAlias = Annotated[
+    ImportPrincipalInputHuman | ImportPrincipalInputServiceAccount, Field(discriminator="kind")
+]
+
+
+class ImportMembershipSourceInput(_ImportModel):
+    """Membership provenance with its own identity scope and restore timestamps."""
+
+    source: str
+    source_key: str
+    source_scope_ref: str | None = None
+    source_scope_key: IdentityScopeKey | None = None
+    timestamps: RestoreTimestamps | None = None
+
+    def _validate_import(self) -> Self:
+        _import_selector(self.source_scope_ref, self.source_scope_key)
+        return self
+
+
+class ImportGroupMembershipInput(_ImportModel):
+    """Membership linking one principal and one group."""
+
+    ref_: str | None = Field(default=None, alias="ref")
+    principal_ref: str | None = None
+    principal_key: PrincipalKey | None = None
+    group_ref: str | None = None
+    group_key: GroupKey | None = None
+    sources: tuple[ImportMembershipSourceInput, ...] = ()
+    timestamps: RestoreTimestamps | None = None
+    condition: ImportWriteCondition | None = None
+
+    def _validate_import(self) -> Self:
+        _import_selector(self.principal_ref, self.principal_key)
+        _import_selector(self.group_ref, self.group_key)
+        return self
+
+
+class ImportExportTemplateInput(_ImportModel):
+    """Reusable export or fragment owned by a collection."""
+
+    ref_: str | None = Field(default=None, alias="ref")
+    name: str
+    description: str
+    content_type: ExportContentType
+    template: str
+    kind: Literal["export", "fragment"]
+    collection_ref: str | None = None
+    collection_key: CollectionKey | None = None
+    class_ref: str | None = None
+    class_key: ClassKey | None = None
+    scope_kind: ExportScopeKind | None = None
+    default_query: str | None = None
+    include: ExportInclude | None = None
+    relation_context: ExportRelationContext | None = None
+    default_missing_data_policy: ExportMissingDataPolicy | None = None
+    default_limits: ExportLimits | None = None
+    timestamps: RestoreTimestamps | None = None
+    condition: ImportWriteCondition | None = None
+
+    def _validate_import(self) -> Self:
+        _import_selector(self.collection_ref, self.collection_key)
+        _import_class_selector(self.class_ref, self.class_key)
+        return self
+
+
+class RemoteAuthConfigNone(_ImportModel):
+    """Remote target without configured authentication."""
+
+    type: Literal["none"]
+
+
+class RemoteAuthConfigBearerSecret(_ImportModel):
+    """Bearer authentication resolved from a server secret reference."""
+
+    type: Literal["bearer_secret"]
+    secret: str
+
+
+class RemoteAuthConfigBasicSecret(_ImportModel):
+    """Basic authentication with a username and server secret reference."""
+
+    type: Literal["basic_secret"]
+    username: str
+    secret: str
+
+
+class RemoteAuthConfigApiKeySecret(_ImportModel):
+    """API key header resolved from a server secret reference."""
+
+    type: Literal["api_key_secret"]
+    header: str
+    secret: str
+
+
+RemoteAuthConfig: TypeAlias = Annotated[
+    RemoteAuthConfigNone
+    | RemoteAuthConfigBearerSecret
+    | RemoteAuthConfigBasicSecret
+    | RemoteAuthConfigApiKeySecret,
+    Field(discriminator="type"),
+]
+
+
+class ImportRemoteTargetInput(_ImportModel):
+    """Remote invocation configuration; importing it does not invoke the target."""
+
+    ref_: str | None = Field(default=None, alias="ref")
+    name: str
+    description: str
+    collection_ref: str | None = None
+    collection_key: CollectionKey | None = None
+    class_ref: str | None = None
+    class_key: ClassKey | None = None
+    method: Literal["get", "post", "patch", "delete"]
+    url_template: str
+    headers_template: JsonValue = None
+    body_template: str | None = None
+    auth_config: RemoteAuthConfig = Field(default_factory=lambda: RemoteAuthConfigNone(type="none"))
+    allowed_subject_types: tuple[
+        Literal["collection", "class", "object", "class_relation", "object_relation"], ...
+    ]
+    timeout_ms: int
+    enabled: bool
+    timestamps: RestoreTimestamps | None = None
+    condition: ImportWriteCondition | None = None
+
+    def _validate_import(self) -> Self:
+        _import_selector(self.collection_ref, self.collection_key)
+        _import_class_selector(self.class_ref, self.class_key)
+        return self
+
+
+class EventDeliveryPolicy(_ImportModel):
+    """Optional minimum interval between admissions to an event sink."""
+
+    min_interval_ms: Annotated[int, Field(ge=1, le=86_400_000)] | None = None
+
+
+class ImportEventSinkInput(_ImportModel):
+    """Event sink configuration in an administrator import."""
+
+    ref_: str | None = Field(default=None, alias="ref")
+    name: str
+    kind: Literal["webhook", "amqp", "valkey_stream", "email"]
+    config: JsonValue = None
+    secret_ref: str | None = None
+    delivery_policy: EventDeliveryPolicy | None = None
+    enabled: bool
+    timestamps: RestoreTimestamps | None = None
+    condition: ImportWriteCondition | None = None
+
+
+class ImportEventSubscriptionInput(_ImportModel):
+    """Collection subscription linked to one imported or existing event sink."""
+
+    ref_: str | None = Field(default=None, alias="ref")
+    name: str
+    description: str
+    collection_ref: str | None = None
+    collection_key: CollectionKey | None = None
+    sink_ref: str | None = None
+    sink_key: EventSinkKey | None = None
+    entity_types: tuple[str, ...]
+    actions: tuple[str, ...]
+    filter: JsonValue = None
+    routing: JsonValue = None
+    enabled: bool
+    timestamps: RestoreTimestamps | None = None
+    condition: ImportWriteCondition | None = None
+
+    def _validate_import(self) -> Self:
+        _import_selector(self.collection_ref, self.collection_key)
+        _import_selector(self.sink_ref, self.sink_key)
+        return self
+
+
+class ImportComputedFieldInput(_ImportModel):
+    """Class computed field, optionally owned by a personal principal."""
+
+    ref_: str | None = Field(default=None, alias="ref")
+    visibility: Literal["shared", "personal"]
+    class_ref: str | None = None
+    class_key: ClassKey | None = None
+    owner_ref: str | None = None
+    owner_key: PrincipalKey | None = None
+    key: str
+    label: str
+    description: str = ""
+    operation: dict[str, JsonValue]
+    result_type: Literal["string", "number", "integer", "boolean", "object", "array"]
+    enabled: bool
+    timestamps: RestoreTimestamps | None = None
+    condition: ImportWriteCondition | None = None
+
+    def _validate_import(self) -> Self:
+        _import_class_selector(self.class_ref, self.class_key, required=True)
+        if self.visibility == "personal":
+            _import_selector(self.owner_ref, self.owner_key)
+        elif self.owner_ref is not None or self.owner_key is not None:
+            raise ValueError("shared computed fields cannot have an owner")
+        return self
+
+
 class ImportAtomicity(StrEnum):
     """Transaction boundary used while applying an import."""
 
@@ -1151,31 +1512,24 @@ class ImportMode(RequestModel):
     permission_policy: ImportPermissionPolicy | None = None
 
 
-class ImportGraph(RequestModel):
-    """Complete import graph with typed core resources.
-
-    Identity and integration sections remain JSON-object sequences so the
-    complete v0.0.18 graph is accepted without exposing unstable or
-    secret-bearing integration configuration in representations. Core
-    collection, class, object, relation, and collection-permission sections
-    are fully typed.
-    """
+class ImportGraph(_ImportModel):
+    """Strictly typed Hubuum v0.0.20 graph, including identity and integrations."""
 
     collections: tuple[ImportCollectionInput, ...] = ()
     classes: tuple[ImportClassInput, ...] = ()
     objects: tuple[ImportObjectInput, ...] = Field(default=(), repr=False)
     class_relations: tuple[ImportClassRelationInput, ...] = ()
     object_relations: tuple[ImportObjectRelationInput, ...] = ()
-    identity_scopes: tuple[dict[str, JsonValue], ...] = Field(default=(), repr=False)
-    groups: tuple[dict[str, JsonValue], ...] = Field(default=(), repr=False)
-    principals: tuple[dict[str, JsonValue], ...] = Field(default=(), repr=False)
-    group_memberships: tuple[dict[str, JsonValue], ...] = Field(default=(), repr=False)
+    identity_scopes: tuple[ImportIdentityScopeInput, ...] = ()
+    groups: tuple[ImportGroupInput, ...] = ()
+    principals: tuple[ImportPrincipalInput, ...] = ()
+    group_memberships: tuple[ImportGroupMembershipInput, ...] = ()
     collection_permissions: tuple[ImportCollectionPermissionInput, ...] = ()
-    export_templates: tuple[dict[str, JsonValue], ...] = Field(default=(), repr=False)
-    remote_targets: tuple[dict[str, JsonValue], ...] = Field(default=(), repr=False)
-    event_sinks: tuple[dict[str, JsonValue], ...] = Field(default=(), repr=False)
-    event_subscriptions: tuple[dict[str, JsonValue], ...] = Field(default=(), repr=False)
-    computed_fields: tuple[dict[str, JsonValue], ...] = Field(default=(), repr=False)
+    export_templates: tuple[ImportExportTemplateInput, ...] = ()
+    remote_targets: tuple[ImportRemoteTargetInput, ...] = ()
+    event_sinks: tuple[ImportEventSinkInput, ...] = ()
+    event_subscriptions: tuple[ImportEventSubscriptionInput, ...] = ()
+    computed_fields: tuple[ImportComputedFieldInput, ...] = ()
 
     @property
     def total_items(self) -> int:
@@ -1205,7 +1559,7 @@ class ImportGraph(RequestModel):
 CURRENT_IMPORT_VERSION: Literal[2] = 2
 
 
-class ImportRequest(RequestModel):
+class ImportRequest(_ImportModel):
     """Versioned asynchronous import request for the complete Hubuum graph."""
 
     graph: ImportGraph = Field(repr=False)
@@ -1814,8 +2168,8 @@ class ImportRunResult:
 
     @property
     def succeeded(self) -> int:
-        """Return the number of successful entity outcomes."""
-        return sum(result.outcome == "succeeded" for result in self.results)
+        """Return successful entity outcomes, including planned dry-run items."""
+        return sum(result.outcome in {"succeeded", "planned"} for result in self.results)
 
     @property
     def failed(self) -> int:

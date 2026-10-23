@@ -159,7 +159,20 @@ async def test_approved_mutations_preserve_exact_nested_body_and_headers(
     create = UserCreate(name="human", password="new-password")
     update = UserUpdate(password="replacement-password")
     imported = ImportRequest(
-        graph=ImportGraph(principals=({"password_hash": "hash-secret"},)), dry_run=True
+        graph=ImportGraph.model_validate(
+            {
+                "principals": [
+                    {
+                        "kind": "human",
+                        "name": "human",
+                        "provider_managed": False,
+                        "identity_scope_key": {"name": "local"},
+                        "password_hash": "hash-secret",
+                    }
+                ]
+            }
+        ),
+        dry_run=True,
     )
     confirmation = RestoreConfirmRequest(
         restore_capability="restore-secret", sha256="digest", confirmation="phrase"
@@ -654,7 +667,7 @@ def test_approval_validation_errors_strip_nested_exception_context() -> None:
                 },
             }
         )
-    assert "value_error" in {item["type"] for item in caught.value.errors()}
+    assert "api_model" in {item["type"] for item in caught.value.errors()}
     assert all("ctx" not in item for item in caught.value.errors())
     assert "-secret" not in caught.value.json()
     assert caught.value.__context__ is None

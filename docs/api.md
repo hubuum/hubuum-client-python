@@ -185,6 +185,44 @@ See the [route-to-method table](typed-operations.md) for the full surface.
 
 ::: hubuum_client.ImportGraph
 
+::: hubuum_client.ImportIdentityScopeInput
+
+::: hubuum_client.ImportGroupInput
+
+::: hubuum_client.ImportPrincipalInputHuman
+
+::: hubuum_client.ImportPrincipalInputServiceAccount
+
+::: hubuum_client.ImportGroupMembershipInput
+
+::: hubuum_client.ImportMembershipSourceInput
+
+::: hubuum_client.ImportExportTemplateInput
+
+::: hubuum_client.ImportRemoteTargetInput
+
+::: hubuum_client.ImportEventSinkInput
+
+::: hubuum_client.ImportEventSubscriptionInput
+
+::: hubuum_client.ImportComputedFieldInput
+
+::: hubuum_client.IdentityScopeKey
+
+::: hubuum_client.PrincipalKey
+
+::: hubuum_client.EventSinkKey
+
+::: hubuum_client.EventDeliveryPolicy
+
+::: hubuum_client.RemoteAuthConfigNone
+
+::: hubuum_client.RemoteAuthConfigBearerSecret
+
+::: hubuum_client.RemoteAuthConfigBasicSecret
+
+::: hubuum_client.RemoteAuthConfigApiKeySecret
+
 ::: hubuum_client.ImportWriteCondition
 
 ::: hubuum_client.ImportWriteMode

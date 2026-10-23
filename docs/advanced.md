@@ -346,7 +346,7 @@ safety.
 
 ## Typed imports, exports, and task events
 
-Core import graphs use strict import-v2 request models, including the timestamps
+Import graphs use strict import-v2 request models, including the timestamps
 Hubuum v0.0.20 can restore. `run()` submits the task, waits with a bounded poller, and
 collects per-entity results through guarded cursor pagination:
 
@@ -399,12 +399,76 @@ with `client.imports.all_results(task_id, max_pages=..., max_items=...)` instead
 of resubmitting the import. To retain the task ID independently of result
 collection, use `submit()`, `client.tasks.wait()`, and `all_results()` separately.
 
-The Python field `ref_` is serialized as the contract's `ref`. Import graphs,
-object data, result details, and error strings are excluded from model
-representations. Integration-oriented import sections remain strict JSON
-objects so the full v0.0.20 graph can be submitted without representing secret
-configuration in diagnostic output. Core resources can use `create_only`,
-unconditional `overwrite`, or `if_revision` per-item write conditions.
+The Python field `ref_` is serialized as the contract's `ref`. Every graph
+section has a strict request type, including identity scopes, groups, human and
+service-account principals, memberships, export templates, remote targets,
+event sinks, subscriptions, and computed fields. Per-item write conditions
+support `create_only`, unconditional `overwrite`, and `if_revision`.
+
+Identity and integration imports require an unscoped administrator. For example,
+these models link a service account to an imported owner group and the existing
+local identity scope:
+
+```python
+from hubuum_client import (
+    IdentityScopeKey,
+    ImportGraph,
+    ImportGroupInput,
+    ImportPrincipalInputServiceAccount,
+    ImportRequest,
+)
+
+scope = IdentityScopeKey(name="local")
+graph = ImportGraph(
+    groups=(
+        ImportGroupInput(
+            ref_="owners",
+            groupname="automation-owners",
+            description="Automation",
+            managed_by="local",
+            identity_scope_key=scope,
+        ),
+    ),
+    principals=(
+        ImportPrincipalInputServiceAccount(
+            kind="service_account",
+            name="inventory-worker",
+            description="Inventory sync",
+            provider_managed=False,
+            identity_scope_key=scope,
+            owner_group_ref="owners",
+        ),
+    ),
+)
+result = client.imports.run(ImportRequest(graph=graph, dry_run=True))
+```
+
+Successful dry-run rows have the wire outcome `planned`. They count toward
+`result.succeeded`; `result.failed` counts unsuccessful rows in both dry runs
+and applied imports.
+
+For existing dictionary-based code, `ImportGraph.model_validate(mapping)` accepts
+valid mappings and converts their items into typed models. Unknown fields,
+invalid principal/authentication variants, and missing or conflicting selectors
+now raise `ValidationError` before submission. Select exactly one `*_ref` or
+`*_key` for each required target. Optional selectors may be omitted. Personal
+computed fields require an owner; shared fields reject one. Reference resolution,
+permissions, template/expression validation, and sink-specific configuration
+validation remain server responsibilities; use `dry_run=True` to check them.
+
+Human imports use `ImportPrincipalInputHuman` with `kind="human"`. Supply at
+most one of `password` and `password_hash`; credential-bearing imports require
+an `import_credentials` [credential approval](credentials.md), even for dry runs.
+The server validates password policy and Argon2 hashes.
+
+Import graphs, requests, and the identity/integration models omit all field
+values from representations and redact validation inputs, including malformed
+JSON. `payload()` deliberately returns the complete request, including secrets,
+and must not be logged. Omitted fields stay omitted; explicitly supplied JSON
+nulls are preserved. Arbitrary JSON remains supported where the contract allows
+it, such as settings, sink configuration, and computed-field operations. Nested
+JSON values and request models remain mutable. Result details and error strings
+are also excluded from result representations.
 
 Direct exports are similarly typed:
 
