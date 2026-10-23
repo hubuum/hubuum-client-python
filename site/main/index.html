@@ -1326,12 +1326,12 @@ atomic object-data JSON Patch, users, groups, group membership, class and
 object relations, nested token scopes and renewal, typed object aggregate
 measures, task events, import v2, and exports. Health, readiness, and public
 configuration are available before authentication.</p>
-<p>The <code>openapi</code> service deliberately registers every operation in the immutable
-v0.0.20 specification. Administrative domains that do not yet
-have dedicated Pydantic resources are invoked by <code>operationId</code> and return
-standard typed JSON, text, or byte values. CI compares that manifest with the
-authoritative server contract so an endpoint cannot silently fall out of
-coverage.</p>
+<p>The unreleased <a href="typed-api/"><code>client.api</code> interface</a> provides matching sync and
+async types for all 257 operations and 391 named schemas in the immutable
+v0.0.20 specification, including administrative domains. Existing convenience
+services remain available. The <code>openapi</code> service also exposes every operation
+by <code>operationId</code> for callers that need generic JSON, text, or byte values.
+CI checks both interfaces against the authoritative server contract.</p>
 <p>Continue with <a href="client/">client setup</a>, then see
 <a href="querying/">queries and pagination</a>.</p>
 <p>Use <a href="credentials/">credential approvals</a> for the v0.0.20 protected mutations,

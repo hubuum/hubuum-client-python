@@ -1395,10 +1395,11 @@ module:</p>
 <p>These helpers generate normal <code>json_data__operator</code> parameters and work
 unchanged with both synchronous and asynchronous object services.</p>
 <h2 id="result-shapes">Result shapes<a class="headerlink" href="#result-shapes" title="Permanent link">&para;</a></h2>
-<p>Resource services expose four common terminals:</p>
+<p>Resource services expose these common terminals:</p>
 <ul>
 <li><code>list(query)</code> returns the current page's items as a list;</li>
 <li><code>page(query)</code> returns <code>Page[T]</code> with items and cursor metadata;</li>
+<li><code>pages(query)</code> iterates cursor pages;</li>
 <li><code>all(query)</code> follows cursors and collects bounded results;</li>
 <li><code>one(query)</code> requires exactly one item and raises
   <code>ResultCardinalityError</code> otherwise.</li>
@@ -1422,11 +1423,27 @@ async iterator.</p>
 <p>The default bounds are intentionally conservative. Increase them explicitly for
 a known large result set, or consume pages individually when streaming work is
 more appropriate.</p>
+<p>Class and object relation services expose the same pagination methods. Use
+<code>page()</code> to inspect metadata, <code>pages()</code> to process one page at a time, or <code>all()</code>
+to collect bounded results. <code>list()</code> continues to return only one page:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">query</span> <span class="o">=</span> <span class="n">Query</span><span class="p">()</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="s2">"id.asc"</span><span class="p">)</span><span class="o">.</span><span class="n">include_total</span><span class="p">()</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="n">page</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">class_relations</span><span class="o">.</span><span class="n">page</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">relations</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">object_relations</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">max_pages</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">max_items</span><span class="o">=</span><span class="mi">1_000</span><span class="p">)</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="k">async</span> <span class="k">for</span> <span class="n">page</span> <span class="ow">in</span> <span class="n">async_client</span><span class="o">.</span><span class="n">class_relations</span><span class="o">.</span><span class="n">pages</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">max_pages</span><span class="o">=</span><span class="mi">20</span><span class="p">):</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    <span class="k">for</span> <span class="n">relation</span> <span class="ow">in</span> <span class="n">page</span><span class="p">:</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">relation</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+</code></pre></div>
+<p>With <code>AsyncClient</code>, await <code>page()</code> and <code>all()</code>; consume <code>pages()</code> with <code>async for</code>.
+Both relation services preserve filters and sorting as they follow cursors.
+Relation filters use the server's query names: for example,
+<code>Query().where("from_classes", class_id)</code> for class relations and
+<code>Query().where("from_objects", object_id)</code> for object relations.</p>
 <p>Group members are returned as typed <code>PrincipalMember</code> values. Membership
 pagination follows the same bounds and cursor rules through <code>members_page()</code>,
 <code>member_pages()</code>, and <code>all_members()</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">page</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">members_page</span><span class="p">(</span><span class="n">group_id</span><span class="p">,</span> <span class="n">Query</span><span class="p">()</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span><span class="o">.</span><span class="n">include_total</span><span class="p">())</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="n">members</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">all_members</span><span class="p">(</span><span class="n">group_id</span><span class="p">,</span> <span class="n">max_pages</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">max_items</span><span class="o">=</span><span class="mi">5_000</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">page</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">members_page</span><span class="p">(</span><span class="n">group_id</span><span class="p">,</span> <span class="n">Query</span><span class="p">()</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span><span class="o">.</span><span class="n">include_total</span><span class="p">())</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">members</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">all_members</span><span class="p">(</span><span class="n">group_id</span><span class="p">,</span> <span class="n">max_pages</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">max_items</span><span class="o">=</span><span class="mi">5_000</span><span class="p">)</span>
 </code></pre></div>
 <p>Each membership has its own <code>revision</code>, <code>group_id</code>, and <code>principal_id</code>. List
 responses also include the optional nested <code>principal</code> details, whose revision
@@ -1435,14 +1452,14 @@ is independent of the enclosing membership revision.</p>
 <p>Hubuum v0.0.20 supports explicit natural-key aliases for classes and objects.
 Use the complete name-addressed service when class and object names are already
 known:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">selected_class</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">classes</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="s2">"12345"</span><span class="p">)</span>
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">hubuum_class</span> <span class="o">=</span> <span class="n">selected_class</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">hubuum_object</span> <span class="o">=</span> <span class="n">selected_class</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"67890"</span><span class="p">)</span>
-<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="n">all_objects</span> <span class="o">=</span> <span class="n">selected_class</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
-<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>
-<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="n">id_selected_class</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">classes</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="n">class_id</span><span class="p">)</span>
-<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="n">same_class</span> <span class="o">=</span> <span class="n">id_selected_class</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
-<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="n">id_scoped_objects</span> <span class="o">=</span> <span class="n">id_selected_class</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">selected_class</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">classes</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="s2">"12345"</span><span class="p">)</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="n">hubuum_class</span> <span class="o">=</span> <span class="n">selected_class</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="n">hubuum_object</span> <span class="o">=</span> <span class="n">selected_class</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"67890"</span><span class="p">)</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="n">all_objects</span> <span class="o">=</span> <span class="n">selected_class</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="n">id_selected_class</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">classes</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="n">class_id</span><span class="p">)</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="n">same_class</span> <span class="o">=</span> <span class="n">id_selected_class</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="n">id_scoped_objects</span> <span class="o">=</span> <span class="n">id_selected_class</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
 </code></pre></div>
 <p>Both names are encoded as opaque path segments after explicit <code>by-name</code>
 markers, so spaces, slashes, and numeric-looking values remain unambiguous.
@@ -1452,21 +1469,21 @@ explicit.</p>
 <p>Use <code>TaskQuery</code> for <code>client.tasks.page()</code>, <code>list()</code>, <code>pages()</code>, and <code>all()</code>.
 Task filters use plain parameter names; generic resource <code>Query.where()</code>
 produces operator-suffixed parameters that the task endpoint does not accept.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">UTC</span><span class="p">,</span> <span class="n">datetime</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">TaskKind</span><span class="p">,</span> <span class="n">TaskQuery</span><span class="p">,</span> <span class="n">TaskStatus</span>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="n">query</span> <span class="o">=</span> <span class="p">(</span>
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>    <span class="n">TaskQuery</span><span class="p">(</span>
-<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>        <span class="n">kind</span><span class="o">=</span><span class="p">(</span><span class="n">TaskKind</span><span class="o">.</span><span class="n">EXPORT</span><span class="p">,</span> <span class="n">TaskKind</span><span class="o">.</span><span class="n">BACKUP</span><span class="p">),</span>
-<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>        <span class="n">status</span><span class="o">=</span><span class="p">(</span><span class="n">TaskStatus</span><span class="o">.</span><span class="n">SUCCEEDED</span><span class="p">,</span> <span class="n">TaskStatus</span><span class="o">.</span><span class="n">FAILED</span><span class="p">),</span>
-<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>        <span class="n">terminal</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>        <span class="n">created_after</span><span class="o">=</span><span class="n">datetime</span><span class="p">(</span><span class="mi">2026</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">22</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">UTC</span><span class="p">),</span>
-<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>    <span class="p">)</span>
-<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>    <span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">25</span><span class="p">)</span>
-<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>    <span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="s2">"finished_at.desc,id.desc"</span><span class="p">)</span>
-<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>    <span class="o">.</span><span class="n">include_total</span><span class="p">()</span>
-<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a><span class="p">)</span>
-<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a><span class="n">tasks</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">UTC</span><span class="p">,</span> <span class="n">datetime</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">TaskKind</span><span class="p">,</span> <span class="n">TaskQuery</span><span class="p">,</span> <span class="n">TaskStatus</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="n">query</span> <span class="o">=</span> <span class="p">(</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="n">TaskQuery</span><span class="p">(</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>        <span class="n">kind</span><span class="o">=</span><span class="p">(</span><span class="n">TaskKind</span><span class="o">.</span><span class="n">EXPORT</span><span class="p">,</span> <span class="n">TaskKind</span><span class="o">.</span><span class="n">BACKUP</span><span class="p">),</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>        <span class="n">status</span><span class="o">=</span><span class="p">(</span><span class="n">TaskStatus</span><span class="o">.</span><span class="n">SUCCEEDED</span><span class="p">,</span> <span class="n">TaskStatus</span><span class="o">.</span><span class="n">FAILED</span><span class="p">),</span>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>        <span class="n">terminal</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>        <span class="n">created_after</span><span class="o">=</span><span class="n">datetime</span><span class="p">(</span><span class="mi">2026</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">22</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">UTC</span><span class="p">),</span>
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>    <span class="p">)</span>
+<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>    <span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">25</span><span class="p">)</span>
+<a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>    <span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="s2">"finished_at.desc,id.desc"</span><span class="p">)</span>
+<a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>    <span class="o">.</span><span class="n">include_total</span><span class="p">()</span>
+<a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a><span class="p">)</span>
+<a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a><span class="n">tasks</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
 </code></pre></div>
 <p>Kinds and statuses use comma-separated OR lists; different filters combine
 with AND. Immutable pagination builders preserve all filters across cursors.
