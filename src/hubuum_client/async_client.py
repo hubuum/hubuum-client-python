@@ -237,6 +237,11 @@ class AsyncClient:
         return AsyncUsersService(self)
 
     @cached_property
+    def service_accounts(self) -> AsyncServiceAccountsService:
+        """Return typed service-account lifecycle and pagination operations."""
+        return AsyncServiceAccountsService(self)
+
+    @cached_property
     def groups(self) -> AsyncGroupsService:
         """Return typed group and membership operations."""
         return AsyncGroupsService(self)
@@ -456,6 +461,7 @@ from .async_services import (  # noqa: E402
     AsyncGroupsService,
     AsyncImportsService,
     AsyncObjectRelationsService,
+    AsyncServiceAccountsService,
     AsyncTasksService,
     AsyncTokensService,
     AsyncUsersService,

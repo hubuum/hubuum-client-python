@@ -8,6 +8,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- Drop raw validation exceptions from typed list decoding errors in both runtimes,
+  preventing malformed response values from surviving in exception chains.
 - Count successfully planned dry-run import items as successes in
   `ImportRunResult.succeeded` and `failed`.
 - Redact frozen typed-model assignment and deletion errors, including replacement
@@ -15,6 +17,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Typed sync/async `client.service_accounts` lifecycle services with guarded
+  pagination, identity-scoped name lookup, conditional mutations, distinct list
+  and point response models, and principal-token workflow integration.
 - Strict request models for all nine IAM and integration `ImportGraph` sections,
   including principal and remote-authentication variants, natural-key selectors,
   membership sources, and delivery policies. Valid mapping inputs remain supported;

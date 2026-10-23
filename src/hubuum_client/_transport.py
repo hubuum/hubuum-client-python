@@ -405,6 +405,23 @@ def decode_model(response: httpx.Response, model: type[T]) -> T:
     raise decode_error
 
 
+def decode_model_list(response: httpx.Response, model: type[T]) -> list[T]:
+    """Decode a typed array without retaining invalid response inputs in errors."""
+    try:
+        value = response.json()
+        if not isinstance(value, list):
+            raise TypeError("expected a JSON array")
+        return [model.model_validate(item) for item in value]
+    except (TypeError, ValueError, ValidationError) as error:
+        decode_error = DecodeError(
+            method=response.request.method,
+            url=safe_response_url(response),
+            status_code=response.status_code,
+            reason=validation_error_reason(error, response),
+        )
+    raise decode_error
+
+
 def decode_content_type(
     response: httpx.Response,
     content_types: type[ContentTypeT],

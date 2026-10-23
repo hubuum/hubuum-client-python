@@ -237,6 +237,11 @@ class Client:
         return UsersService(self)
 
     @cached_property
+    def service_accounts(self) -> ServiceAccountsService:
+        """Return typed service-account lifecycle and pagination operations."""
+        return ServiceAccountsService(self)
+
+    @cached_property
     def groups(self) -> GroupsService:
         """Return typed group and membership operations."""
         return GroupsService(self)
@@ -457,6 +462,7 @@ from .services import (  # noqa: E402
     GroupsService,
     ImportsService,
     ObjectRelationsService,
+    ServiceAccountsService,
     TasksService,
     TokensService,
     UsersService,
