@@ -4,6 +4,7 @@
 
 | Python client | Hubuum server contract | Status | End-to-end evidence |
 | --- | --- | --- | --- |
+| 0.0.13 | [`v0.0.20`](https://github.com/hubuum/hubuum/tree/v0.0.20) | Verified | [40 core and 4 recovery tests, including typed API workflows, service accounts, and eight complete restore cycles](compatibility-evidence.md#v0020-target) |
 | 0.0.12 | [`v0.0.20`](https://github.com/hubuum/hubuum/tree/v0.0.20) | Verified | [26 core and 4 recovery tests, including rotating sessions and eight complete restore cycles](compatibility-evidence.md#v0020-target) |
 | 0.0.11 | [`v0.0.18`](https://github.com/hubuum/hubuum/tree/v0.0.18) | Verified | [Evidence](compatibility-evidence.md#compatibility-matrix) |
 | 0.0.10 | [`v0.0.17`](https://github.com/hubuum/hubuum/tree/v0.0.17) | Verified | [Evidence](compatibility-evidence.md#compatibility-matrix) |
@@ -31,14 +32,14 @@ from resolving to different content later. The same reference is stored in
 
 ## Typed parity
 
-The unreleased `client.api` interface provides matching sync and async types for
-all 257 operations and 391 schemas in this pinned contract. See
+The `client.api` interface, available since 0.0.13, provides matching sync and
+async types for all 257 operations and 391 schemas in this pinned contract. See
 [typed API usage](typed-api.md) and the [operation table](typed-operations.md).
 Existing convenience services retain their established return types.
 
 ## Before upgrading
 
-Client 0.0.12 targets server v0.0.20 with matching sync and async behavior.
+Client 0.0.13 targets server v0.0.20 with matching sync and async behavior.
 Use [credential approvals](credentials.md) before protected mutations and
 [schema evolution](schema.md) when changing validation policy on populated
 classes. The registered OpenAPI surface covers all 257 operations; dedicated
@@ -119,6 +120,7 @@ The complete live suite requires rotation, replay revocation, and logout checks.
 The operation registry includes all 257 server operations. The seven generic
 authentication operation IDs replace `ApiV0Auth` with `ApiV1Auth`; callers using
 those identifiers must update them. Dedicated
-typed services remain projections of that contract: newly added history,
-search hydration, credential activity, and observation-management operations can
-be called through `client.openapi.call()` or authenticated relative `request()`.
+convenience services remain projections of that contract. The complete typed
+`client.api` includes history, search hydration, credential activity, and
+observation-management operations. Generic `client.openapi.call()` and
+authenticated relative `request()` remain available.

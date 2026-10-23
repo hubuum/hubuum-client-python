@@ -1,13 +1,13 @@
 # Hubuum client for Python
 
 `hubuum-client` is a small, modern interface to the Hubuum REST API. Version
-0.0.12 targets Hubuum server v0.0.20 and gives synchronous and
+0.0.13 targets Hubuum server v0.0.20 and gives synchronous and
 asynchronous applications the same typed resource model.
 
 ## Installation
 
 ```bash
-python -m pip install "hubuum-client==0.0.12"
+python -m pip install "hubuum-client==0.0.13"
 ```
 
 Python 3.11 and later are supported.
@@ -52,7 +52,7 @@ object relations, nested token scopes and renewal, typed object aggregate
 measures, task events, import v2, and exports. Health, readiness, and public
 configuration are available before authentication.
 
-The unreleased [`client.api` interface](typed-api.md) provides matching sync and
+The [`client.api` interface](typed-api.md) provides matching sync and
 async types for all 257 operations and 391 named schemas in the immutable
 v0.0.20 specification, including administrative domains. Existing convenience
 services remain available. The `openapi` service also exposes every operation

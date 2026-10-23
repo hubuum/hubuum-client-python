@@ -4,6 +4,7 @@
 
 | Python client | Hubuum server contract | Status | End-to-end evidence |
 | --- | --- | --- | --- |
+| 0.0.13 | [`v0.0.20`](https://github.com/hubuum/hubuum/tree/v0.0.20) | Verified | 40 core and 4 recovery tests passed on 2026-10-24 using the installed 0.0.13 wheel (Python 3.13.3, Podman, released Linux AMD64 image), including typed API workflows, relation pagination, IAM/integration imports, service-account lifecycle/token invalidation, and eight complete restore cycles |
 | 0.0.12 | [`v0.0.20`](https://github.com/hubuum/hubuum/tree/v0.0.20) | Verified | 26 core and 4 recovery tests passed on 2026-10-22 using the installed 0.0.12 wheel (Python 3.12.15, Podman, released Linux AMD64 image), including rotation, replay revocation, logout, approvals, and eight complete restore cycles |
 | 0.0.11 | [`v0.0.18`](https://github.com/hubuum/hubuum/tree/v0.0.18) | Verified | 24 core and 4 recovery tests passed on 2026-10-06 using the installed wheel (Python 3.13.3, Podman, released Linux AMD64 image), including delegated setup in both runtimes and eight complete restore cycles |
 | 0.0.10 | [`v0.0.17`](https://github.com/hubuum/hubuum/tree/v0.0.17) | Verified | [22 core and 4 recovery tests passed on 2026-10-05](https://github.com/hubuum/hubuum-client-python/actions/runs/37269468024) (Python 3.11, Docker, Linux AMD64 server) |
@@ -31,12 +32,20 @@ from resolving to different content later. The same reference is stored in
 
 ## v0.0.20 target
 
-Client 0.0.12 targets the immutable v0.0.20 image above. Both Linux image
+Client 0.0.13 targets the immutable v0.0.20 image above. Both Linux image
 architectures identify server commit `3bede6e5b815585f3ac5372cc829734b2ae14a68`.
 The [committed OpenAPI document](openapi.json) contains 257 operations and has
 SHA-256 `7ad82a5d64f7c01966eb34b9b82009955c2d5d246206190d2210c6bdf03e8dbb`.
 The upstream contract check verifies the source revision, checksum, operation
 registry, and media types against that exact server commit.
+
+On 2026-10-24, the complete wrapper passed all 40 core and 4 recovery tests using
+the installed 0.0.13 wheel, Python 3.13.3, Podman, and the released Linux AMD64
+image. Both runtimes exercised typed history, query usage, search hydration and
+SSE events, credential activity, guarded relation pagination, strict IAM and
+integration imports, and service-account lifecycle with approved token minting
+and token invalidation on disable. The recovery suite completed eight full
+restore cycles with and without history, using format 10 backups.
 
 On 2026-10-22, the complete wrapper passed all 26 core and 4 recovery tests using
 the installed 0.0.12 wheel, Python 3.12.15, Podman, and the released Linux AMD64
@@ -47,10 +56,11 @@ suite completed eight full restore cycles with and without history.
 **Breaking authentication upgrade:** use `login_session()` for interactive
 password authentication. Legacy `login()` remains only for older servers.
 Replace `ApiV0Auth` with `ApiV1Auth` in the seven generic authentication
-operation IDs. Explicit PAT injection remains supported. Dedicated typed
-services retain their documented projections; the generic registry provides
-the complete contract, including newly added history, credential activity,
-search hydration, and query-observation operations.
+operation IDs. Explicit PAT injection remains supported. Dedicated convenience
+services retain their documented projections. Since client 0.0.13, `client.api`
+provides typed coverage of the complete contract, including history, credential
+activity, search hydration, and query-observation operations. The generic
+operation registry remains available.
 
 New backups use format 10 and retain shared computed-definition history.
 Upgrade API, worker, and restore processes together during the server's offline

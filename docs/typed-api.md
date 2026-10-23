@@ -1,6 +1,6 @@
 # Complete typed API
 
-The unreleased client provides `client.api` and `async_client.api` for all **257
+Client 0.0.13 provides `client.api` and `async_client.api` for all **257
 operations** in the pinned Hubuum v0.0.20 contract. Every operation has an explicit
 Python signature, request type, and response type. All **391 named schemas** are
 available in `hubuum_client.api.models`, including discriminated variants, enums,

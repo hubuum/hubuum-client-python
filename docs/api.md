@@ -1,6 +1,6 @@
 # API reference
 
-The unreleased [complete typed API](typed-api.md) covers every server operation.
+The [complete typed API](typed-api.md) covers every server operation.
 See the [route-to-method table](typed-operations.md) for the full surface.
 
 ## Clients

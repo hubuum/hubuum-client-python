@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.0.13] - 2026-10-24
+
 ### Maintenance
 
 - Refresh the dependency lock with certifi 2026.10.23, coverage 7.17.0,
@@ -484,7 +486,8 @@ All notable changes to this project are documented here. The format follows
   error diagnostics.
 - Redacted login tokens from model representations.
 
-[Unreleased]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.12...HEAD
+[Unreleased]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.13...HEAD
+[0.0.13]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.12...v0.0.13
 [0.0.12]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.11...v0.0.12
 [0.0.11]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.10...v0.0.11
 [0.0.10]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.9...v0.0.10
