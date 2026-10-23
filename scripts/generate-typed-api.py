@@ -121,6 +121,8 @@ def generate_models(document: dict[str, Any], temporary: Path) -> str:
             str(output),
             "--output-model-type",
             "pydantic_v2.BaseModel",
+            "--output-datetime-class",
+            "datetime",
             "--target-python-version",
             "3.11",
             "--base-class",

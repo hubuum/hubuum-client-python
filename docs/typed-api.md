@@ -38,7 +38,8 @@ with Client("https://hubuum.example.org") as client:
 `APIResponse` also exposes `status_code`, immutable `headers`, and `etag`. A
 successful bodyless operation returns `APIResponse[None]`. Methods validate
 responses before returning them and raise `DecodeError` for incompatible data.
-Text responses stay strings; methods with multiple documented media types accept
+Server timestamps become `datetime` values, preserving whether the wire value
+includes a timezone offset. Text responses stay strings; methods with multiple documented media types accept
 `accept` or `content_type` keyword arguments and validate the selected format.
 
 Use `await async_client.api.classes.list(...)` for the same asynchronous API.

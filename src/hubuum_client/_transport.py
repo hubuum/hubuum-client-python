@@ -537,7 +537,7 @@ def decode_api_response(
 ) -> APIResponse[APIValueT]:
     """Validate a contract response without retaining secret-bearing failures."""
     try:
-        if response.status_code in {204, 205} or not response.content:
+        if response.status_code in {204, 205} or (not response.content and "" in adapters):
             body = adapters[""].validate_python(None)
         else:
             media = response.headers.get("content-type", "").split(";", 1)[0].strip().casefold()

@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Annotated, Literal, TypeAlias
 from uuid import UUID
 
-from pydantic import AwareDatetime, ConfigDict, Field, JsonValue, SecretStr
+from pydantic import ConfigDict, Field, JsonValue, SecretStr
 
 from hubuum_client.models import APIModel
 
@@ -55,11 +56,11 @@ class BackupState(APIModel):
 class ClassComputationState(APIModel):
     active_task_id: int | None = None
     class_id: int
-    created_at: AwareDatetime
+    created_at: datetime
     evaluation_revision: int
     last_error: str | None = None
     rebuild_status: str
-    updated_at: AwareDatetime
+    updated_at: datetime
 
 
 class ClearRateLimitResponse(APIModel):
@@ -120,15 +121,15 @@ class CredentialCreationResponse(APIModel):
     address: str | None = None
     address_method: str
     issuance_method: str
-    issued_at: AwareDatetime
+    issued_at: datetime
     issuer_id: int | None = None
 
 
 class CredentialSourceResponse(APIModel):
     address: str | None = None
     address_method: str
-    first_seen: AwareDatetime
-    last_seen: AwareDatetime
+    first_seen: datetime
+    last_seen: datetime
 
 
 class DbStateResponse(APIModel):
@@ -181,17 +182,17 @@ class EventDeliveryPolicy(APIModel):
 
 class EventDeliveryResponse(APIModel):
     attempts: int
-    created_at: AwareDatetime
+    created_at: datetime
     deferred_reason: str | None = None
     event_id: int
     id: int
     last_error: str | None = None
-    locked_until: AwareDatetime | None = None
-    next_attempt_at: AwareDatetime
+    locked_until: datetime | None = None
+    next_attempt_at: datetime
     purpose: Literal["event", "test"]
     status: str
     subscription_id: int
-    updated_at: AwareDatetime
+    updated_at: datetime
 
 
 class EventDeliveryStatusCounts(APIModel):
@@ -327,7 +328,7 @@ class IdentityScopeKey(APIModel):
 
 
 class ImportPrincipalInputHuman(APIModel):
-    anonymized_at: AwareDatetime | None = None
+    anonymized_at: datetime | None = None
     email: str | None = None
     kind: Literal["human"]
     password: SecretStr | None = None
@@ -336,7 +337,7 @@ class ImportPrincipalInputHuman(APIModel):
 
 
 class ImportPrincipalSubtypeHuman(APIModel):
-    anonymized_at: AwareDatetime | None = None
+    anonymized_at: datetime | None = None
     email: str | None = None
     kind: Literal["human"]
     password: SecretStr | None = None
@@ -385,7 +386,7 @@ class LoginRateLimitStateResponse(APIModel):
 
 
 class LoginResponse(APIModel):
-    expires_at: AwareDatetime
+    expires_at: datetime
     token: SecretStr
 
 
@@ -529,7 +530,7 @@ class PatchOperation5(CopyOperation):
 
 class Permission(APIModel):
     collection_id: int
-    created_at: AwareDatetime
+    created_at: datetime
     group_id: int
     has_create_class: bool
     has_create_class_relation: bool
@@ -563,7 +564,7 @@ class Permission(APIModel):
     has_update_remote_target: bool
     has_update_template: bool
     id: int
-    updated_at: AwareDatetime
+    updated_at: datetime
 
 
 class PrincipalKey(APIModel):
@@ -621,7 +622,7 @@ class QueryUsageAdapterProgress(APIModel):
     last_error: str | None = None
     reference: str
     state: str
-    updated_at: AwareDatetime
+    updated_at: datetime
 
 
 class RebuildTaskDetails(APIModel):
@@ -661,7 +662,7 @@ class RemoteCallConfig(APIModel):
 
 
 class RemoteCallResult(APIModel):
-    created_at: AwareDatetime
+    created_at: datetime
     duration_ms: int
     error: str | None = None
     id: int
@@ -721,7 +722,7 @@ class RemoveOperation(APIModel):
 
 class RenewTokenRequest(APIModel):
     model_config = ConfigDict(extra="forbid")
-    expires_at: AwareDatetime | None = None
+    expires_at: datetime | None = None
 
 
 class ReplaceOperation(APIModel):
@@ -742,8 +743,8 @@ class RestoreConfirmRequest(APIModel):
 
 
 class RestoreTimestamps(APIModel):
-    created_at: AwareDatetime
-    updated_at: AwareDatetime
+    created_at: datetime
+    updated_at: datetime
 
 
 class RestoreValidationSummary(APIModel):
@@ -886,29 +887,29 @@ class SecretStatus(APIModel):
 
 
 class ServiceAccountPointResponse(APIModel):
-    created_at: AwareDatetime
+    created_at: datetime
     created_by: int | None = None
     description: str
-    disabled_at: AwareDatetime | None = None
+    disabled_at: datetime | None = None
     id: int
     identity_scope_id: int
     name: str
     owner_group_id: int
     revision: Annotated[int, Field(ge=1)]
-    updated_at: AwareDatetime
+    updated_at: datetime
 
 
 class ServiceAccountResponse(APIModel):
-    created_at: AwareDatetime
+    created_at: datetime
     created_by: int | None = None
     description: str
-    disabled_at: AwareDatetime | None = None
+    disabled_at: datetime | None = None
     id: int
     identity_scope: str
     name: str
     owner_group_id: int
     revision: Annotated[int, Field(ge=1)]
-    updated_at: AwareDatetime
+    updated_at: datetime
 
 
 class SessionLoginRequest(APIModel):
@@ -926,10 +927,10 @@ class SessionRefreshRequest(APIModel):
 
 
 class SessionResponse(APIModel):
-    absolute_expires_at: AwareDatetime
-    access_expires_at: AwareDatetime
+    absolute_expires_at: datetime
+    access_expires_at: datetime
     access_token: SecretStr
-    refresh_expires_at: AwareDatetime
+    refresh_expires_at: datetime
     refresh_token: SecretStr
     session_id: UUID
     token_type: str
@@ -1279,7 +1280,7 @@ class UpdateUser(APIModel):
 
 
 class UserPointResponse(APIModel):
-    created_at: AwareDatetime
+    created_at: datetime
     email: str | None = None
     id: int
     identity_scope_id: int
@@ -1287,28 +1288,28 @@ class UserPointResponse(APIModel):
     proper_name: str | None = None
     provider_managed: bool
     revision: Annotated[int, Field(ge=1)]
-    updated_at: AwareDatetime
+    updated_at: datetime
 
 
 class UserResponse(APIModel):
-    created_at: AwareDatetime
+    created_at: datetime
     email: str | None = None
     id: int
     identity_scope: str
-    last_sync_attempted_at: AwareDatetime | None = None
-    last_sync_success_at: AwareDatetime | None = None
+    last_sync_attempted_at: datetime | None = None
+    last_sync_success_at: datetime | None = None
     name: str
     proper_name: str | None = None
     provider_kind: str
     provider_managed: bool
     revision: Annotated[int, Field(ge=1)]
-    updated_at: AwareDatetime
+    updated_at: datetime
 
 
 class BackupDocument(APIModel):
     model_config = ConfigDict(extra="forbid")
     backup_version: int
-    created_at: AwareDatetime
+    created_at: datetime
     history: BackupHistory | None = None
     manifest: BackupManifest
     source_version: str
@@ -1327,13 +1328,13 @@ class ClientConfig(APIModel):
 
 
 class Collection(APIModel):
-    created_at: AwareDatetime
+    created_at: datetime
     description: str
     id: int
     name: str
     parent_collection_id: int | None = None
     revision: Annotated[int, Field(ge=1)]
-    updated_at: AwareDatetime
+    updated_at: datetime
 
 
 class CollectionEventSink(APIModel):
@@ -1349,7 +1350,7 @@ class CollectionEventSink(APIModel):
 class CollectionHistory(APIModel):
     actor_id: int | None = None
     actor_kind: str | None = None
-    created_at: AwareDatetime
+    created_at: datetime
     description: str
     history_id: int
     id: int
@@ -1359,9 +1360,9 @@ class CollectionHistory(APIModel):
     parent_collection_id: int | None = None
     revision: Annotated[int, Field(ge=1)]
     task_id: int | None = None
-    updated_at: AwareDatetime
-    valid_from: AwareDatetime
-    valid_to: AwareDatetime | None = None
+    updated_at: datetime
+    valid_from: datetime
+    valid_to: datetime | None = None
 
 
 class CollectionPermissionSet(APIModel):
@@ -1372,7 +1373,7 @@ class CollectionPermissionSet(APIModel):
 
 class ComputedFieldDefinition(APIModel):
     class_id: int
-    created_at: AwareDatetime
+    created_at: datetime
     created_by: int | None = None
     description: str
     enabled: bool
@@ -1384,7 +1385,7 @@ class ComputedFieldDefinition(APIModel):
     result_type: str
     revision: Annotated[int, Field(ge=1)]
     semantics_version: int
-    updated_at: AwareDatetime
+    updated_at: datetime
     updated_by: int | None = None
     visibility: str
 
@@ -1446,7 +1447,7 @@ class CredentialActivityResponse(APIModel):
     limit: Annotated[int, Field(ge=0)]
     next_offset: Annotated[int | None, Field(ge=0)] = None
     offset: Annotated[int, Field(ge=0)]
-    overflow_since: AwareDatetime | None = None
+    overflow_since: datetime | None = None
     retention_days: int
     session_id: UUID | None = None
     source_cap: Annotated[int, Field(ge=0)]
@@ -1456,11 +1457,11 @@ class CredentialActivityResponse(APIModel):
 
 class CredentialApprovalRecord(APIModel):
     actor_id: Annotated[int, Field(ge=1)]
-    authenticated_at: AwareDatetime
-    consumed_at: AwareDatetime | None = None
-    expires_at: AwareDatetime
+    authenticated_at: datetime
+    consumed_at: datetime | None = None
+    expires_at: datetime
     id: int
-    invalidated_at: AwareDatetime | None = None
+    invalidated_at: datetime | None = None
     operation: str
     restore_job_id: RestoreJobID | None = None
     target_id: PrincipalID | None = None
@@ -1470,7 +1471,7 @@ class CredentialApprovalRecord(APIModel):
 class CredentialApprovalResponse(APIModel):
     approval: SecretStr
     record: CredentialApprovalRecord
-    token_expires_at: AwareDatetime | None = None
+    token_expires_at: datetime | None = None
 
 
 class CredentialOperationConfirmRestore(APIModel):
@@ -1499,10 +1500,10 @@ class CredentialOperationUpdateUser(APIModel):
 
 class CurrentTokenMetadata(APIModel):
     description: str | None = None
-    expires_at: AwareDatetime | None = None
+    expires_at: datetime | None = None
     id: Annotated[int, Field(ge=1)]
-    issued: AwareDatetime
-    last_used_at: AwareDatetime | None = None
+    issued: datetime
+    last_used_at: datetime | None = None
     name: str | None = None
     revision: Annotated[int, Field(ge=1)]
     scope: TokenScopeDetails | None = None
@@ -1535,7 +1536,7 @@ class EventNotificationRequest(APIModel):
 class EventSink(APIModel):
     collection_id: int | None = None
     config: JsonValue
-    created_at: AwareDatetime
+    created_at: datetime
     delivery_policy: EventDeliveryPolicy | None = None
     enabled: bool
     id: int
@@ -1543,7 +1544,7 @@ class EventSink(APIModel):
     name: str
     revision: Annotated[int, Field(ge=1)]
     secret_ref: str | None = None
-    updated_at: AwareDatetime
+    updated_at: datetime
 
 
 class EventSubject(APIModel):
@@ -1610,7 +1611,7 @@ class ExportTemplateHistory(APIModel):
     class_id: int | None = None
     collection_id: int
     content_type: str
-    created_at: AwareDatetime
+    created_at: datetime
     default_limits: JsonValue | None = None
     default_missing_data_policy: str | None = None
     default_query: str | None = None
@@ -1627,23 +1628,23 @@ class ExportTemplateHistory(APIModel):
     scope_kind: str | None = None
     task_id: int | None = None
     template: str
-    updated_at: AwareDatetime
-    valid_from: AwareDatetime
-    valid_to: AwareDatetime | None = None
+    updated_at: datetime
+    valid_from: datetime
+    valid_to: datetime | None = None
 
 
 class Group(APIModel):
-    created_at: AwareDatetime
+    created_at: datetime
     description: str
     external_key: str | None = None
     groupname: str
     id: int
     identity_scope_id: int
-    last_sync_attempted_at: AwareDatetime | None = None
-    last_sync_success_at: AwareDatetime | None = None
+    last_sync_attempted_at: datetime | None = None
+    last_sync_success_at: datetime | None = None
     managed_by: str
     revision: Annotated[int, Field(ge=1)]
-    updated_at: AwareDatetime
+    updated_at: datetime
 
 
 class GroupGrant(APIModel):
@@ -1692,7 +1693,7 @@ class GroupPermission(APIModel):
 
 
 class GroupPointResponse(APIModel):
-    created_at: AwareDatetime
+    created_at: datetime
     description: str
     external_key: str | None = None
     groupname: str
@@ -1700,21 +1701,21 @@ class GroupPointResponse(APIModel):
     identity_scope: str
     managed_by: str
     revision: Annotated[int, Field(ge=1)]
-    updated_at: AwareDatetime
+    updated_at: datetime
 
 
 class GroupResponse(APIModel):
-    created_at: AwareDatetime
+    created_at: datetime
     description: str
     external_key: str | None = None
     groupname: str
     id: int
     identity_scope: str
-    last_sync_attempted_at: AwareDatetime | None = None
-    last_sync_success_at: AwareDatetime | None = None
+    last_sync_attempted_at: datetime | None = None
+    last_sync_success_at: datetime | None = None
     managed_by: str
     revision: Annotated[int, Field(ge=1)]
-    updated_at: AwareDatetime
+    updated_at: datetime
 
 
 class HistoricalComputedFieldUnavailable(APIModel):
@@ -1768,8 +1769,8 @@ class HistoricalComputedObjectSource(APIModel):
     history_id: int
     object_id: int
     revision: Annotated[int, Field(ge=1)]
-    valid_from: AwareDatetime
-    valid_to: AwareDatetime | None = None
+    valid_from: datetime
+    valid_to: datetime | None = None
 
 
 class HistoricalEndpointContextUnavailable(APIModel):
@@ -1784,8 +1785,8 @@ class HistoricalRelationEndpoint(APIModel):
     id: int
     name: str
     revision: Annotated[int, Field(ge=1)]
-    valid_from: AwareDatetime
-    valid_to: AwareDatetime | None = None
+    valid_from: datetime
+    valid_to: datetime | None = None
 
 
 class HistoricalSharedComputedFieldsAvailable(APIModel):
@@ -1798,8 +1799,8 @@ class HistoricalSharedComputedFieldsAvailable(APIModel):
         | HistoricalComputedField5
     ]
     status: Literal["available"]
-    valid_from: AwareDatetime
-    valid_to: AwareDatetime | None = None
+    valid_from: datetime
+    valid_to: datetime | None = None
 
 
 class HistoryMarker(APIModel):
@@ -1814,31 +1815,31 @@ class HistoryMarker(APIModel):
     op: str
     revision: Annotated[int, Field(ge=1)]
     task_id: int | None = None
-    valid_from: AwareDatetime
-    valid_to: AwareDatetime | None = None
+    valid_from: datetime
+    valid_to: datetime | None = None
 
 
 class HubuumClass(APIModel):
     collection_id: int
-    created_at: AwareDatetime
+    created_at: datetime
     description: str
     id: int
     json_schema: JsonValue | None = None
     name: str
     revision: Annotated[int, Field(ge=1)]
-    updated_at: AwareDatetime
+    updated_at: datetime
     validate_schema: bool
 
 
 class HubuumClassExpanded(APIModel):
     collection: Collection
-    created_at: AwareDatetime
+    created_at: datetime
     description: str
     id: int
     json_schema: JsonValue | None = None
     name: str
     revision: Annotated[int, Field(ge=1)]
-    updated_at: AwareDatetime
+    updated_at: datetime
     validate_schema: bool
 
 
@@ -1846,7 +1847,7 @@ class HubuumClassHistory(APIModel):
     actor_id: int | None = None
     actor_kind: str | None = None
     collection_id: int
-    created_at: AwareDatetime
+    created_at: datetime
     description: str
     history_id: int
     id: int
@@ -1856,14 +1857,14 @@ class HubuumClassHistory(APIModel):
     op: str
     revision: Annotated[int, Field(ge=1)]
     task_id: int | None = None
-    updated_at: AwareDatetime
-    valid_from: AwareDatetime
-    valid_to: AwareDatetime | None = None
+    updated_at: datetime
+    valid_from: datetime
+    valid_to: datetime | None = None
     validate_schema: bool
 
 
 class HubuumClassRelation(APIModel):
-    created_at: AwareDatetime
+    created_at: datetime
     forward_label: RelationLabel | None = None
     forward_template_alias: str | None = None
     from_hubuum_class_id: int
@@ -1874,32 +1875,32 @@ class HubuumClassRelation(APIModel):
     revision: Annotated[int, Field(ge=1)]
     to_hubuum_class_id: int
     to_max_relations: ObjectRelationLimit | None = None
-    updated_at: AwareDatetime
+    updated_at: datetime
 
 
 class HubuumClassWithPath(APIModel):
     collection_id: int
-    created_at: AwareDatetime
+    created_at: datetime
     description: str
     id: int
     json_schema: JsonValue | None = None
     name: str
     path: list[int]
     revision: Annotated[int, Field(ge=1)]
-    updated_at: AwareDatetime
+    updated_at: datetime
     validate_schema: bool
 
 
 class HubuumObject(APIModel):
     collection_id: int
-    created_at: AwareDatetime
+    created_at: datetime
     data: JsonValue
     description: str
     hubuum_class_id: int
     id: int
     name: str
     revision: Annotated[int, Field(ge=1)]
-    updated_at: AwareDatetime
+    updated_at: datetime
 
 
 class HubuumObjectComputedResponse(HubuumObject):
@@ -1910,7 +1911,7 @@ class HubuumObjectHistory(APIModel):
     actor_id: int | None = None
     actor_kind: str | None = None
     collection_id: int
-    created_at: AwareDatetime
+    created_at: datetime
     data: JsonValue
     description: str
     history_id: int
@@ -1921,24 +1922,24 @@ class HubuumObjectHistory(APIModel):
     op: str
     revision: Annotated[int, Field(ge=1)]
     task_id: int | None = None
-    updated_at: AwareDatetime
-    valid_from: AwareDatetime
-    valid_to: AwareDatetime | None = None
+    updated_at: datetime
+    valid_from: datetime
+    valid_to: datetime | None = None
 
 
 class HubuumObjectRelation(APIModel):
     class_relation_id: int
-    created_at: AwareDatetime
+    created_at: datetime
     from_hubuum_object_id: int
     id: int
     revision: Annotated[int, Field(ge=1)]
     to_hubuum_object_id: int
-    updated_at: AwareDatetime
+    updated_at: datetime
 
 
 class HubuumObjectWithPath(APIModel):
     collection_id: int
-    created_at: AwareDatetime
+    created_at: datetime
     data: JsonValue
     description: str
     hubuum_class_id: int
@@ -1946,7 +1947,7 @@ class HubuumObjectWithPath(APIModel):
     name: str
     path: list[int]
     revision: Annotated[int, Field(ge=1)]
-    updated_at: AwareDatetime
+    updated_at: datetime
 
 
 class ImportMembershipSourceInput(APIModel):
@@ -1967,7 +1968,7 @@ class ImportPrincipalInputServiceAccount(APIModel):
     created_by_key: PrincipalKey | None = None
     created_by_ref: str | None = None
     description: str
-    disabled_at: AwareDatetime | None = None
+    disabled_at: datetime | None = None
     kind: Literal["service_account"]
     owner_group_key: GroupKey | None = None
     owner_group_ref: str | None = None
@@ -1977,7 +1978,7 @@ class ImportPrincipalSubtypeServiceAccount(APIModel):
     created_by_key: PrincipalKey | None = None
     created_by_ref: str | None = None
     description: str
-    disabled_at: AwareDatetime | None = None
+    disabled_at: datetime | None = None
     kind: Literal["service_account"]
     owner_group_key: GroupKey | None = None
     owner_group_ref: str | None = None
@@ -1998,7 +1999,7 @@ class ImportTaskDetails(APIModel):
 
 class ImportTaskResultResponse(APIModel):
     action: str
-    created_at: AwareDatetime
+    created_at: datetime
     details: JsonValue | None = None
     entity_kind: str
     error: str | None = None
@@ -2033,13 +2034,13 @@ class LoginRateLimitConfig(APIModel):
 
 
 class MembershipPrincipalResponse(APIModel):
-    created_at: AwareDatetime
+    created_at: datetime
     identity_scope: str
     kind: Literal["human", "service_account"]
     name: str
     principal_id: int
     revision: Annotated[int, Field(ge=1)]
-    updated_at: AwareDatetime
+    updated_at: datetime
 
 
 class NewEventSubscription(APIModel):
@@ -2100,7 +2101,7 @@ class NewRemoteTarget(APIModel):
 class NewTokenRequest(APIModel):
     model_config = ConfigDict(extra="forbid")
     description: str | None = None
-    expires_at: AwareDatetime | None = None
+    expires_at: datetime | None = None
     name: str | None = None
     scope: TokenScopeDetails | None = None
 
@@ -2167,12 +2168,12 @@ class PrincipalCollectionPermissions(APIModel):
 
 
 class PrincipalMemberResponse(APIModel):
-    created_at: AwareDatetime
+    created_at: datetime
     group_id: int
     principal: MembershipPrincipalResponse | None = None
     principal_id: int
     revision: Annotated[int, Field(ge=1)]
-    updated_at: AwareDatetime
+    updated_at: datetime
 
 
 class PrincipalSettingsPatchDocument2(RemoveOperation):
@@ -2196,26 +2197,26 @@ class PrincipalTokenMetadata(APIModel):
     active: bool
     description: str | None = None
     expired: bool
-    expires_at: AwareDatetime | None = None
+    expires_at: datetime | None = None
     id: Annotated[int, Field(ge=1)]
-    issued: AwareDatetime
-    last_used_at: AwareDatetime | None = None
+    issued: datetime
+    last_used_at: datetime | None = None
     name: str | None = None
     principal_id: Annotated[int, Field(ge=1)]
     revision: Annotated[int, Field(ge=1)]
-    revoked_at: AwareDatetime | None = None
+    revoked_at: datetime | None = None
     scope: TokenScopeDetails | None = None
 
 
 class PrincipalTokenPointResponse(APIModel):
     description: str | None = None
-    expires_at: AwareDatetime | None = None
+    expires_at: datetime | None = None
     id: Annotated[int, Field(ge=1)]
-    issued: AwareDatetime
+    issued: datetime
     name: str | None = None
     principal_id: Annotated[int, Field(ge=1)]
     revision: Annotated[int, Field(ge=1)]
-    revoked_at: AwareDatetime | None = None
+    revoked_at: datetime | None = None
     scope: TokenScopeDetails | None = None
 
 
@@ -2248,13 +2249,13 @@ class QueryUsageResource(APIModel):
 
 class QueryUsageResponse(APIModel):
     class_id: Annotated[int, Field(ge=1)]
-    created_at: AwareDatetime
+    created_at: datetime
     created_by: PrincipalID | None = None
     id: Annotated[int, Field(ge=1)]
     pattern: QueryUsagePatternSchema
     revision: Annotated[int, Field(ge=1)]
     schema_compatibility: Literal["compatible", "incompatible", "unknown"]
-    updated_at: AwareDatetime
+    updated_at: datetime
     updated_by: PrincipalID | None = None
 
 
@@ -2294,7 +2295,7 @@ class RemoteTarget(APIModel):
     body_template: str | None = None
     class_id: int | None = None
     collection_id: int
-    created_at: AwareDatetime
+    created_at: datetime
     description: str
     enabled: bool
     headers_template: JsonValue
@@ -2303,7 +2304,7 @@ class RemoteTarget(APIModel):
     name: str
     revision: Annotated[int, Field(ge=1)]
     timeout_ms: int
-    updated_at: AwareDatetime
+    updated_at: datetime
     url_template: str
 
 
@@ -2315,7 +2316,7 @@ class RemoteTargetHistory(APIModel):
     body_template: str | None = None
     class_id: int | None = None
     collection_id: int
-    created_at: AwareDatetime
+    created_at: datetime
     description: str
     enabled: bool
     headers_template: JsonValue
@@ -2328,28 +2329,28 @@ class RemoteTargetHistory(APIModel):
     revision: Annotated[int, Field(ge=1)]
     task_id: int | None = None
     timeout_ms: int
-    updated_at: AwareDatetime
+    updated_at: datetime
     url_template: str
-    valid_from: AwareDatetime
-    valid_to: AwareDatetime | None = None
+    valid_from: datetime
+    valid_to: datetime | None = None
 
 
 class RestoreStageResponse(APIModel):
     byte_size: int
-    confirmed_at: AwareDatetime | None = None
-    created_at: AwareDatetime
+    confirmed_at: datetime | None = None
+    created_at: datetime
     error: str | None = None
-    expires_at: AwareDatetime
-    finished_at: AwareDatetime | None = None
+    expires_at: datetime
+    finished_at: datetime | None = None
     id: int
     requested_by: int | None = None
     requested_by_identity_scope: str
     requested_by_name: str
     restore_capability: str | None = None
     sha256: str
-    started_at: AwareDatetime | None = None
+    started_at: datetime | None = None
     status: Literal["validated", "confirmed", "succeeded", "failed", "expired"]
-    updated_at: AwareDatetime
+    updated_at: datetime
     validation: RestoreValidationSummary
 
 
@@ -2405,10 +2406,10 @@ class SchemaReference(APIModel):
 
 
 class SchemaRevisionResponse(APIModel):
-    activated_at: AwareDatetime | None = None
+    activated_at: datetime | None = None
     activation_policy: Literal["reject_incompatible", "allow_pending"] | None = None
     class_id: Annotated[int, Field(ge=1)]
-    created_at: AwareDatetime
+    created_at: datetime
     created_by: int | None = None
     json_schema: JsonValue | None = None
     revision: Annotated[int, Field(ge=1)]
@@ -2604,7 +2605,7 @@ class StructuredSearchSort(APIModel):
 
 class SystemEventSubscription(APIModel):
     actions: list[str]
-    created_at: AwareDatetime
+    created_at: datetime
     description: str
     enabled: bool
     entity_types: list[str]
@@ -2614,7 +2615,7 @@ class SystemEventSubscription(APIModel):
     revision: Annotated[int, Field(ge=1)]
     routing: JsonValue
     sink_id: int
-    updated_at: AwareDatetime
+    updated_at: datetime
 
 
 class TaskCancelRequest(APIModel):
@@ -2689,7 +2690,7 @@ class BackupTaskDetails(APIModel):
     byte_size: int | None = None
     output_available: bool
     output_expired: bool
-    output_expires_at: AwareDatetime | None = None
+    output_expires_at: datetime | None = None
     output_url: str
     retained: RetainedBackupDetails | None = None
     sha256: str | None = None
@@ -2734,7 +2735,7 @@ class EventFanoutHealth(APIModel):
 class EventSubscription(APIModel):
     actions: list[str]
     collection_id: int
-    created_at: AwareDatetime
+    created_at: datetime
     description: str
     enabled: bool
     entity_types: list[str]
@@ -2744,7 +2745,7 @@ class EventSubscription(APIModel):
     revision: Annotated[int, Field(ge=1)]
     routing: JsonValue
     sink_id: int
-    updated_at: AwareDatetime
+    updated_at: datetime
 
 
 class ExportInclude(APIModel):
@@ -2772,7 +2773,7 @@ class ExportTaskDetails(APIModel):
     output_available: bool
     output_content_type: str | None = None
     output_expired: bool
-    output_expires_at: AwareDatetime | None = None
+    output_expires_at: datetime | None = None
     output_url: str
     query_duration_ms: int | None = None
     render_duration_ms: int | None = None
@@ -2787,7 +2788,7 @@ class ExportTemplate(APIModel):
     class_id: int | None = None
     collection_id: int
     content_type: Literal["application/json", "text/plain", "text/html", "text/csv"]
-    created_at: AwareDatetime
+    created_at: datetime
     default_limits: ExportLimits | None = None
     default_missing_data_policy: Literal["strict", "null", "omit"] | None = None
     default_query: str | None = None
@@ -2810,11 +2811,11 @@ class ExportTemplate(APIModel):
         | None
     ) = None
     template: str
-    updated_at: AwareDatetime
+    updated_at: datetime
 
 
 class HistoricalComputedValues(APIModel):
-    at: AwareDatetime
+    at: datetime
     mode: Literal["historical_recomputation"]
     object: HistoricalComputedObjectSource
     personal: Literal["unsupported"]
@@ -3058,8 +3059,8 @@ class ImportGroupInput(APIModel):
     groupname: str
     identity_scope_key: IdentityScopeKey | None = None
     identity_scope_ref: str | None = None
-    last_sync_attempted_at: AwareDatetime | None = None
-    last_sync_success_at: AwareDatetime | None = None
+    last_sync_attempted_at: datetime | None = None
+    last_sync_success_at: datetime | None = None
     managed_by: str
     ref: str | None = None
     timestamps: RestoreTimestamps | None = None
@@ -3135,8 +3136,8 @@ class ImportPrincipalInput1(APIModel):
     external_subject: str | None = None
     identity_scope_key: IdentityScopeKey | None = None
     identity_scope_ref: str | None = None
-    last_sync_attempted_at: AwareDatetime | None = None
-    last_sync_success_at: AwareDatetime | None = None
+    last_sync_attempted_at: datetime | None = None
+    last_sync_success_at: datetime | None = None
     name: str
     provider_managed: bool
     ref: str | None = None
@@ -3220,7 +3221,7 @@ class ObjectSchemaEvidence(APIModel):
     object_revision: Annotated[int, Field(ge=1)]
     schema_: Annotated[SchemaReference, Field(alias="schema")]
     valid: bool
-    validated_at: AwareDatetime
+    validated_at: datetime
 
 
 class Provenance(APIModel):
@@ -3230,8 +3231,8 @@ class Provenance(APIModel):
 
 
 class QueryPatternObservation(APIModel):
-    first_observed_at: AwareDatetime
-    last_observed_at: AwareDatetime
+    first_observed_at: datetime
+    last_observed_at: datetime
     pattern: QueryUsagePatternSchema
     sampled_queries: Annotated[int, Field(ge=0)]
     whole_query_duration_micros: Annotated[int, Field(ge=0)]
@@ -3290,7 +3291,7 @@ class SchemaActivationResponse(APIModel):
 
 class SchemaDiagnosticSnapshotResponse(APIModel):
     diagnostics: SchemaDiagnostics
-    inspected_at: AwareDatetime
+    inspected_at: datetime
     object_revision: Annotated[int, Field(ge=1)]
 
 
@@ -3310,7 +3311,7 @@ class SchemaImpactResponse(APIModel):
 
 class SchemaWorkResponse(APIModel):
     batches: Annotated[int, Field(ge=0)]
-    created_at: AwareDatetime
+    created_at: datetime
     current_active_schema: SchemaReference | None = None
     current_epoch: Annotated[int | None, Field(ge=0)] = None
     cursor: int
@@ -3361,7 +3362,7 @@ class TaskDetails(APIModel):
 
 
 class TaskEventResponse(APIModel):
-    created_at: AwareDatetime
+    created_at: datetime
     data: JsonValue | None = None
     event_type: str
     id: int
@@ -3372,19 +3373,19 @@ class TaskEventResponse(APIModel):
 
 class TaskResponse(APIModel):
     cancel_reason: str | None = None
-    cancel_requested_at: AwareDatetime | None = None
+    cancel_requested_at: datetime | None = None
     cancel_requested_by: int | None = None
-    created_at: AwareDatetime
+    created_at: datetime
     details: TaskDetails | None = None
-    execution_deadline_at: AwareDatetime | None = None
-    finished_at: AwareDatetime | None = None
+    execution_deadline_at: datetime | None = None
+    finished_at: datetime | None = None
     id: int
     kind: Literal["import", "export", "backup", "reindex", "remote_call", "schema_validation"]
     links: TaskLinks
     progress: TaskProgress
     remote_side_effect_state: Literal["not_sent", "possibly_sent", "legacy_unknown"] | None = None
-    request_redacted_at: AwareDatetime | None = None
-    started_at: AwareDatetime | None = None
+    request_redacted_at: datetime | None = None
+    started_at: datetime | None = None
     status: Literal[
         "queued", "validating", "running", "succeeded", "failed", "partially_succeeded", "cancelled"
     ]
@@ -3448,7 +3449,7 @@ class EventResponse(APIModel):
     event_id: UUID
     id: int
     metadata: JsonValue
-    occurred_at: AwareDatetime
+    occurred_at: datetime
     provenance: Provenance
     request_id: UUID | None = None
     schema_version: int
@@ -3464,7 +3465,7 @@ class ExportJsonResponse(APIModel):
 class HistoryResponseCollectionHistory(APIModel):
     actor_id: int | None = None
     actor_kind: str | None = None
-    created_at: AwareDatetime
+    created_at: datetime
     description: str
     history_id: int
     id: int
@@ -3474,9 +3475,9 @@ class HistoryResponseCollectionHistory(APIModel):
     parent_collection_id: int | None = None
     revision: Annotated[int, Field(ge=1)]
     task_id: int | None = None
-    updated_at: AwareDatetime
-    valid_from: AwareDatetime
-    valid_to: AwareDatetime | None = None
+    updated_at: datetime
+    valid_from: datetime
+    valid_to: datetime | None = None
     actor_username: str | None = None
     provenance: Provenance
 
@@ -3487,7 +3488,7 @@ class HistoryResponseExportTemplateHistory(APIModel):
     class_id: int | None = None
     collection_id: int
     content_type: str
-    created_at: AwareDatetime
+    created_at: datetime
     default_limits: JsonValue | None = None
     default_missing_data_policy: str | None = None
     default_query: str | None = None
@@ -3504,9 +3505,9 @@ class HistoryResponseExportTemplateHistory(APIModel):
     scope_kind: str | None = None
     task_id: int | None = None
     template: str
-    updated_at: AwareDatetime
-    valid_from: AwareDatetime
-    valid_to: AwareDatetime | None = None
+    updated_at: datetime
+    valid_from: datetime
+    valid_to: datetime | None = None
     actor_username: str | None = None
     provenance: Provenance
 
@@ -3514,7 +3515,7 @@ class HistoryResponseExportTemplateHistory(APIModel):
 class HistoryResponseHistoricalRelation1(APIModel):
     actor_id: int | None = None
     actor_kind: str | None = None
-    context_at: AwareDatetime
+    context_at: datetime
     from_: Annotated[
         HistoricalEndpointContextAvailable | HistoricalEndpointContextUnavailable,
         Field(alias="from"),
@@ -3525,8 +3526,8 @@ class HistoryResponseHistoricalRelation1(APIModel):
     revision: Annotated[int, Field(ge=1)]
     task_id: int | None = None
     to: HistoricalEndpointContextAvailable | HistoricalEndpointContextUnavailable
-    valid_from: AwareDatetime
-    valid_to: AwareDatetime | None = None
+    valid_from: datetime
+    valid_to: datetime | None = None
     actor_username: str | None = None
     provenance: Provenance
 
@@ -3555,8 +3556,8 @@ class HistoryResponseHistoryMarker(APIModel):
     op: str
     revision: Annotated[int, Field(ge=1)]
     task_id: int | None = None
-    valid_from: AwareDatetime
-    valid_to: AwareDatetime | None = None
+    valid_from: datetime
+    valid_to: datetime | None = None
     actor_username: str | None = None
     provenance: Provenance
 
@@ -3565,7 +3566,7 @@ class HistoryResponseHubuumClassHistory(APIModel):
     actor_id: int | None = None
     actor_kind: str | None = None
     collection_id: int
-    created_at: AwareDatetime
+    created_at: datetime
     description: str
     history_id: int
     id: int
@@ -3575,9 +3576,9 @@ class HistoryResponseHubuumClassHistory(APIModel):
     op: str
     revision: Annotated[int, Field(ge=1)]
     task_id: int | None = None
-    updated_at: AwareDatetime
-    valid_from: AwareDatetime
-    valid_to: AwareDatetime | None = None
+    updated_at: datetime
+    valid_from: datetime
+    valid_to: datetime | None = None
     validate_schema: bool
     actor_username: str | None = None
     provenance: Provenance
@@ -3587,7 +3588,7 @@ class HistoryResponseHubuumObjectHistory(APIModel):
     actor_id: int | None = None
     actor_kind: str | None = None
     collection_id: int
-    created_at: AwareDatetime
+    created_at: datetime
     data: JsonValue
     description: str
     history_id: int
@@ -3598,9 +3599,9 @@ class HistoryResponseHubuumObjectHistory(APIModel):
     op: str
     revision: Annotated[int, Field(ge=1)]
     task_id: int | None = None
-    updated_at: AwareDatetime
-    valid_from: AwareDatetime
-    valid_to: AwareDatetime | None = None
+    updated_at: datetime
+    valid_from: datetime
+    valid_to: datetime | None = None
     actor_username: str | None = None
     provenance: Provenance
 
@@ -3613,7 +3614,7 @@ class HistoryResponseRemoteTargetHistory(APIModel):
     body_template: str | None = None
     class_id: int | None = None
     collection_id: int
-    created_at: AwareDatetime
+    created_at: datetime
     description: str
     enabled: bool
     headers_template: JsonValue
@@ -3626,10 +3627,10 @@ class HistoryResponseRemoteTargetHistory(APIModel):
     revision: Annotated[int, Field(ge=1)]
     task_id: int | None = None
     timeout_ms: int
-    updated_at: AwareDatetime
+    updated_at: datetime
     url_template: str
-    valid_from: AwareDatetime
-    valid_to: AwareDatetime | None = None
+    valid_from: datetime
+    valid_to: datetime | None = None
     actor_username: str | None = None
     provenance: Provenance
 
@@ -3669,15 +3670,15 @@ class ObjectComplianceResponse(APIModel):
 
 class QueryObservationSnapshot(APIModel):
     capacity_drops: Annotated[int, Field(ge=0)]
-    captured_at: AwareDatetime
+    captured_at: datetime
     patterns: list[QueryPatternObservation]
-    process_started_at: AwareDatetime
+    process_started_at: datetime
     settings: QueryObservationSettings
     source: str
 
 
 class QueryUsageAnalysisResponse(APIModel):
-    assessed_at: AwareDatetime
+    assessed_at: datetime
     assessments: list[QueryUsageAssessment]
     limitations: list[str]
     observations: QueryObservationSnapshot
@@ -3701,14 +3702,14 @@ class CredentialOperationImportCredentials(APIModel):
 
 
 class HistoricalClassObjects(APIModel):
-    at: AwareDatetime
+    at: datetime
     class_: Annotated[HistoryResponseHubuumClassHistory, Field(alias="class")]
     coverage: Literal["retained_history"]
     objects: list[HistoryResponseHubuumObjectHistory]
 
 
 class HistoricalRelationships(APIModel):
-    at: AwareDatetime | None = None
+    at: datetime | None = None
     coverage: Literal["retained_history"]
     relations: list[HistoryResponseHistoricalRelation2 | HistoryResponseHistoricalRelation3]
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import Any, get_type_hints
 
@@ -412,3 +413,53 @@ def test_every_schema_round_trips_required_wire_fields(name: str) -> None:
         )
         == expected
     )
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+@pytest.mark.parametrize("media", ["application/json", "text/plain", "text/html", "text/csv"])
+@pytest.mark.parametrize("empty", [False, True])
+async def test_typed_export_response_media(asynchronous: bool, media: str, empty: bool) -> None:
+    expected = example(DOCUMENT["components"]["schemas"]["ExportJsonResponse"])
+    content = json.dumps(expected) if media == "application/json" else "export content"
+    if empty:
+        content = ""
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        assert request.headers["accept"] == media
+        return httpx.Response(
+            200, content=content, headers={"content-type": media + "; charset=utf-8"}
+        )
+
+    client = (AsyncClient if asynchronous else Client)(
+        "https://hubuum.test", token="token", transport=httpx.MockTransport(handle)
+    )
+    try:
+        entry = COVERAGE["getApiV1ExportsByTaskIdOutput"]
+        method = getattr(getattr(client.api, entry["service"]), entry["method"])
+        if media == "application/json" and empty:
+            with pytest.raises(DecodeError):
+                await resolve(method(1, accept=media))
+        else:
+            result = await resolve(method(1, accept=media))
+            if media == "application/json":
+                assert result.body.wire_payload() == expected
+            else:
+                assert result.body == content
+    finally:
+        await resolve(client.close())
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+async def test_server_naive_timestamps_remain_typed(asynchronous: bool) -> None:
+    data = example(DOCUMENT["components"]["schemas"]["Collection"])
+    data["created_at"] = data["updated_at"] = "2026-10-23T09:00:00.123456"
+    client = (AsyncClient if asynchronous else Client)(
+        "https://hubuum.test",
+        token="token",
+        transport=httpx.MockTransport(lambda request: httpx.Response(200, json=data)),
+    )
+    try:
+        result = await resolve(client.api.collections.get(1))
+        assert result.body.created_at == datetime(2026, 10, 23, 9, 0, 0, 123456)
+    finally:
+        await resolve(client.close())
