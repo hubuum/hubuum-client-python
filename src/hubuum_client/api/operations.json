@@ -1,0 +1,1030 @@
+{
+  "deleteApiV0MetaLoginRateLimit": {
+    "method": "delete_login_rate_limit",
+    "service": "meta"
+  },
+  "deleteApiV0MetaLoginRateLimitById": {
+    "method": "delete_login_rate_limit_by_id",
+    "service": "meta"
+  },
+  "deleteApiV1ClassesByClassId": {
+    "method": "delete",
+    "service": "classes"
+  },
+  "deleteApiV1ClassesByClassIdByFromObjectIdRelationsByToClassIdByToObjectId": {
+    "method": "delete_by_from_object_id_relations_by_to_class_id_by_to_object_id",
+    "service": "classes"
+  },
+  "deleteApiV1ClassesByClassIdByObjectId": {
+    "method": "delete_object",
+    "service": "classes"
+  },
+  "deleteApiV1ClassesByClassIdComputedFieldsByFieldId": {
+    "method": "delete_classes_by_class_id_computed_fields_by_field_id",
+    "service": "computed_fields"
+  },
+  "deleteApiV1ClassesByClassIdQueryUsageByDeclarationId": {
+    "method": "delete",
+    "service": "query_usage"
+  },
+  "deleteApiV1ClassesByClassIdRelationsByRelationId": {
+    "method": "delete_relations_by_relation_id",
+    "service": "classes"
+  },
+  "deleteApiV1ClassesByClassIdSchemaRevisionsByRevision": {
+    "method": "delete_revisions_by_revision",
+    "service": "schema_evolution"
+  },
+  "deleteApiV1ClassesByClassIdSchemaTasksByTaskId": {
+    "method": "delete_tasks_by_task_id",
+    "service": "schema_evolution"
+  },
+  "deleteApiV1ClassesByNameByClassName": {
+    "method": "delete_by_name",
+    "service": "classes"
+  },
+  "deleteApiV1ClassesByNameByClassNameObjectsByNameByObjectName": {
+    "method": "delete_by_name_objects_by_name",
+    "service": "classes"
+  },
+  "deleteApiV1CollectionsByCollectionId": {
+    "method": "delete",
+    "service": "collections"
+  },
+  "deleteApiV1CollectionsByCollectionIdEventSinksBySinkId": {
+    "method": "delete_collections_by_collection_id_event_sinks_by_sink_id",
+    "service": "event_sinks"
+  },
+  "deleteApiV1CollectionsByCollectionIdEventSubscriptionsBySubscriptionId": {
+    "method": "delete_collections_by_collection_id_event_subscriptions_by_subscription_id",
+    "service": "event_subscriptions"
+  },
+  "deleteApiV1CollectionsByCollectionIdPermissionsGroupByGroupId": {
+    "method": "delete_permissions_group_by_group_id",
+    "service": "collections"
+  },
+  "deleteApiV1CollectionsByCollectionIdPermissionsGroupByGroupIdByPermission": {
+    "method": "delete_permissions_group_by_group_id_by_permission",
+    "service": "collections"
+  },
+  "deleteApiV1EventSinksBySinkId": {
+    "method": "delete_event_sinks_by_sink_id",
+    "service": "event_sinks"
+  },
+  "deleteApiV1EventSinksBySinkIdCollectionsByCollectionId": {
+    "method": "delete_event_sinks_by_sink_id_collections_by_collection_id",
+    "service": "event_sinks"
+  },
+  "deleteApiV1ExportTemplatesByTemplateId": {
+    "method": "delete",
+    "service": "export_templates"
+  },
+  "deleteApiV1IamGroupsByGroupId": {
+    "method": "delete",
+    "service": "groups"
+  },
+  "deleteApiV1IamGroupsByGroupIdMembersByPrincipalId": {
+    "method": "delete_members_by_principal_id",
+    "service": "groups"
+  },
+  "deleteApiV1IamMeComputedFieldsByFieldId": {
+    "method": "delete_iam_me_computed_fields_by_field_id",
+    "service": "computed_fields"
+  },
+  "deleteApiV1IamMeSettings": {
+    "method": "delete_me_settings",
+    "service": "principals"
+  },
+  "deleteApiV1IamPrincipalsByPrincipalIdSettings": {
+    "method": "delete_principals_by_principal_id_settings",
+    "service": "principals"
+  },
+  "deleteApiV1IamServiceAccountsByServiceAccountId": {
+    "method": "delete",
+    "service": "service_accounts"
+  },
+  "deleteApiV1IamUsersByUserId": {
+    "method": "delete",
+    "service": "users"
+  },
+  "deleteApiV1RelationsClassesByRelationId": {
+    "method": "delete_classes_by_relation_id",
+    "service": "relations"
+  },
+  "deleteApiV1RelationsObjectsByRelationId": {
+    "method": "delete_objects_by_relation_id",
+    "service": "relations"
+  },
+  "deleteApiV1RemoteTargetsByTargetId": {
+    "method": "delete",
+    "service": "remote_targets"
+  },
+  "deleteApiV1SystemEventSubscriptionsBySubscriptionId": {
+    "method": "delete_system_event_subscriptions_by_subscription_id",
+    "service": "event_subscriptions"
+  },
+  "getApiV0MetaCounts": {
+    "method": "get_counts",
+    "service": "meta"
+  },
+  "getApiV0MetaDb": {
+    "method": "get_db",
+    "service": "meta"
+  },
+  "getApiV0MetaLoginRateLimit": {
+    "method": "get_login_rate_limit",
+    "service": "meta"
+  },
+  "getApiV0MetaTasks": {
+    "method": "get_tasks",
+    "service": "meta"
+  },
+  "getApiV1AdminConfig": {
+    "method": "get_config",
+    "service": "admin"
+  },
+  "getApiV1AdminQueryObservations": {
+    "method": "get_query_observations",
+    "service": "admin"
+  },
+  "getApiV1AuthProviders": {
+    "method": "get_auth_providers",
+    "service": "auth"
+  },
+  "getApiV1AuthValidate": {
+    "method": "get_auth_validate",
+    "service": "auth"
+  },
+  "getApiV1BackupsByTaskId": {
+    "method": "get",
+    "service": "backups"
+  },
+  "getApiV1BackupsByTaskIdOutput": {
+    "method": "get_output",
+    "service": "backups"
+  },
+  "getApiV1Classes": {
+    "method": "list",
+    "service": "classes"
+  },
+  "getApiV1ClassesByClassId": {
+    "method": "get",
+    "service": "classes"
+  },
+  "getApiV1ClassesByClassIdByFromObjectIdRelationsByToClassIdByToObjectId": {
+    "method": "get_by_from_object_id_relations_by_to_class_id_by_to_object_id",
+    "service": "classes"
+  },
+  "getApiV1ClassesByClassIdByObjectId": {
+    "method": "get_object",
+    "service": "classes"
+  },
+  "getApiV1ClassesByClassIdByObjectIdEvents": {
+    "method": "get_classes_by_class_id_object_events",
+    "service": "events"
+  },
+  "getApiV1ClassesByClassIdByObjectIdHistory": {
+    "method": "get_object_history",
+    "service": "classes"
+  },
+  "getApiV1ClassesByClassIdByObjectIdHistoryAsOf": {
+    "method": "get_object_history_as_of",
+    "service": "classes"
+  },
+  "getApiV1ClassesByClassIdByObjectIdHistoryComputedAsOf": {
+    "method": "get_object_history_computed_as_of",
+    "service": "classes"
+  },
+  "getApiV1ClassesByClassIdByObjectIdHistoryEntriesByHistoryId": {
+    "method": "get_object_history_entries_by_history_id",
+    "service": "classes"
+  },
+  "getApiV1ClassesByClassIdByObjectIdHistoryTimeline": {
+    "method": "get_object_history_timeline",
+    "service": "classes"
+  },
+  "getApiV1ClassesByClassIdByObjectIdRelationsHistory": {
+    "method": "get_object_relations_history",
+    "service": "classes"
+  },
+  "getApiV1ClassesByClassIdByObjectIdRelationsHistoryAsOf": {
+    "method": "get_object_relations_history_as_of",
+    "service": "classes"
+  },
+  "getApiV1ClassesByClassIdComputedFields": {
+    "method": "get_classes_by_class_id_computed_fields",
+    "service": "computed_fields"
+  },
+  "getApiV1ClassesByClassIdComputedFieldsByFieldId": {
+    "method": "get_classes_by_class_id_computed_fields_by_field_id",
+    "service": "computed_fields"
+  },
+  "getApiV1ClassesByClassIdEvents": {
+    "method": "get_classes_by_class_id_events",
+    "service": "events"
+  },
+  "getApiV1ClassesByClassIdHistory": {
+    "method": "get_history",
+    "service": "classes"
+  },
+  "getApiV1ClassesByClassIdHistoryAsOf": {
+    "method": "get_history_as_of",
+    "service": "classes"
+  },
+  "getApiV1ClassesByClassIdHistoryEntriesByHistoryId": {
+    "method": "get_history_entries_by_history_id",
+    "service": "classes"
+  },
+  "getApiV1ClassesByClassIdHistoryTimeline": {
+    "method": "get_history_timeline",
+    "service": "classes"
+  },
+  "getApiV1ClassesByClassIdObjectAggregates": {
+    "method": "get_object_aggregates",
+    "service": "classes"
+  },
+  "getApiV1ClassesByClassIdObjectsByObjectIdRelatedGraph": {
+    "method": "get_objects_object_related_graph",
+    "service": "classes"
+  },
+  "getApiV1ClassesByClassIdObjectsByObjectIdRelatedObjects": {
+    "method": "get_objects_object_related_objects",
+    "service": "classes"
+  },
+  "getApiV1ClassesByClassIdObjectsByObjectIdRelatedRelations": {
+    "method": "get_objects_object_related_relations",
+    "service": "classes"
+  },
+  "getApiV1ClassesByClassIdObjectsHistory": {
+    "method": "get_objects_history",
+    "service": "classes"
+  },
+  "getApiV1ClassesByClassIdObjectsHistoryAsOf": {
+    "method": "get_objects_history_as_of",
+    "service": "classes"
+  },
+  "getApiV1ClassesByClassIdPermissions": {
+    "method": "get_permissions",
+    "service": "classes"
+  },
+  "getApiV1ClassesByClassIdQueryUsage": {
+    "method": "list",
+    "service": "query_usage"
+  },
+  "getApiV1ClassesByClassIdRelatedClasses": {
+    "method": "get_related_classes",
+    "service": "classes"
+  },
+  "getApiV1ClassesByClassIdRelatedGraph": {
+    "method": "get_related_graph",
+    "service": "classes"
+  },
+  "getApiV1ClassesByClassIdRelatedRelations": {
+    "method": "get_related_relations",
+    "service": "classes"
+  },
+  "getApiV1ClassesByClassIdRelationsByRelationId": {
+    "method": "get_relations_by_relation_id",
+    "service": "classes"
+  },
+  "getApiV1ClassesByClassIdRelationsHistory": {
+    "method": "get_relations_history",
+    "service": "classes"
+  },
+  "getApiV1ClassesByClassIdRelationsHistoryAsOf": {
+    "method": "get_relations_history_as_of",
+    "service": "classes"
+  },
+  "getApiV1ClassesByClassIdSchema": {
+    "method": "list",
+    "service": "schema_evolution"
+  },
+  "getApiV1ClassesByClassIdSchemaObjects": {
+    "method": "get_objects",
+    "service": "schema_evolution"
+  },
+  "getApiV1ClassesByClassIdSchemaRevisions": {
+    "method": "get_revisions",
+    "service": "schema_evolution"
+  },
+  "getApiV1ClassesByClassIdSchemaRevisionsByRevision": {
+    "method": "get_revisions_by_revision",
+    "service": "schema_evolution"
+  },
+  "getApiV1ClassesByClassIdSchemaTasksByTaskId": {
+    "method": "get_tasks_by_task_id",
+    "service": "schema_evolution"
+  },
+  "getApiV1ClassesByClassIdSchemaTasksByTaskIdReport": {
+    "method": "get_tasks_by_task_id_report",
+    "service": "schema_evolution"
+  },
+  "getApiV1ClassesByClassIdTrailing": {
+    "method": "get_objects",
+    "service": "classes"
+  },
+  "getApiV1ClassesByNameByClassName": {
+    "method": "get_by_name",
+    "service": "classes"
+  },
+  "getApiV1ClassesByNameByClassNameObjectAggregates": {
+    "method": "get_by_name_object_aggregates",
+    "service": "classes"
+  },
+  "getApiV1ClassesByNameByClassNameObjects": {
+    "method": "get_by_name_objects",
+    "service": "classes"
+  },
+  "getApiV1ClassesByNameByClassNameObjectsByNameByObjectName": {
+    "method": "get_by_name_objects_by_name",
+    "service": "classes"
+  },
+  "getApiV1ClassesByNameByClassNameObjectsByNameByObjectNameRelatedGraph": {
+    "method": "get_by_name_objects_by_name_related_graph",
+    "service": "classes"
+  },
+  "getApiV1ClassesByNameByClassNameObjectsByNameByObjectNameRelatedObjects": {
+    "method": "get_by_name_objects_by_name_related_objects",
+    "service": "classes"
+  },
+  "getApiV1ClassesByNameByClassNameObjectsByNameByObjectNameRelatedRelations": {
+    "method": "get_by_name_objects_by_name_related_relations",
+    "service": "classes"
+  },
+  "getApiV1ClassesByNameByClassNamePermissions": {
+    "method": "get_by_name_permissions",
+    "service": "classes"
+  },
+  "getApiV1ClassesByNameByClassNameRelatedClasses": {
+    "method": "get_by_name_related_classes",
+    "service": "classes"
+  },
+  "getApiV1ClassesByNameByClassNameRelatedGraph": {
+    "method": "get_by_name_related_graph",
+    "service": "classes"
+  },
+  "getApiV1ClassesByNameByClassNameRelatedRelations": {
+    "method": "get_by_name_related_relations",
+    "service": "classes"
+  },
+  "getApiV1Collections": {
+    "method": "list",
+    "service": "collections"
+  },
+  "getApiV1CollectionsByCollectionId": {
+    "method": "get",
+    "service": "collections"
+  },
+  "getApiV1CollectionsByCollectionIdAncestors": {
+    "method": "get_ancestors",
+    "service": "collections"
+  },
+  "getApiV1CollectionsByCollectionIdChildren": {
+    "method": "get_children",
+    "service": "collections"
+  },
+  "getApiV1CollectionsByCollectionIdEventSinks": {
+    "method": "get_collections_by_collection_id_event_sinks",
+    "service": "event_sinks"
+  },
+  "getApiV1CollectionsByCollectionIdEventSinksBySinkId": {
+    "method": "get_collections_by_collection_id_event_sinks_by_sink_id",
+    "service": "event_sinks"
+  },
+  "getApiV1CollectionsByCollectionIdEventSubscriptions": {
+    "method": "get_collections_by_collection_id_event_subscriptions",
+    "service": "event_subscriptions"
+  },
+  "getApiV1CollectionsByCollectionIdEventSubscriptionsBySubscriptionId": {
+    "method": "get_collections_by_collection_id_event_subscriptions_by_subscription_id",
+    "service": "event_subscriptions"
+  },
+  "getApiV1CollectionsByCollectionIdEvents": {
+    "method": "get_collections_by_collection_id_events",
+    "service": "events"
+  },
+  "getApiV1CollectionsByCollectionIdHasPermissionsByPermission": {
+    "method": "get_has_permissions_by_permission",
+    "service": "collections"
+  },
+  "getApiV1CollectionsByCollectionIdHistory": {
+    "method": "get_history",
+    "service": "collections"
+  },
+  "getApiV1CollectionsByCollectionIdHistoryAsOf": {
+    "method": "get_history_as_of",
+    "service": "collections"
+  },
+  "getApiV1CollectionsByCollectionIdPermissions": {
+    "method": "get_permissions",
+    "service": "collections"
+  },
+  "getApiV1CollectionsByCollectionIdPermissionsEffectiveGroupByGroupId": {
+    "method": "get_permissions_effective_group_by_group_id",
+    "service": "collections"
+  },
+  "getApiV1CollectionsByCollectionIdPermissionsEffectivePrincipalByPrincipalId": {
+    "method": "get_permissions_effective_principal_by_principal_id",
+    "service": "collections"
+  },
+  "getApiV1CollectionsByCollectionIdPermissionsGroupByGroupId": {
+    "method": "get_permissions_group_by_group_id",
+    "service": "collections"
+  },
+  "getApiV1CollectionsByCollectionIdPermissionsGroupByGroupIdByPermission": {
+    "method": "get_permissions_group_by_group_id_by_permission",
+    "service": "collections"
+  },
+  "getApiV1CollectionsByCollectionIdPermissionsPrincipalByPrincipalId": {
+    "method": "get_permissions_principal_by_principal_id",
+    "service": "collections"
+  },
+  "getApiV1Config": {
+    "method": "list",
+    "service": "config"
+  },
+  "getApiV1EventDeliveries": {
+    "method": "list",
+    "service": "event_deliveries"
+  },
+  "getApiV1EventDeliveriesByDeliveryId": {
+    "method": "get",
+    "service": "event_deliveries"
+  },
+  "getApiV1EventDeliveriesHealth": {
+    "method": "get_health",
+    "service": "event_deliveries"
+  },
+  "getApiV1EventSinks": {
+    "method": "get_event_sinks",
+    "service": "event_sinks"
+  },
+  "getApiV1EventSinksBySinkId": {
+    "method": "get_event_sinks_by_sink_id",
+    "service": "event_sinks"
+  },
+  "getApiV1EventSinksBySinkIdCollections": {
+    "method": "get_event_sinks_by_sink_id_collections",
+    "service": "event_sinks"
+  },
+  "getApiV1Events": {
+    "method": "get_events",
+    "service": "events"
+  },
+  "getApiV1ExportTemplates": {
+    "method": "list",
+    "service": "export_templates"
+  },
+  "getApiV1ExportTemplatesByTemplateId": {
+    "method": "get",
+    "service": "export_templates"
+  },
+  "getApiV1ExportTemplatesByTemplateIdEvents": {
+    "method": "get_export_templates_by_template_id_events",
+    "service": "events"
+  },
+  "getApiV1ExportTemplatesByTemplateIdHistory": {
+    "method": "get_history",
+    "service": "export_templates"
+  },
+  "getApiV1ExportTemplatesByTemplateIdHistoryAsOf": {
+    "method": "get_history_as_of",
+    "service": "export_templates"
+  },
+  "getApiV1ExportsByTaskId": {
+    "method": "get",
+    "service": "exports"
+  },
+  "getApiV1ExportsByTaskIdOutput": {
+    "method": "get_output",
+    "service": "exports"
+  },
+  "getApiV1IamCredentialApprovalsByApprovalId": {
+    "method": "get_iam_credential_approvals_by_approval_id",
+    "service": "auth"
+  },
+  "getApiV1IamGroups": {
+    "method": "list",
+    "service": "groups"
+  },
+  "getApiV1IamGroupsByGroupId": {
+    "method": "get",
+    "service": "groups"
+  },
+  "getApiV1IamGroupsByGroupIdEvents": {
+    "method": "get_iam_groups_by_group_id_events",
+    "service": "events"
+  },
+  "getApiV1IamGroupsByGroupIdMembers": {
+    "method": "get_members",
+    "service": "groups"
+  },
+  "getApiV1IamGroupsByGroupIdMembersByPrincipalId": {
+    "method": "get_members_by_principal_id",
+    "service": "groups"
+  },
+  "getApiV1IamMe": {
+    "method": "get_me",
+    "service": "principals"
+  },
+  "getApiV1IamMeComputedFields": {
+    "method": "get_iam_me_computed_fields",
+    "service": "computed_fields"
+  },
+  "getApiV1IamMeComputedFieldsByFieldId": {
+    "method": "get_iam_me_computed_fields_by_field_id",
+    "service": "computed_fields"
+  },
+  "getApiV1IamMeGroups": {
+    "method": "get_me_groups",
+    "service": "principals"
+  },
+  "getApiV1IamMePermissions": {
+    "method": "get_me_permissions",
+    "service": "principals"
+  },
+  "getApiV1IamMeSettings": {
+    "method": "get_me_settings",
+    "service": "principals"
+  },
+  "getApiV1IamMeTokens": {
+    "method": "get_me_tokens",
+    "service": "principals"
+  },
+  "getApiV1IamPrincipalsByPrincipalIdGroups": {
+    "method": "get_principals_by_principal_id_groups",
+    "service": "principals"
+  },
+  "getApiV1IamPrincipalsByPrincipalIdPermissions": {
+    "method": "get_principals_by_principal_id_permissions",
+    "service": "principals"
+  },
+  "getApiV1IamPrincipalsByPrincipalIdSettings": {
+    "method": "get_principals_by_principal_id_settings",
+    "service": "principals"
+  },
+  "getApiV1IamPrincipalsByPrincipalIdTokens": {
+    "method": "get_principals_by_principal_id_tokens",
+    "service": "principals"
+  },
+  "getApiV1IamPrincipalsByPrincipalIdTokensByTokenId": {
+    "method": "get_principals_by_principal_id_tokens_by_token_id",
+    "service": "principals"
+  },
+  "getApiV1IamPrincipalsByPrincipalIdTokensByTokenIdActivity": {
+    "method": "get_principals_by_principal_id_tokens_by_token_id_activity",
+    "service": "principals"
+  },
+  "getApiV1IamServiceAccounts": {
+    "method": "list",
+    "service": "service_accounts"
+  },
+  "getApiV1IamServiceAccountsByServiceAccountId": {
+    "method": "get",
+    "service": "service_accounts"
+  },
+  "getApiV1IamUsers": {
+    "method": "list",
+    "service": "users"
+  },
+  "getApiV1IamUsersByUserId": {
+    "method": "get",
+    "service": "users"
+  },
+  "getApiV1IamUsersByUserIdEvents": {
+    "method": "get_iam_users_by_user_id_events",
+    "service": "events"
+  },
+  "getApiV1ImportsByTaskId": {
+    "method": "get",
+    "service": "imports"
+  },
+  "getApiV1ImportsByTaskIdResults": {
+    "method": "get_results",
+    "service": "imports"
+  },
+  "getApiV1RelationsClasses": {
+    "method": "get_classes",
+    "service": "relations"
+  },
+  "getApiV1RelationsClassesByRelationId": {
+    "method": "get_classes_by_relation_id",
+    "service": "relations"
+  },
+  "getApiV1RelationsObjects": {
+    "method": "get_objects",
+    "service": "relations"
+  },
+  "getApiV1RelationsObjectsByRelationId": {
+    "method": "get_objects_by_relation_id",
+    "service": "relations"
+  },
+  "getApiV1RemoteTargets": {
+    "method": "list",
+    "service": "remote_targets"
+  },
+  "getApiV1RemoteTargetsByRemoteTargetIdHistory": {
+    "method": "get_history",
+    "service": "remote_targets"
+  },
+  "getApiV1RemoteTargetsByRemoteTargetIdHistoryAsOf": {
+    "method": "get_history_as_of",
+    "service": "remote_targets"
+  },
+  "getApiV1RemoteTargetsByTargetId": {
+    "method": "get",
+    "service": "remote_targets"
+  },
+  "getApiV1RemoteTargetsByTargetIdEvents": {
+    "method": "get_remote_targets_by_target_id_events",
+    "service": "events"
+  },
+  "getApiV1RestoresByRestoreIdStatus": {
+    "method": "get_status",
+    "service": "restores"
+  },
+  "getApiV1Search": {
+    "method": "list",
+    "service": "search"
+  },
+  "getApiV1SearchStream": {
+    "method": "get_stream",
+    "service": "search"
+  },
+  "getApiV1SystemEventSubscriptions": {
+    "method": "get_system_event_subscriptions",
+    "service": "event_subscriptions"
+  },
+  "getApiV1SystemEventSubscriptionsBySubscriptionId": {
+    "method": "get_system_event_subscriptions_by_subscription_id",
+    "service": "event_subscriptions"
+  },
+  "getApiV1Tasks": {
+    "method": "list",
+    "service": "tasks"
+  },
+  "getApiV1TasksByTaskId": {
+    "method": "get",
+    "service": "tasks"
+  },
+  "getApiV1TasksByTaskIdEvents": {
+    "method": "get_events",
+    "service": "tasks"
+  },
+  "getHealthz": {
+    "method": "get_healthz",
+    "service": "probes"
+  },
+  "getReadyz": {
+    "method": "get_readyz",
+    "service": "probes"
+  },
+  "patchApiV1ClassesByClassId": {
+    "method": "update",
+    "service": "classes"
+  },
+  "patchApiV1ClassesByClassIdByObjectId": {
+    "method": "patch_object",
+    "service": "classes"
+  },
+  "patchApiV1ClassesByClassIdByObjectIdData": {
+    "method": "patch_object_data",
+    "service": "classes"
+  },
+  "patchApiV1ClassesByClassIdComputedFieldsByFieldId": {
+    "method": "patch_classes_by_class_id_computed_fields_by_field_id",
+    "service": "computed_fields"
+  },
+  "patchApiV1ClassesByNameByClassName": {
+    "method": "patch_by_name",
+    "service": "classes"
+  },
+  "patchApiV1ClassesByNameByClassNameObjectsByNameByObjectName": {
+    "method": "patch_by_name_objects_by_name",
+    "service": "classes"
+  },
+  "patchApiV1ClassesByNameByClassNameObjectsByNameByObjectNameData": {
+    "method": "patch_by_name_objects_by_name_data",
+    "service": "classes"
+  },
+  "patchApiV1CollectionsByCollectionId": {
+    "method": "update",
+    "service": "collections"
+  },
+  "patchApiV1CollectionsByCollectionIdEventSinksBySinkId": {
+    "method": "patch_collections_by_collection_id_event_sinks_by_sink_id",
+    "service": "event_sinks"
+  },
+  "patchApiV1CollectionsByCollectionIdEventSubscriptionsBySubscriptionId": {
+    "method": "patch_collections_by_collection_id_event_subscriptions_by_subscription_id",
+    "service": "event_subscriptions"
+  },
+  "patchApiV1EventSinksBySinkId": {
+    "method": "patch_event_sinks_by_sink_id",
+    "service": "event_sinks"
+  },
+  "patchApiV1ExportTemplatesByTemplateId": {
+    "method": "update",
+    "service": "export_templates"
+  },
+  "patchApiV1IamGroupsByGroupId": {
+    "method": "update",
+    "service": "groups"
+  },
+  "patchApiV1IamMeComputedFieldsByFieldId": {
+    "method": "patch_iam_me_computed_fields_by_field_id",
+    "service": "computed_fields"
+  },
+  "patchApiV1IamMeSettings": {
+    "method": "patch_me_settings",
+    "service": "principals"
+  },
+  "patchApiV1IamPrincipalsByPrincipalIdSettings": {
+    "method": "patch_principals_by_principal_id_settings",
+    "service": "principals"
+  },
+  "patchApiV1IamServiceAccountsByServiceAccountId": {
+    "method": "update",
+    "service": "service_accounts"
+  },
+  "patchApiV1IamUsersByUserId": {
+    "method": "update",
+    "service": "users"
+  },
+  "patchApiV1RelationsClassesByRelationId": {
+    "method": "patch_classes_by_relation_id",
+    "service": "relations"
+  },
+  "patchApiV1RemoteTargetsByTargetId": {
+    "method": "update",
+    "service": "remote_targets"
+  },
+  "patchApiV1SystemEventSubscriptionsBySubscriptionId": {
+    "method": "patch_system_event_subscriptions_by_subscription_id",
+    "service": "event_subscriptions"
+  },
+  "postApiV1AuthLogin": {
+    "method": "post_auth_login",
+    "service": "auth"
+  },
+  "postApiV1AuthLogout": {
+    "method": "post_auth_logout",
+    "service": "auth"
+  },
+  "postApiV1AuthLogoutAll": {
+    "method": "post_auth_logout_all",
+    "service": "auth"
+  },
+  "postApiV1AuthLogoutToken": {
+    "method": "post_auth_logout_token",
+    "service": "auth"
+  },
+  "postApiV1AuthLogoutUidByUserId": {
+    "method": "post_auth_logout_uid_by_user_id",
+    "service": "auth"
+  },
+  "postApiV1AuthRefresh": {
+    "method": "post_auth_refresh",
+    "service": "auth"
+  },
+  "postApiV1Backups": {
+    "method": "create",
+    "service": "backups"
+  },
+  "postApiV1Classes": {
+    "method": "create",
+    "service": "classes"
+  },
+  "postApiV1ClassesByClassIdByFromObjectIdRelationsByToClassIdByToObjectId": {
+    "method": "post_by_from_object_id_relations_by_to_class_id_by_to_object_id",
+    "service": "classes"
+  },
+  "postApiV1ClassesByClassIdComputedFields": {
+    "method": "post_classes_by_class_id_computed_fields",
+    "service": "computed_fields"
+  },
+  "postApiV1ClassesByClassIdComputedFieldsPreview": {
+    "method": "post_classes_by_class_id_computed_fields_preview",
+    "service": "computed_fields"
+  },
+  "postApiV1ClassesByClassIdComputedFieldsRebuild": {
+    "method": "post_classes_by_class_id_computed_fields_rebuild",
+    "service": "computed_fields"
+  },
+  "postApiV1ClassesByClassIdQueryUsage": {
+    "method": "create",
+    "service": "query_usage"
+  },
+  "postApiV1ClassesByClassIdQueryUsageAnalysis": {
+    "method": "post_analysis",
+    "service": "query_usage"
+  },
+  "postApiV1ClassesByClassIdRelations": {
+    "method": "post_relations",
+    "service": "classes"
+  },
+  "postApiV1ClassesByClassIdSchemaRevisions": {
+    "method": "post_revisions",
+    "service": "schema_evolution"
+  },
+  "postApiV1ClassesByClassIdSchemaRevisionsByRevisionActivate": {
+    "method": "post_revisions_by_revision_activate",
+    "service": "schema_evolution"
+  },
+  "postApiV1ClassesByClassIdSchemaRevisionsByRevisionImpact": {
+    "method": "post_revisions_by_revision_impact",
+    "service": "schema_evolution"
+  },
+  "postApiV1ClassesByClassIdSchemaRevisionsByRevisionRevalidate": {
+    "method": "post_revisions_by_revision_revalidate",
+    "service": "schema_evolution"
+  },
+  "postApiV1ClassesByClassIdSchemaTasksByTaskIdReport": {
+    "method": "post_tasks_by_task_id_report",
+    "service": "schema_evolution"
+  },
+  "postApiV1ClassesByClassIdTrailing": {
+    "method": "post_objects",
+    "service": "classes"
+  },
+  "postApiV1ClassesByNameByClassNameObjects": {
+    "method": "post_by_name_objects",
+    "service": "classes"
+  },
+  "postApiV1Collections": {
+    "method": "create",
+    "service": "collections"
+  },
+  "postApiV1CollectionsByCollectionIdEventSinks": {
+    "method": "post_collections_by_collection_id_event_sinks",
+    "service": "event_sinks"
+  },
+  "postApiV1CollectionsByCollectionIdEventSubscriptions": {
+    "method": "post_collections_by_collection_id_event_subscriptions",
+    "service": "event_subscriptions"
+  },
+  "postApiV1CollectionsByCollectionIdPermissionsGroupByGroupId": {
+    "method": "post_permissions_group_by_group_id",
+    "service": "collections"
+  },
+  "postApiV1CollectionsByCollectionIdPermissionsGroupByGroupIdByPermission": {
+    "method": "post_permissions_group_by_group_id_by_permission",
+    "service": "collections"
+  },
+  "postApiV1EventDeliveriesByDeliveryIdDead": {
+    "method": "post_dead",
+    "service": "event_deliveries"
+  },
+  "postApiV1EventDeliveriesByDeliveryIdRetry": {
+    "method": "post_retry",
+    "service": "event_deliveries"
+  },
+  "postApiV1EventSinks": {
+    "method": "post_event_sinks",
+    "service": "event_sinks"
+  },
+  "postApiV1EventSinksBySinkIdPreview": {
+    "method": "post_event_sinks_by_sink_id_preview",
+    "service": "event_sinks"
+  },
+  "postApiV1EventSinksBySinkIdTest": {
+    "method": "post_event_sinks_by_sink_id_test",
+    "service": "event_sinks"
+  },
+  "postApiV1ExportTemplates": {
+    "method": "create",
+    "service": "export_templates"
+  },
+  "postApiV1ExportTemplatesByTemplateIdExports": {
+    "method": "post_exports",
+    "service": "export_templates"
+  },
+  "postApiV1Exports": {
+    "method": "create",
+    "service": "exports"
+  },
+  "postApiV1IamCredentialApprovals": {
+    "method": "post_iam_credential_approvals",
+    "service": "auth"
+  },
+  "postApiV1IamGroups": {
+    "method": "create",
+    "service": "groups"
+  },
+  "postApiV1IamGroupsByGroupIdMembersByPrincipalId": {
+    "method": "post_members_by_principal_id",
+    "service": "groups"
+  },
+  "postApiV1IamMeComputedFields": {
+    "method": "post_iam_me_computed_fields",
+    "service": "computed_fields"
+  },
+  "postApiV1IamMeComputedFieldsPreview": {
+    "method": "post_iam_me_computed_fields_preview",
+    "service": "computed_fields"
+  },
+  "postApiV1IamPrincipalsByPrincipalIdTokens": {
+    "method": "post_principals_by_principal_id_tokens",
+    "service": "principals"
+  },
+  "postApiV1IamPrincipalsByPrincipalIdTokensByTokenIdRenew": {
+    "method": "post_principals_by_principal_id_tokens_by_token_id_renew",
+    "service": "principals"
+  },
+  "postApiV1IamPrincipalsByPrincipalIdTokensByTokenIdRevoke": {
+    "method": "post_principals_by_principal_id_tokens_by_token_id_revoke",
+    "service": "principals"
+  },
+  "postApiV1IamServiceAccounts": {
+    "method": "create",
+    "service": "service_accounts"
+  },
+  "postApiV1IamServiceAccountsByServiceAccountIdDisable": {
+    "method": "post_disable",
+    "service": "service_accounts"
+  },
+  "postApiV1IamUsers": {
+    "method": "create",
+    "service": "users"
+  },
+  "postApiV1IamUsersByUserIdAnonymize": {
+    "method": "post_anonymize",
+    "service": "users"
+  },
+  "postApiV1Imports": {
+    "method": "create",
+    "service": "imports"
+  },
+  "postApiV1RelationsClasses": {
+    "method": "post_classes",
+    "service": "relations"
+  },
+  "postApiV1RelationsObjects": {
+    "method": "post_objects",
+    "service": "relations"
+  },
+  "postApiV1RemoteTargets": {
+    "method": "create",
+    "service": "remote_targets"
+  },
+  "postApiV1RemoteTargetsByTargetIdInvoke": {
+    "method": "post_invoke",
+    "service": "remote_targets"
+  },
+  "postApiV1Restores": {
+    "method": "create",
+    "service": "restores"
+  },
+  "postApiV1RestoresByRestoreIdConfirm": {
+    "method": "post_confirm",
+    "service": "restores"
+  },
+  "postApiV1Search": {
+    "method": "create",
+    "service": "search"
+  },
+  "postApiV1SearchHydrate": {
+    "method": "post_hydrate",
+    "service": "search"
+  },
+  "postApiV1SearchStream": {
+    "method": "post_stream",
+    "service": "search"
+  },
+  "postApiV1SystemEventSubscriptions": {
+    "method": "post_system_event_subscriptions",
+    "service": "event_subscriptions"
+  },
+  "postApiV1TasksByTaskIdCancel": {
+    "method": "post_cancel",
+    "service": "tasks"
+  },
+  "putApiV1AdminQueryObservations": {
+    "method": "put_query_observations",
+    "service": "admin"
+  },
+  "putApiV1ClassesByClassIdQueryUsageByDeclarationId": {
+    "method": "replace",
+    "service": "query_usage"
+  },
+  "putApiV1CollectionsByCollectionIdParent": {
+    "method": "put_parent",
+    "service": "collections"
+  },
+  "putApiV1CollectionsByCollectionIdPermissionsGroupByGroupId": {
+    "method": "put_permissions_group_by_group_id",
+    "service": "collections"
+  },
+  "putApiV1EventSinksBySinkIdCollectionsByCollectionId": {
+    "method": "put_event_sinks_by_sink_id_collections_by_collection_id",
+    "service": "event_sinks"
+  },
+  "putApiV1IamMeSettings": {
+    "method": "put_me_settings",
+    "service": "principals"
+  },
+  "putApiV1IamPrincipalsByPrincipalIdSettings": {
+    "method": "put_principals_by_principal_id_settings",
+    "service": "principals"
+  }
+}

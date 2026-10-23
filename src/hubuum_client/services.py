@@ -28,6 +28,7 @@ from .models import (
     ClassCreate,
     ClassRelation,
     ClassRelationCreate,
+    ClassRelationUpdate,
     ClassSchemaResponse,
     ClassUpdate,
     Collection,
@@ -926,6 +927,7 @@ class PrincipalTokensService(_TokenListService):
 
 class ClassRelationsService:
     def __init__(self, client: Client) -> None:
+        self._client = client
         self._service = ResourceService[
             ClassRelation, ClassRelation, ClassRelationCreate, BaseModel
         ](
@@ -947,6 +949,18 @@ class ClassRelationsService:
 
     def create(self, payload: ClassRelationCreate) -> ClassRelation:
         return self._service.create(payload)
+
+    def update(
+        self, relation_id: int, payload: ClassRelationUpdate, *, if_match: str | None = None
+    ) -> ClassRelation:
+        """Edit labels, optionally requiring the resource's current strong ETag."""
+        return self._client.request(
+            "PATCH",
+            f"/api/v1/relations/classes/{_segment(relation_id)}",
+            json=payload,
+            response_model=ClassRelation,
+            options=RequestOptions(headers={"If-Match": if_match} if if_match else None),
+        )
 
     def delete(self, relation_id: int) -> None:
         self._service.delete(relation_id)

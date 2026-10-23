@@ -6,7 +6,7 @@ from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from functools import cached_property
 from threading import Lock
-from typing import Any, Self, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Self, TypeVar, overload
 
 import httpx
 from pydantic import BaseModel
@@ -32,6 +32,9 @@ from .types import AccessToken, Credentials
 
 T = TypeVar("T", bound=BaseModel)
 _PUBLIC_REQUEST = RequestOptions(authenticated=False)
+
+if TYPE_CHECKING:
+    from .api.services import API
 
 
 class Client:
@@ -277,6 +280,13 @@ class Client:
     def openapi(self) -> OpenAPIOperations:
         """Return the complete operation-ID interface for all 257 v0.0.20 operations."""
         return OpenAPIOperations(self)
+
+    @cached_property
+    def api(self) -> API:
+        """Fully typed resource operations for the complete server contract."""
+        from .api.services import API  # noqa: PLC0415 -- Load the full schema only on demand.
+
+        return API(self)
 
     @overload
     def request(

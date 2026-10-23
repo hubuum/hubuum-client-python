@@ -6,6 +6,18 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Complete typed sync/async `client.api` interface for all 257 Hubuum v0.0.20
+  operations and all 391 named schemas, including history, query usage,
+  observations, credential activity, search hydration, and older generic routes.
+- Typed query/header controls, `APIResponse[T]` metadata, and typed search SSE
+  events, preserving the existing authentication and secret-safe transport.
+- Relation labels in create/import models and `class_relations.update()` with
+  explicit null clearing and optional conditional updates.
+- Reproducible offline generation, CI drift detection, operation coverage map,
+  and sync/async regression and pinned live-server tests.
+
 ## [0.0.12] - 2026-10-22
 
 ### Changed

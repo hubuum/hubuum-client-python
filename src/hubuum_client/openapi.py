@@ -131,12 +131,18 @@ class OpenAPIOperations:
         json: JsonBody = None,
         options: OpenAPIOptions | None = None,
     ) -> OpenAPIResult:
+        _validate_body(_operation(operation_id), json)
+        response = self._response(operation_id, json=json, options=options)
+        return _decode_response(response, accept=options.accept if options else None)
+
+    def _response(
+        self, operation_id: str, *, json: JsonBody = None, options: OpenAPIOptions | None = None
+    ) -> httpx.Response:
         operation_options = options or OpenAPIOptions()
         operation = _operation(operation_id)
         if operation_id in STREAMING_OPERATION_IDS:
             raise ValueError(f"{operation_id} is streaming; use openapi.stream()")
-        _validate_body(operation, json)
-        response = self._client._request_response(
+        return self._client._request_response(
             operation.method,
             _operation_path(operation, operation_options.path_params),
             json=json,
@@ -146,7 +152,6 @@ class OpenAPIOperations:
                 default_accept="application/json",
             ),
         )
-        return _decode_response(response, accept=operation_options.accept)
 
     @contextmanager
     def stream(
@@ -194,12 +199,18 @@ class AsyncOpenAPIOperations:
         json: JsonBody = None,
         options: OpenAPIOptions | None = None,
     ) -> OpenAPIResult:
+        _validate_body(_operation(operation_id), json)
+        response = await self._response(operation_id, json=json, options=options)
+        return _decode_response(response, accept=options.accept if options else None)
+
+    async def _response(
+        self, operation_id: str, *, json: JsonBody = None, options: OpenAPIOptions | None = None
+    ) -> httpx.Response:
         operation_options = options or OpenAPIOptions()
         operation = _operation(operation_id)
         if operation_id in STREAMING_OPERATION_IDS:
             raise ValueError(f"{operation_id} is streaming; use openapi.stream()")
-        _validate_body(operation, json)
-        response = await self._client._request_response(
+        return await self._client._request_response(
             operation.method,
             _operation_path(operation, operation_options.path_params),
             json=json,
@@ -209,7 +220,6 @@ class AsyncOpenAPIOperations:
                 default_accept="application/json",
             ),
         )
-        return _decode_response(response, accept=operation_options.accept)
 
     @asynccontextmanager
     async def stream(

@@ -69,6 +69,7 @@ jobs:
       - run: uv sync --extra dev
       - run: uv run ruff format --check .
       - run: uv run ruff check .
+      - run: uv run python scripts/generate-typed-api.py --check
       - run: uv run mypy
       - run: uv run bandit -q -r src scripts
       - run: uv run zizmor .
