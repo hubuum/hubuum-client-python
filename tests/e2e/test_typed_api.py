@@ -216,7 +216,8 @@ async def test_typed_query_usage(typed_client: Any, graph: tuple[Any, ...]) -> N
                 cls.id,
                 declaration.id,
                 body=models.QueryUsageReplaceRequest(
-                    pattern=pattern, expected_revision=declaration.revision
+                    pattern=pattern.model_copy(update={"operations": ["equals", "gt"]}),
+                    expected_revision=declaration.revision,
                 ),
             )
         )
