@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Maintenance
+
+- Refresh the dependency lock with certifi 2026.10.23, coverage 7.17.0,
+  griffelib 2.4.1, mkdocs-autorefs 1.4.5, python-dateutil 3.0.0 (and its new
+  tzdata dependency), and Ruff 0.17.2. Advance the pinned Zensical builder to
+  0.0.72 and Docker login action to v4.7.0. HTTPX 0.28.1, Pydantic 2.14.1,
+  the pinned model generator, build/release tools, other Actions, and shared
+  documentation tooling were reviewed and remain current.
+
 ### Fixed
 
 - Drop raw validation exceptions from typed list decoding errors in both runtimes,
