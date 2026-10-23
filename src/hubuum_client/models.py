@@ -130,6 +130,41 @@ class APIModel(BaseModel):
     def __repr_args__(self) -> Iterator[tuple[str | None, Any]]:
         return iter(())
 
+    @classmethod
+    def _safe_mutation_error(cls, error: ValidationError) -> ValidationError:
+        # Frozen-instance guards bypass model validators and can disclose both
+        # replacement values and caller-supplied attribute names.
+        details: list[InitErrorDetails] = [
+            {
+                "type": PydanticCustomError(item["type"], "Cannot mutate API model"),
+                "loc": item["loc"][:1]
+                if item["loc"] and item["loc"][0] in cls.model_fields
+                else (),
+                "input": "<redacted>",
+            }
+            for item in error.errors(include_input=False, include_context=False, include_url=False)
+        ]
+        return ValidationError.from_exception_data(cls.__name__, details, hide_input=True)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        try:
+            super().__setattr__(name, value)
+        except ValidationError as error:
+            safe_error = self._safe_mutation_error(error)
+        else:
+            return
+        # Raise outside the handler so the original input is not retained in context.
+        raise safe_error
+
+    def __delattr__(self, name: str) -> None:
+        try:
+            super().__delattr__(name)
+        except ValidationError as error:
+            safe_error = self._safe_mutation_error(error)
+        else:
+            return
+        raise safe_error
+
     @model_validator(mode="wrap")
     @classmethod
     def _safe_validation(cls, value: Any, handler: ModelWrapValidatorHandler[Self]) -> Self:

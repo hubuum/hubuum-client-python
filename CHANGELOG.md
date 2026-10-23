@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Redact frozen typed-model assignment and deletion errors, including replacement
+  secrets and unknown attribute names, without retaining the original exception.
+
 ### Added
 
 - Complete typed sync/async `client.api` interface for all 257 Hubuum v0.0.20

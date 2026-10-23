@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import inspect
 import json
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Any, get_type_hints
 
 import httpx
 import pytest
-from pydantic import BaseModel, TypeAdapter, ValidationError
+from pydantic import BaseModel, PrivateAttr, SecretStr, TypeAdapter, ValidationError
 
 from hubuum_client import (
     AsyncClient,
@@ -274,6 +275,59 @@ def test_secret_models_and_arbitrary_json_preserve_wire_shapes() -> None:
     assert models.UpdateClassRelationLabels(forward_label=None).wire_payload() == {
         "forward_label": None
     }
+
+
+@pytest.mark.parametrize("field", ["password", "client_id", "replacement-secret"])
+@pytest.mark.parametrize(
+    "replacement",
+    ["replacement-secret", SecretStr("replacement-secret"), {"token": "replacement-secret"}],
+)
+def test_frozen_assignment_errors_redact_secrets(
+    field: str, replacement: Any, caplog: pytest.LogCaptureFixture
+) -> None:
+    value = models.SessionLoginRequest(client_id="sdk", name="alice", password="original-secret")
+    with pytest.raises(ValidationError) as caught:
+        setattr(value, field, replacement)
+
+    error = caught.value
+    logging.getLogger(__name__).error("Rejected mutation", exc_info=error)
+    assert "replacement-secret" not in f"{error!s} {error!r} {error.errors()} {error.json()}"
+    assert "replacement-secret" not in caplog.text
+    assert error.errors()[0]["input"] == "<redacted>"
+    assert error.errors()[0]["type"] == "frozen_instance"
+    assert error.errors()[0]["loc"] == ((field,) if field in type(value).model_fields else ())
+    assert error.__context__ is None
+    assert error.__cause__ is None
+    assert value.wire_payload() == {
+        "client_id": "sdk",
+        "name": "alice",
+        "password": "original-secret",
+    }
+
+
+@pytest.mark.parametrize("field", ["password", "replacement-secret"])
+def test_frozen_deletion_errors_redact_unknown_field_names(field: str) -> None:
+    value = models.SessionLoginRequest(client_id="sdk", name="alice", password="original-secret")
+    with pytest.raises(ValidationError) as caught:
+        delattr(value, field)
+    error = caught.value
+    assert "replacement-secret" not in f"{error!s} {error!r} {error.errors()} {error.json()}"
+    assert error.errors()[0]["type"] == "frozen_instance"
+    assert error.errors()[0]["input"] == "<redacted>"
+    assert error.__context__ is None
+    assert error.__cause__ is None
+    assert value.wire_payload()["password"] == "original-secret"
+
+
+def test_api_model_private_attributes_retain_pydantic_mutation_behavior() -> None:
+    class PrivateState(models.SessionLoginRequest):
+        _scratch: str = PrivateAttr(default="")
+
+    value = PrivateState(client_id="sdk", name="alice", password="original-secret")
+    value._scratch = "local value"
+    assert value._scratch == "local value"
+    del value._scratch
+    assert not hasattr(value, "_scratch")
 
 
 @pytest.mark.parametrize("asynchronous", [False, True])

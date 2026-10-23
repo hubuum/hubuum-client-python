@@ -67,7 +67,8 @@ updates through `ClassRelationUpdate`, with optional `if_match` concurrency
 control. Creation and import models expose both direction labels.
 
 Models are immutable at the field level. Representations omit field values,
-credential fields use secret values, and validation errors redact their inputs.
+credential fields use secret values, and validation errors redact their inputs,
+including failed field assignment and deletion.
 `wire_payload()` deliberately reveals request secrets for transmission; do not
 log its output. JSON dictionaries and lists inside models remain mutable.
 
