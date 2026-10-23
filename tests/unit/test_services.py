@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import inspect
 import json
-from collections.abc import Awaitable
+from collections.abc import AsyncIterable, Awaitable, Iterable
 from datetime import UTC, datetime
 from typing import Any, TypedDict, TypeVar
 
@@ -15,6 +15,7 @@ import hubuum_client.services as services_module
 from hubuum_client import (
     AsyncClient,
     ClassId,
+    ClassRelation,
     ClassRelationCreate,
     ClassRelationId,
     ClassUpdate,
@@ -36,9 +37,11 @@ from hubuum_client import (
     NewTokenRequest,
     ObjectCreate,
     ObjectId,
+    ObjectRelation,
     ObjectRelationCreate,
     ObjectRelationId,
     ObjectUpdate,
+    Page,
     Permission,
     PrincipalId,
     PrincipalMember,
@@ -104,6 +107,12 @@ async def _resolve(value: T | Awaitable[T]) -> T:
     if inspect.isawaitable(value):
         return await value
     return value
+
+
+async def _collect(value: Iterable[T] | AsyncIterable[T]) -> list[T]:
+    if isinstance(value, AsyncIterable):
+        return [item async for item in value]
+    return list(value)
 
 
 def _group_json() -> dict[str, Any]:
@@ -667,6 +676,165 @@ def test_sync_relations_tasks_probes_and_service_properties() -> None:
             client.tasks.wait(40, timeout_seconds=float("nan"))
         with pytest.raises(ValueError, match="poll_interval"):
             client.tasks.wait(40, poll_interval=float("inf"))
+
+
+@pytest.mark.parametrize("asynchronous", [False, True], ids=["sync", "async"])
+@pytest.mark.parametrize("objects", [False, True], ids=["classes", "objects"])
+async def test_relation_pagination_metadata_and_traversal(
+    asynchronous: bool, objects: bool
+) -> None:
+    row = _object_relation_json() if objects else _class_relation_json()
+    kind = "objects" if objects else "classes"
+    field = "from_objects" if objects else "from_classes"
+    source_id = row["from_hubuum_object_id" if objects else "from_hubuum_class_id"]
+    cursors = ["start", "opaque +/= cursor", "last"]
+    requests: list[str] = []
+    query = Query().where(field, source_id).limit(1).sort("id.asc").include_total().cursor("start")
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "GET"
+        assert request.url.path == f"/api/v1/relations/{kind}"
+        cursor = request.url.params["cursor"]
+        assert dict(request.url.params) == {
+            f"{field}__equals": str(source_id),
+            "limit": "1",
+            "sort": "id.asc",
+            "include_total": "true",
+            "cursor": cursor,
+        }
+        requests.append(cursor)
+        index = cursors.index(cursor)
+        headers = {"X-Total-Count": "3", "X-Page-Limit": "1"}
+        if index < 2:
+            headers["X-Next-Cursor"] = cursors[index + 1]
+        return httpx.Response(200, json=[row | {"id": 30 + index}], headers=headers)
+
+    cls = AsyncClient if asynchronous else Client
+    client = cls("https://hubuum.test", token="token", transport=httpx.MockTransport(handler))
+    try:
+        service = client.object_relations if objects else client.class_relations
+        page: Page[ClassRelation] | Page[ObjectRelation] = await _resolve(service.page(query))
+        assert isinstance(page[0], ObjectRelation if objects else ClassRelation)
+        assert page[0].id == 30
+        assert page.next_cursor == cursors[1]
+        assert page.total_count == 3
+        assert page.page_limit == 1
+        assert requests == ["start"]
+
+        requests.clear()
+        listed: list[ClassRelation] | list[ObjectRelation] = await _resolve(service.list(query))
+        assert [item.id for item in listed] == [30]
+        assert requests == ["start"]
+
+        requests.clear()
+        pages: list[Page[ClassRelation] | Page[ObjectRelation]] = await _collect(
+            service.pages(query, max_pages=3)
+        )
+        assert [item.id for page in pages for item in page] == [30, 31, 32]
+        assert [page.has_next for page in pages] == [True, True, False]
+        assert requests == cursors
+
+        requests.clear()
+        items: list[ClassRelation] | list[ObjectRelation] = await _resolve(
+            service.all(query, max_pages=3, max_items=3)
+        )
+        assert [item.id for item in items] == [30, 31, 32]
+        assert requests == cursors
+        assert query.cursor_value == "start"
+    finally:
+        await _resolve(client.close())
+
+
+@pytest.mark.parametrize("asynchronous", [False, True], ids=["sync", "async"])
+@pytest.mark.parametrize("objects", [False, True], ids=["classes", "objects"])
+@pytest.mark.parametrize(
+    ("initial_cursor", "next_cursors", "guard"),
+    [
+        ("same", ["same"], (100, "repeated pagination cursor")),
+        (None, ["a", "b", "a"], (100, "repeated pagination cursor")),
+        (None, ["a", "b"], (2, "max_pages=2")),
+    ],
+)
+async def test_relation_pages_guards(
+    asynchronous: bool,
+    objects: bool,
+    initial_cursor: str | None,
+    next_cursors: list[str],
+    guard: tuple[int, str],
+) -> None:
+    max_pages, message = guard
+    row = _object_relation_json() if objects else _class_relation_json()
+    calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        assert request.url.params.get("cursor") == (
+            next_cursors[calls - 1] if calls else initial_cursor
+        )
+        cursor = next_cursors[calls]
+        calls += 1
+        return httpx.Response(200, json=[row], headers={"X-Next-Cursor": cursor})
+
+    cls = AsyncClient if asynchronous else Client
+    client = cls("https://hubuum.test", token="token", transport=httpx.MockTransport(handler))
+    try:
+        service = client.object_relations if objects else client.class_relations
+        with pytest.raises(RuntimeError, match=message):
+            await _collect(service.pages(Query().cursor(initial_cursor), max_pages=max_pages))
+        assert calls == len(next_cursors)
+    finally:
+        await _resolve(client.close())
+
+
+@pytest.mark.parametrize("asynchronous", [False, True], ids=["sync", "async"])
+@pytest.mark.parametrize("objects", [False, True], ids=["classes", "objects"])
+@pytest.mark.parametrize(
+    ("max_pages", "max_items", "message"),
+    [(1, 10, "max_pages=1"), (10, 1, "max_items=1")],
+)
+async def test_relation_all_guards(
+    asynchronous: bool, objects: bool, max_pages: int, max_items: int, message: str
+) -> None:
+    row = _object_relation_json() if objects else _class_relation_json()
+    calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return httpx.Response(200, json=[row, row | {"id": 32}], headers={"X-Next-Cursor": "next"})
+
+    cls = AsyncClient if asynchronous else Client
+    client = cls("https://hubuum.test", token="token", transport=httpx.MockTransport(handler))
+    try:
+        service = client.object_relations if objects else client.class_relations
+        with pytest.raises(RuntimeError, match=message):
+            await _resolve(service.all(max_pages=max_pages, max_items=max_items))
+        assert calls == 1
+    finally:
+        await _resolve(client.close())
+
+
+@pytest.mark.parametrize("asynchronous", [False, True], ids=["sync", "async"])
+@pytest.mark.parametrize("objects", [False, True], ids=["classes", "objects"])
+@pytest.mark.parametrize("value", [0, -1])
+async def test_relation_pagination_rejects_invalid_bounds(
+    asynchronous: bool, objects: bool, value: int
+) -> None:
+    def unexpected(request: httpx.Request) -> httpx.Response:
+        pytest.fail(f"unexpected request: {request.method} {request.url}")
+
+    cls = AsyncClient if asynchronous else Client
+    client = cls("https://hubuum.test", token="token", transport=httpx.MockTransport(unexpected))
+    try:
+        service = client.object_relations if objects else client.class_relations
+        with pytest.raises(ValueError, match="max_pages must be at least 1"):
+            await _collect(service.pages(max_pages=value))
+        with pytest.raises(ValueError, match="max_pages must be at least 1"):
+            await _resolve(service.all(max_pages=value))
+        with pytest.raises(ValueError, match="max_items must be at least 1"):
+            await _resolve(service.all(max_items=value))
+    finally:
+        await _resolve(client.close())
 
 
 def test_sync_pagination_and_decode_guards(class_json: dict[str, Any]) -> None:

@@ -13,6 +13,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Cursor pagination through `page()`, `pages()`, and `all()` on class and object
+  relation services in both runtimes, with cursor-cycle, page-count, and item-count
+  guards. `list()` continues to return a single page.
 - Complete typed sync/async `client.api` interface for all 257 Hubuum v0.0.20
   operations and all 391 named schemas, including history, query usage,
   observations, credential activity, search hydration, and older generic routes.

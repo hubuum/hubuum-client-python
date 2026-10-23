@@ -972,8 +972,29 @@ class AsyncClassRelationsService:
             point_model=ClassRelation,
         )
 
+    async def page(self, query: Query | None = None) -> Page[ClassRelation]:
+        """Return one cursor page of class relations."""
+        return await self._service.page(query)
+
     async def list(self, query: Query | None = None) -> builtins.list[ClassRelation]:
         return await self._service.list(query)
+
+    async def pages(
+        self, query: Query | None = None, *, max_pages: int = 100
+    ) -> AsyncIterator[Page[ClassRelation]]:
+        """Iterate class relation pages with cursor-cycle and page-count guards."""
+        async for page in self._service.pages(query, max_pages=max_pages):
+            yield page
+
+    async def all(
+        self,
+        query: Query | None = None,
+        *,
+        max_pages: int = 100,
+        max_items: int = 10_000,
+    ) -> builtins.list[ClassRelation]:
+        """Collect class relations with explicit page and item bounds."""
+        return await self._service.all(query, max_pages=max_pages, max_items=max_items)
 
     async def one(self, query: Query) -> ClassRelation:
         return await self._service.one(query)
@@ -1012,8 +1033,29 @@ class AsyncObjectRelationsService:
             point_model=ObjectRelation,
         )
 
+    async def page(self, query: Query | None = None) -> Page[ObjectRelation]:
+        """Return one cursor page of object relations."""
+        return await self._service.page(query)
+
     async def list(self, query: Query | None = None) -> builtins.list[ObjectRelation]:
         return await self._service.list(query)
+
+    async def pages(
+        self, query: Query | None = None, *, max_pages: int = 100
+    ) -> AsyncIterator[Page[ObjectRelation]]:
+        """Iterate object relation pages with cursor-cycle and page-count guards."""
+        async for page in self._service.pages(query, max_pages=max_pages):
+            yield page
+
+    async def all(
+        self,
+        query: Query | None = None,
+        *,
+        max_pages: int = 100,
+        max_items: int = 10_000,
+    ) -> builtins.list[ObjectRelation]:
+        """Collect object relations with explicit page and item bounds."""
+        return await self._service.all(query, max_pages=max_pages, max_items=max_items)
 
     async def one(self, query: Query) -> ObjectRelation:
         return await self._service.one(query)

@@ -51,12 +51,12 @@ object relations, nested token scopes and renewal, typed object aggregate
 measures, task events, import v2, and exports. Health, readiness, and public
 configuration are available before authentication.
 
-The `openapi` service deliberately registers every operation in the immutable
-v0.0.20 specification. Administrative domains that do not yet
-have dedicated Pydantic resources are invoked by `operationId` and return
-standard typed JSON, text, or byte values. CI compares that manifest with the
-authoritative server contract so an endpoint cannot silently fall out of
-coverage.
+The unreleased [`client.api` interface](typed-api.md) provides matching sync and
+async types for all 257 operations and 391 named schemas in the immutable
+v0.0.20 specification, including administrative domains. Existing convenience
+services remain available. The `openapi` service also exposes every operation
+by `operationId` for callers that need generic JSON, text, or byte values.
+CI checks both interfaces against the authoritative server contract.
 
 Continue with [client setup](client.md), then see
 [queries and pagination](querying.md).
