@@ -1,6 +1,6 @@
 """Package and server compatibility constants."""
 
-__version__ = "0.0.12"
+__version__ = "0.0.13"
 TARGET_SERVER_VERSION = "0.0.20"
 TARGET_SERVER_IMAGE = (
     "ghcr.io/hubuum/hubuum-server:v0.0.20@"

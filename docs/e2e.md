@@ -36,7 +36,7 @@ message. Provider delivery itself is outside this client's compatibility claim.
 After the core suite passes, the wrapper starts the matching restore executor
 and runs `tests/recovery` against the same disposable database. Four tests run
 eight consecutive backup/restore cycles in both sync/async orders without
-restarting either process. They verify version 8 backups with and without
+restarting either process. They verify version 10 backups with and without
 history, restored object data and revisions (including JSON `null`), removal
 of later objects, capability-only status polling, old-token rejection, and password-reset/login
 recovery. History-free restores are followed by further mutations and a default

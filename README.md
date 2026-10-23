@@ -14,7 +14,7 @@ resource IDs, immutable queries, cursor pagination, structured errors, and a
 contract-checked interface for all 257 operations in the server's OpenAPI
 surface.
 
-Version **0.0.12**, released **2026-10-22**, targets Hubuum server **v0.0.20**. Compatibility is tested
+Version **0.0.13** targets Hubuum server **v0.0.20**. Compatibility is tested
 against the tag-and-digest server image recorded in the
 [compatibility matrix](docs/compatibility.md), including repeated full restores
 and JSON-null recovery in both runtimes.
@@ -28,7 +28,7 @@ including token creation/renewal, user passwords, credential-bearing imports,
 and restore confirmation. [Task discovery](docs/querying.md#task-discovery)
 supports resource, lifecycle, and retained-option filters for all six task kinds.
 
-The unreleased [complete typed API](docs/typed-api.md) exposes all 257 server
+The [complete typed API](docs/typed-api.md) exposes all 257 server
 operations and 391 schemas through matching sync and async interfaces.
 The [service-account convenience API](docs/service-accounts.md) adds guarded
 pagination, lifecycle management, and integration with principal-token workflows.
