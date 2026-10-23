@@ -1563,6 +1563,12 @@
 </thead>
 <tbody>
 <tr>
+<td>0.0.13</td>
+<td><a href="https://github.com/hubuum/hubuum/tree/v0.0.20"><code>v0.0.20</code></a></td>
+<td>Verified</td>
+<td>40 core and 4 recovery tests passed on 2026-10-24 using the installed 0.0.13 wheel (Python 3.13.3, Podman, released Linux AMD64 image), including typed API workflows, relation pagination, IAM/integration imports, service-account lifecycle/token invalidation, and eight complete restore cycles</td>
+</tr>
+<tr>
 <td>0.0.12</td>
 <td><a href="https://github.com/hubuum/hubuum/tree/v0.0.20"><code>v0.0.20</code></a></td>
 <td>Verified</td>
@@ -1645,12 +1651,19 @@ an immutable multi-platform image:</p>
 from resolving to different content later. The same reference is stored in
 <code>src/hubuum_client/_constants.py</code>, the e2e wrapper, and CI.</p>
 <h2 id="v0020-target">v0.0.20 target<a class="headerlink" href="#v0020-target" title="Permanent link">&para;</a></h2>
-<p>Client 0.0.12 targets the immutable v0.0.20 image above. Both Linux image
+<p>Client 0.0.13 targets the immutable v0.0.20 image above. Both Linux image
 architectures identify server commit <code>3bede6e5b815585f3ac5372cc829734b2ae14a68</code>.
 The <a href="../openapi.json">committed OpenAPI document</a> contains 257 operations and has
 SHA-256 <code>7ad82a5d64f7c01966eb34b9b82009955c2d5d246206190d2210c6bdf03e8dbb</code>.
 The upstream contract check verifies the source revision, checksum, operation
 registry, and media types against that exact server commit.</p>
+<p>On 2026-10-24, the complete wrapper passed all 40 core and 4 recovery tests using
+the installed 0.0.13 wheel, Python 3.13.3, Podman, and the released Linux AMD64
+image. Both runtimes exercised typed history, query usage, search hydration and
+SSE events, credential activity, guarded relation pagination, strict IAM and
+integration imports, and service-account lifecycle with approved token minting
+and token invalidation on disable. The recovery suite completed eight full
+restore cycles with and without history, using format 10 backups.</p>
 <p>On 2026-10-22, the complete wrapper passed all 26 core and 4 recovery tests using
 the installed 0.0.12 wheel, Python 3.12.15, Podman, and the released Linux AMD64
 image. Both runtimes exercised rotating sessions, replay revocation, logout,
@@ -1659,10 +1672,11 @@ suite completed eight full restore cycles with and without history.</p>
 <p><strong>Breaking authentication upgrade:</strong> use <code>login_session()</code> for interactive
 password authentication. Legacy <code>login()</code> remains only for older servers.
 Replace <code>ApiV0Auth</code> with <code>ApiV1Auth</code> in the seven generic authentication
-operation IDs. Explicit PAT injection remains supported. Dedicated typed
-services retain their documented projections; the generic registry provides
-the complete contract, including newly added history, credential activity,
-search hydration, and query-observation operations.</p>
+operation IDs. Explicit PAT injection remains supported. Dedicated convenience
+services retain their documented projections. Since client 0.0.13, <code>client.api</code>
+provides typed coverage of the complete contract, including history, credential
+activity, search hydration, and query-observation operations. The generic
+operation registry remains available.</p>
 <p>New backups use format 10 and retain shared computed-definition history.
 Upgrade API, worker, and restore processes together during the server's offline
 migration, retain a pre-upgrade PostgreSQL snapshot and matching binaries,

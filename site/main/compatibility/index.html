@@ -1571,6 +1571,12 @@
 </thead>
 <tbody>
 <tr>
+<td>0.0.13</td>
+<td><a href="https://github.com/hubuum/hubuum/tree/v0.0.20"><code>v0.0.20</code></a></td>
+<td>Verified</td>
+<td><a href="../compatibility-evidence/#v0020-target">40 core and 4 recovery tests, including typed API workflows, service accounts, and eight complete restore cycles</a></td>
+</tr>
+<tr>
 <td>0.0.12</td>
 <td><a href="https://github.com/hubuum/hubuum/tree/v0.0.20"><code>v0.0.20</code></a></td>
 <td>Verified</td>
@@ -1653,12 +1659,12 @@ an immutable multi-platform image:</p>
 from resolving to different content later. The same reference is stored in
 <code>src/hubuum_client/_constants.py</code>, the e2e wrapper, and CI.</p>
 <h2 id="typed-parity">Typed parity<a class="headerlink" href="#typed-parity" title="Permanent link">&para;</a></h2>
-<p>The unreleased <code>client.api</code> interface provides matching sync and async types for
-all 257 operations and 391 schemas in this pinned contract. See
+<p>The <code>client.api</code> interface, available since 0.0.13, provides matching sync and
+async types for all 257 operations and 391 schemas in this pinned contract. See
 <a href="../typed-api/">typed API usage</a> and the <a href="../typed-operations/">operation table</a>.
 Existing convenience services retain their established return types.</p>
 <h2 id="before-upgrading">Before upgrading<a class="headerlink" href="#before-upgrading" title="Permanent link">&para;</a></h2>
-<p>Client 0.0.12 targets server v0.0.20 with matching sync and async behavior.
+<p>Client 0.0.13 targets server v0.0.20 with matching sync and async behavior.
 Use <a href="../credentials/">credential approvals</a> before protected mutations and
 <a href="../schema/">schema evolution</a> when changing validation policy on populated
 classes. The registered OpenAPI surface covers all 257 operations; dedicated
@@ -1728,9 +1734,10 @@ The complete live suite requires rotation, replay revocation, and logout checks.
 <p>The operation registry includes all 257 server operations. The seven generic
 authentication operation IDs replace <code>ApiV0Auth</code> with <code>ApiV1Auth</code>; callers using
 those identifiers must update them. Dedicated
-typed services remain projections of that contract: newly added history,
-search hydration, credential activity, and observation-management operations can
-be called through <code>client.openapi.call()</code> or authenticated relative <code>request()</code>.</p>
+convenience services remain projections of that contract. The complete typed
+<code>client.api</code> includes history, search hydration, credential activity, and
+observation-management operations. Generic <code>client.openapi.call()</code> and
+authenticated relative <code>request()</code> remain available.</p>
 
 
 
