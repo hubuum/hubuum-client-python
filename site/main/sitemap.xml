@@ -45,4 +45,10 @@
       <url>
         <loc>https://hubuum.github.io/hubuum-client-python/main/schema/</loc>
       </url>
+      <url>
+        <loc>https://hubuum.github.io/hubuum-client-python/main/typed-api/</loc>
+      </url>
+      <url>
+        <loc>https://hubuum.github.io/hubuum-client-python/main/typed-operations/</loc>
+      </url>
 </urlset>
