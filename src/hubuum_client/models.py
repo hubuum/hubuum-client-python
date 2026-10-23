@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+import json
+from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from dataclasses import field as dataclass_field
-from datetime import datetime
+from datetime import date, datetime
 from enum import StrEnum
-from typing import Annotated, Any, Literal, Self, TypeAlias, TypeVar
+from typing import Annotated, Any, Generic, Literal, Self, TypeAlias, TypeVar, cast
 from uuid import UUID
 
 from pydantic import (
@@ -68,6 +69,141 @@ class RequestModel(BaseModel):
         )
 
 
+_APIModelT = TypeVar("_APIModelT", bound=BaseModel)
+_APIValueT = TypeVar("_APIValueT")
+
+
+def _validate_api_model(
+    model: type[_APIModelT], value: Any, handler: ModelWrapValidatorHandler[_APIModelT]
+) -> _APIModelT:
+    try:
+        return handler(value)
+    except ValidationError:
+        error = ValidationError.from_exception_data(
+            model.__name__,
+            [
+                {
+                    "type": PydanticCustomError("api_model", "Invalid API model"),
+                    "loc": (),
+                    "input": "<redacted>",
+                }
+            ],
+            hide_input=True,
+        )
+    # Even a hidden exception context can retain a password-bearing input.
+    raise error
+
+
+def _api_json_default(value: object) -> str:
+    if isinstance(value, SecretStr):
+        return value.get_secret_value()
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    if isinstance(value, UUID):
+        return str(value)
+    raise TypeError("Unsupported API payload value")
+
+
+def _api_payload(model: BaseModel) -> JsonValue:
+    return cast(
+        JsonValue,
+        json.loads(
+            json.dumps(
+                model.model_dump(mode="python", by_alias=True, exclude_unset=True),
+                default=_api_json_default,
+            )
+        ),
+    )
+
+
+class APIModel(BaseModel):
+    """Base for exact-contract models, with secret-safe diagnostics.
+
+    ``wire_payload()`` intentionally reveals request secrets for transmission and
+    preserves explicit nulls. Ordinary representations omit all field values.
+    """
+
+    model_config = ConfigDict(
+        extra="allow", frozen=True, populate_by_name=True, hide_input_in_errors=True
+    )
+
+    def __repr_args__(self) -> Iterator[tuple[str | None, Any]]:
+        return iter(())
+
+    @classmethod
+    def _safe_mutation_error(cls, error: ValidationError) -> ValidationError:
+        # Frozen-instance guards bypass model validators and can disclose both
+        # replacement values and caller-supplied attribute names.
+        details: list[InitErrorDetails] = [
+            {
+                "type": PydanticCustomError(item["type"], "Cannot mutate API model"),
+                "loc": item["loc"][:1]
+                if item["loc"] and item["loc"][0] in cls.model_fields
+                else (),
+                "input": "<redacted>",
+            }
+            for item in error.errors(include_input=False, include_context=False, include_url=False)
+        ]
+        return ValidationError.from_exception_data(cls.__name__, details, hide_input=True)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        try:
+            super().__setattr__(name, value)
+        except ValidationError as error:
+            safe_error = self._safe_mutation_error(error)
+        else:
+            return
+        # Raise outside the handler so the original input is not retained in context.
+        raise safe_error
+
+    def __delattr__(self, name: str) -> None:
+        try:
+            super().__delattr__(name)
+        except ValidationError as error:
+            safe_error = self._safe_mutation_error(error)
+        else:
+            return
+        raise safe_error
+
+    @model_validator(mode="wrap")
+    @classmethod
+    def _safe_validation(cls, value: Any, handler: ModelWrapValidatorHandler[Self]) -> Self:
+        return _validate_api_model(cls, value, handler)
+
+    def wire_payload(self) -> dict[str, JsonValue]:
+        return cast(dict[str, JsonValue], _api_payload(self))
+
+
+@dataclass(frozen=True, slots=True)
+class APIResponse(Generic[_APIValueT]):
+    """Typed body plus status, pagination, and revision headers."""
+
+    body: _APIValueT = dataclass_field(repr=False)
+    status_code: int
+    headers: Mapping[str, str] = dataclass_field(repr=False)
+
+    @property
+    def next_cursor(self) -> str | None:
+        return self.headers.get("x-next-cursor")
+
+    @property
+    def total_count(self) -> int | None:
+        value = self.headers.get("x-total-count")
+        return int(value) if value is not None else None
+
+    @property
+    def etag(self) -> str | None:
+        return self.headers.get("etag")
+
+
+@dataclass(frozen=True, slots=True)
+class ServerEvent(Generic[_APIValueT]):
+    """One named SSE event with a validated, secret-safe payload."""
+
+    event: str
+    data: _APIValueT = dataclass_field(repr=False)
+
+
 class ProbeResponse(HubuumModel):
     status: str
     message: str | None = None
@@ -78,6 +214,10 @@ class ClientAuthenticationConfig(HubuumModel):
 
     default_token_lifetime_hours: int = Field(ge=1)
     max_token_lifetime_hours: int = Field(ge=1)
+    session_access_seconds: int | None = None
+    session_idle_seconds: int | None = None
+    session_absolute_seconds: int | None = None
+    session_retention_seconds: int | None = None
 
 
 class ClientPaginationConfig(HubuumModel):
@@ -403,6 +543,9 @@ class GroupUpdate(RequestModel):
 ObjectRelationLimit: TypeAlias = Annotated[int, Field(ge=1)]
 """Positive maximum number of relations allowed on one side of a class relation."""
 
+RelationLabel: TypeAlias = Annotated[str, Field(min_length=1, max_length=128)]
+"""Human-facing directional wording, independent of a template alias."""
+
 
 class ClassRelation(HubuumModel):
     """A class-to-class relation and its optional per-object cardinality limits."""
@@ -412,6 +555,8 @@ class ClassRelation(HubuumModel):
     to_hubuum_class_id: ClassId
     forward_template_alias: str | None = None
     reverse_template_alias: str | None = None
+    forward_label: RelationLabel | None = None
+    reverse_label: RelationLabel | None = None
     from_max_relations: ObjectRelationLimit | None = None
     to_max_relations: ObjectRelationLimit | None = None
     created_at: datetime
@@ -431,8 +576,20 @@ class ClassRelationCreate(RequestModel):
     to_hubuum_class_id: ClassId
     forward_template_alias: str | None = None
     reverse_template_alias: str | None = None
+    forward_label: RelationLabel | None = None
+    reverse_label: RelationLabel | None = None
     from_max_relations: ObjectRelationLimit | None = None
     to_max_relations: ObjectRelationLimit | None = None
+
+
+class ClassRelationUpdate(RequestModel):
+    """Edit directional labels; explicit null clears a label, omission preserves it."""
+
+    forward_label: RelationLabel | None = None
+    reverse_label: RelationLabel | None = None
+
+    def payload(self) -> dict[str, Any]:
+        return self.model_dump(mode="json", by_alias=True, exclude_unset=True)
 
 
 class ObjectRelation(HubuumModel):
@@ -933,6 +1090,8 @@ class ImportClassRelationInput(RequestModel):
     to_class_key: ClassKey | None = None
     forward_template_alias: str | None = None
     reverse_template_alias: str | None = None
+    forward_label: RelationLabel | None = None
+    reverse_label: RelationLabel | None = None
     from_max_relations: ObjectRelationLimit | None = None
     to_max_relations: ObjectRelationLimit | None = None
     timestamps: RestoreTimestamps | None = None

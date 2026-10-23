@@ -17,6 +17,7 @@ Before opening a pull request, run the same non-container checks as CI:
 uv run ruff format --check .
 uv run ruff check .
 uv run mypy
+uv run python scripts/generate-typed-api.py --check
 uv run bandit -q -r src scripts
 uv run zizmor .
 uv run pytest --cov
@@ -54,6 +55,12 @@ uv run python scripts/check-openapi-contract.py --update
 Both commands validate the upstream bytes against the pinned checksum before
 accepting them. `--check-upstream` leaves the worktree unchanged; `--update`
 replaces `docs/openapi.json` only after the complete validation succeeds.
+
+Regenerate the typed API and its route table after changing the contract:
+
+```bash
+uv run python scripts/generate-typed-api.py
+```
 
 When targeting a future Hubuum release:
 

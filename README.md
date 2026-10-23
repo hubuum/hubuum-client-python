@@ -28,6 +28,9 @@ including token creation/renewal, user passwords, credential-bearing imports,
 and restore confirmation. [Task discovery](docs/querying.md#task-discovery)
 supports resource, lifecycle, and retained-option filters for all six task kinds.
 
+The unreleased [complete typed API](docs/typed-api.md) exposes all 257 server
+operations and 391 schemas through matching sync and async interfaces.
+
 ## Installation
 
 ```bash

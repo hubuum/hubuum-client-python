@@ -18,9 +18,11 @@ nav = [
     { "Querying and pagination" = "querying.md" },
     { "Schema evolution" = "schema.md" },
     { "Advanced usage" = "advanced.md" },
+    { "Complete typed API" = "typed-api.md" },
   ] },
   { "Reference" = [
     { "Python API" = "api.md" },
+    { "Typed operation coverage" = "typed-operations.md" },
     { "Release notes" = "changelog.md" },
   ] },
   { "Contributing" = [

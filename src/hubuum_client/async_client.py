@@ -6,7 +6,7 @@ from asyncio import Lock
 from collections.abc import AsyncIterator, Mapping
 from contextlib import asynccontextmanager
 from functools import cached_property
-from typing import Any, Self, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Self, TypeVar, overload
 
 import httpx
 from pydantic import BaseModel
@@ -32,6 +32,9 @@ from .types import AccessToken, Credentials
 
 T = TypeVar("T", bound=BaseModel)
 _PUBLIC_REQUEST = RequestOptions(authenticated=False)
+
+if TYPE_CHECKING:
+    from .api.async_services import AsyncAPI
 
 
 class AsyncClient:
@@ -277,6 +280,13 @@ class AsyncClient:
     def openapi(self) -> AsyncOpenAPIOperations:
         """Return the complete operation-ID interface for all 257 v0.0.20 operations."""
         return AsyncOpenAPIOperations(self)
+
+    @cached_property
+    def api(self) -> AsyncAPI:
+        """Fully typed resource operations for the complete server contract."""
+        from .api.async_services import AsyncAPI  # noqa: PLC0415 -- Load full schema on demand.
+
+        return AsyncAPI(self)
 
     @overload
     async def request(

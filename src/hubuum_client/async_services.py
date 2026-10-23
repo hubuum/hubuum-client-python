@@ -29,6 +29,7 @@ from .models import (
     ClassCreate,
     ClassRelation,
     ClassRelationCreate,
+    ClassRelationUpdate,
     ClassSchemaResponse,
     ClassUpdate,
     Collection,
@@ -960,6 +961,7 @@ class AsyncPrincipalTokensService(_AsyncTokenListService):
 
 class AsyncClassRelationsService:
     def __init__(self, client: AsyncClient) -> None:
+        self._client = client
         self._service = AsyncResourceService[
             ClassRelation, ClassRelation, ClassRelationCreate, BaseModel
         ](
@@ -981,6 +983,18 @@ class AsyncClassRelationsService:
 
     async def create(self, payload: ClassRelationCreate) -> ClassRelation:
         return await self._service.create(payload)
+
+    async def update(
+        self, relation_id: int, payload: ClassRelationUpdate, *, if_match: str | None = None
+    ) -> ClassRelation:
+        """Edit labels, optionally requiring the resource's current strong ETag."""
+        return await self._client.request(
+            "PATCH",
+            f"/api/v1/relations/classes/{_segment(relation_id)}",
+            json=payload,
+            response_model=ClassRelation,
+            options=RequestOptions(headers={"If-Match": if_match} if if_match else None),
+        )
 
     async def delete(self, relation_id: int) -> None:
         await self._service.delete(relation_id)

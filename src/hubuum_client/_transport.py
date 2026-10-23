@@ -8,12 +8,14 @@ from collections.abc import Mapping
 from contextlib import suppress
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
-from typing import Any, TypeVar
+from types import MappingProxyType
+from typing import Any, Generic, TypeVar, cast
 from urllib.parse import quote_plus, unquote, urlsplit
 
 import httpx
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, TypeAdapter, ValidationError
 
+from ._operations import OPERATIONS
 from .errors import (
     APIError,
     AuthenticationError,
@@ -26,10 +28,12 @@ from .errors import (
     RateLimitError,
     ReauthenticationRequiredError,
 )
-from .options import Params
+from .models import APIModel, APIResponse, ServerEvent, _api_json_default
+from .options import OpenAPIOptions, Params
 
 T = TypeVar("T", bound=BaseModel)
 ContentTypeT = TypeVar("ContentTypeT", bound=StrEnum)
+APIValueT = TypeVar("APIValueT")
 _REDACTED = "<redacted>"
 _SENSITIVE_KEY_PARTS = (
     "api_key",
@@ -169,6 +173,8 @@ def prepare_request_headers(
 
 
 def json_body(value: BaseModel | Mapping[str, Any] | list[Any] | None) -> Any:
+    if isinstance(value, APIModel):
+        return value.wire_payload()
     if isinstance(value, BaseModel):
         payload_method = getattr(value, "payload", None)
         if callable(payload_method):
@@ -469,3 +475,123 @@ def decode_html(response: httpx.Response) -> str:
             "expected a text/html response",
         )
     return response.text
+
+
+def api_body(
+    value: object,
+    adapters: Mapping[str, TypeAdapter[APIValueT]],
+    *,
+    content_type: str | None,
+    optional: bool,
+) -> Any:
+    """Validate a typed payload and intentionally reveal its wire secrets."""
+    if value is None and optional:
+        return None
+    try:
+        adapter = adapters[content_type or ""]
+        validated = adapter.validate_python(value)
+        data = adapter.dump_python(validated, by_alias=True, exclude_unset=True)
+        return json.loads(json.dumps(data, default=_api_json_default))
+    except (KeyError, TypeError, ValueError):
+        error = ValueError("Invalid typed API request body")
+    raise error
+
+
+def api_options(  # noqa: PLR0913 -- path, query and header controls are independent wire locations.
+    operation_id: str,
+    path_params: Mapping[str, str | int],
+    query: APIModel | None,
+    header: APIModel | None,
+    options: OpenAPIOptions | None,
+    *,
+    content_type: str | None,
+    accept: str,
+) -> OpenAPIOptions:
+    """Combine typed controls with explicit extension parameters safely."""
+    extra = options or OpenAPIOptions()
+    if extra.path_params:
+        raise ValueError("Use the typed method's path arguments instead of options.path_params")
+    operation = OPERATIONS[operation_id]
+    selected_accept = extra.accept or accept
+    if operation.response_media_types and selected_accept not in operation.response_media_types:
+        raise ValueError("Unsupported typed API response media type")
+    params = httpx.QueryParams(extra.params)
+    if query is not None:
+        values = cast(dict[str, Any], query.wire_payload())
+        params = params.merge({key: value for key, value in values.items() if value is not None})
+    headers = httpx.Headers(extra.headers)
+    if header is not None:
+        values = cast(dict[str, Any], header.wire_payload())
+        headers.update({key: str(value) for key, value in values.items() if value is not None})
+    return OpenAPIOptions(
+        path_params=path_params,
+        params=list(params.multi_items()),
+        headers=dict(headers),
+        content_type=extra.content_type or content_type,
+        accept=selected_accept,
+    )
+
+
+def decode_api_response(
+    response: httpx.Response, adapters: Mapping[str, TypeAdapter[APIValueT]]
+) -> APIResponse[APIValueT]:
+    """Validate a contract response without retaining secret-bearing failures."""
+    try:
+        if response.status_code in {204, 205} or (not response.content and "" in adapters):
+            body = adapters[""].validate_python(None)
+        else:
+            media = response.headers.get("content-type", "").split(";", 1)[0].strip().casefold()
+            adapter = adapters[media]
+            body = (
+                adapter.validate_json(response.content)
+                if "json" in media
+                else adapter.validate_python(response.text)
+            )
+    except (KeyError, TypeError, ValueError):
+        error = DecodeError(
+            response.request.method,
+            safe_response_url(response),
+            response.status_code,
+            "Response does not match the typed API contract",
+        )
+    else:
+        return APIResponse(body, response.status_code, MappingProxyType(dict(response.headers)))
+    raise error
+
+
+class _ServerEventDecoder(Generic[APIValueT]):
+    """Incremental SSE framing and model validation shared by both transports."""
+
+    def __init__(
+        self, response: httpx.Response, adapters: Mapping[str, TypeAdapter[APIValueT]]
+    ) -> None:
+        self._response = response
+        self._adapters = adapters
+        self._name = "message"
+        self._data: list[str] = []
+
+    def feed(self, line: str) -> ServerEvent[APIValueT] | None:
+        if line:
+            field, _, value = line.partition(":")
+            value = value.removeprefix(" ")
+            if field == "event":
+                self._name = value
+            elif field == "data":
+                self._data.append(value)
+            return None
+        name, data = self._name, self._data
+        self._name, self._data = "message", []
+        if not data:
+            return None
+        try:
+            body = self._adapters[name].validate_json("\n".join(data))
+        except (KeyError, TypeError, ValueError):
+            error = DecodeError(
+                self._response.request.method,
+                safe_response_url(self._response),
+                self._response.status_code,
+                "Invalid typed server-sent event",
+            )
+        else:
+            return ServerEvent(name, body)
+        raise error

@@ -29,6 +29,13 @@ The tag identifies the supported server release; the digest prevents that tag
 from resolving to different content later. The same reference is stored in
 `src/hubuum_client/_constants.py`, the e2e wrapper, and CI.
 
+## Typed parity
+
+The unreleased `client.api` interface provides matching sync and async types for
+all 257 operations and 391 schemas in this pinned contract. See
+[typed API usage](typed-api.md) and the [operation table](typed-operations.md).
+Existing convenience services retain their established return types.
+
 ## Before upgrading
 
 Client 0.0.12 targets server v0.0.20 with matching sync and async behavior.
