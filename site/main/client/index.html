@@ -1375,7 +1375,7 @@ expired access credentials under a shared lock; uncertain rotation clears the
 credentials and requires a new login. The legacy <code>login()</code> method remains
 available only for older servers that still expose <code>/api/v0/auth</code>.
 The resulting <code>client.token.expires_at</code> contains the authoritative expiry
-persisted by Hubuum v0.0.20. A token supplied directly at construction has no
+persisted by Hubuum v0.0.21. A token supplied directly at construction has no
 known expiry unless its <code>AccessToken</code> value includes one.
 An existing bearer token can be supplied at construction:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="s2">"https://hubuum.example.com"</span><span class="p">,</span> <span class="n">token</span><span class="o">=</span><span class="n">token</span><span class="p">)</span>
@@ -1497,7 +1497,7 @@ omits an explicit expiry:</p>
 <a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="n">maximum_page_size</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">pagination</span><span class="o">.</span><span class="n">max_page_limit</span>
 </code></pre></div>
 <h2 id="rotating-human-sessions">Rotating human sessions<a class="headerlink" href="#rotating-human-sessions" title="Permanent link">&para;</a></h2>
-<p>On the supported Server v0.0.20, use the versioned session API:</p>
+<p>On the supported Server v0.0.21, use the versioned session API:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">Client</span><span class="p">,</span> <span class="n">Credentials</span>
 <a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
 <a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="k">with</span> <span class="n">Client</span><span class="p">(</span><span class="s2">"https://hubuum.example.org"</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>

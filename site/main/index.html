@@ -1316,10 +1316,10 @@
 
 <h1 id="hubuum-client-for-python">Hubuum client for Python<a class="headerlink" href="#hubuum-client-for-python" title="Permanent link">&para;</a></h1>
 <p><code>hubuum-client</code> is a small, modern interface to the Hubuum REST API. Version
-0.0.13 targets Hubuum server v0.0.20 and gives synchronous and
+0.0.14 targets Hubuum server v0.0.21 and gives synchronous and
 asynchronous applications the same typed resource model.</p>
 <h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"hubuum-client==0.0.13"</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"hubuum-client==0.0.14"</span>
 </code></pre></div>
 <p>Python 3.11 and later are supported.</p>
 <h2 id="first-request">First request<a class="headerlink" href="#first-request" title="Permanent link">&para;</a></h2>
@@ -1339,7 +1339,7 @@ asynchronous applications the same typed resource model.</p>
 <li><strong>Predictable typing.</strong> Request and response bodies are Pydantic v2 models;
   resource identities use distinct <code>NewType</code> declarations.</li>
 <li><strong>Runtime parity.</strong> <code>Client</code> and <code>AsyncClient</code> expose matching resources,
-  errors, authentication behavior, pagination semantics, and all 257 pinned
+  errors, authentication behavior, pagination semantics, and all 261 pinned
   OpenAPI operations.</li>
 <li><strong>Secure defaults.</strong> TLS validation is enabled, tokens and credentials are
   redacted, and raw requests cannot switch origin or traverse URL paths.</li>
@@ -1357,14 +1357,14 @@ object relations, nested token scopes and renewal, typed object aggregate
 measures, task events, import v2, and exports. Health, readiness, and public
 configuration are available before authentication.</p>
 <p>The <a href="typed-api/"><code>client.api</code> interface</a> provides matching sync and
-async types for all 257 operations and 391 named schemas in the immutable
-v0.0.20 specification, including administrative domains. Existing convenience
+async types for all 261 operations and 401 named schemas in the immutable
+v0.0.21 specification, including administrative domains. Existing convenience
 services remain available. The <code>openapi</code> service also exposes every operation
 by <code>operationId</code> for callers that need generic JSON, text, or byte values.
 CI checks both interfaces against the authoritative server contract.</p>
 <p>Continue with <a href="client/">client setup</a>, then see
 <a href="querying/">queries and pagination</a>.</p>
-<p>Use <a href="credentials/">credential approvals</a> for the v0.0.20 protected mutations,
+<p>Use <a href="credentials/">credential approvals</a> for the v0.0.21 protected mutations,
 and <a href="querying/#task-discovery">task discovery</a> for lifecycle and resource filters.</p>
 <h2 id="explore-a-shared-example">Explore a shared example<a class="headerlink" href="#explore-a-shared-example" title="Permanent link">&para;</a></h2>
 <p><a href="example-dataset/">Load and explore Atlas</a> to work with the same classes,

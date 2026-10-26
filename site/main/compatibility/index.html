@@ -608,6 +608,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#v0021-target" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        v0.0.21 target
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0020-target" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1396,6 +1407,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#v0021-target" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        v0.0.21 target
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0020-target" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1571,6 +1593,12 @@
 </thead>
 <tbody>
 <tr>
+<td>0.0.14</td>
+<td><a href="https://github.com/hubuum/hubuum/tree/v0.0.21"><code>v0.0.21</code></a></td>
+<td>Verified</td>
+<td><a href="../compatibility-evidence/#v0021-target">46 core and 4 recovery tests, including eight full restore cycles</a></td>
+</tr>
+<tr>
 <td>0.0.13</td>
 <td><a href="https://github.com/hubuum/hubuum/tree/v0.0.20"><code>v0.0.20</code></a></td>
 <td>Verified</td>
@@ -1653,30 +1681,40 @@
 <p><code>Verified</code> means the complete Docker-backed suite passed for the exact
 client/server pair. The current server target is selected by tag and locked to
 an immutable multi-platform image:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>ghcr.io/hubuum/hubuum-server:v0.0.20@sha256:eaf59f8a4b4793030a78bc1637a8e2b9fad2f810b8621ff9a874dca534b9a23a
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>ghcr.io/hubuum/hubuum-server:v0.0.21@sha256:a5e1ad7a17281eefb4c1ed4da172a80bf815840f78bde6390d1e42bb2d51e0b6
 </code></pre></div>
 <p>The tag identifies the supported server release; the digest prevents that tag
 from resolving to different content later. The same reference is stored in
 <code>src/hubuum_client/_constants.py</code>, the e2e wrapper, and CI.</p>
 <h2 id="typed-parity">Typed parity<a class="headerlink" href="#typed-parity" title="Permanent link">&para;</a></h2>
 <p>The <code>client.api</code> interface, available since 0.0.13, provides matching sync and
-async types for all 257 operations and 391 schemas in this pinned contract. See
+async types for all 261 operations and 401 schemas in this pinned contract. See
 <a href="../typed-api/">typed API usage</a> and the <a href="../typed-operations/">operation table</a>.
 Existing convenience services retain their established return types.</p>
 <h2 id="before-upgrading">Before upgrading<a class="headerlink" href="#before-upgrading" title="Permanent link">&para;</a></h2>
-<p>Client 0.0.13 targets server v0.0.20 with matching sync and async behavior.
+<p>Client 0.0.14 targets server v0.0.21 with matching sync and async behavior.
 Use <a href="../credentials/">credential approvals</a> before protected mutations and
 <a href="../schema/">schema evolution</a> when changing validation policy on populated
-classes. The registered OpenAPI surface covers all 257 operations; dedicated
+classes. The registered OpenAPI surface covers all 261 operations; dedicated
 typed services and generic operation calls are distinguished in the API guides.</p>
-<p>Server v0.0.20 requires an offline migration from v0.0.19 and emits backup
-format 10. Upgrade every API, worker, and restore executor together, retain a
-pre-upgrade backup and matching binaries for rollback, and sign in again.
-Follow the <a href="https://hubuum.github.io/hubuum/v0.0.20/deployment/">server deployment guide</a>
-and <a href="https://hubuum.github.io/hubuum/v0.0.20/backup-restore/">backup compatibility</a>.</p>
+<p>Server v0.0.21 requires four migrations after v0.0.20. Stop old API and worker
+processes, apply the migrations and role grants during a quiet period, then
+start matching API, worker, template-worker, and restore-executor binaries.
+Provide writable temporary disk for backup and restore spooling and keep a
+pre-upgrade backup for rollback. Backup output remains format 10; restore input
+supports formats 6–10. Follow the
+<a href="https://hubuum.github.io/hubuum/v0.0.21/deployment/">server deployment guide</a>
+and <a href="https://hubuum.github.io/hubuum/v0.0.21/backup-restore/">backup compatibility</a>.</p>
+<p>Suggestions inspect authorized raw object data only and never activate a policy.
+Review the sampled report, stage its candidate explicitly, then run whole-class
+impact analysis before activation. Reports expire after 24 hours. See the
+<a href="../schema/">schema workflow</a>.</p>
 <h2 id="verification-evidence">Verification evidence<a class="headerlink" href="#verification-evidence" title="Permanent link">&para;</a></h2>
 <p><a href="../compatibility-evidence/">Detailed evidence and historical migrations</a> retain tested
 image identities, dates, suite results, and earlier compatibility limits.</p>
+<h2 id="v0021-target">v0.0.21 target<a class="headerlink" href="#v0021-target" title="Permanent link">&para;</a></h2>
+<p>See <a href="../compatibility-evidence/#v0021-target">v0.0.21 evidence</a> for the published
+contract and installed-wheel core/recovery verification.</p>
 <h2 id="v0020-target">v0.0.20 target<a class="headerlink" href="#v0020-target" title="Permanent link">&para;</a></h2>
 <p>See <a href="../compatibility-evidence/#v0020-target">v0.0.20 evidence</a> for the exact
 OpenAPI provenance and completed live/recovery checks.</p>
@@ -1731,7 +1769,7 @@ Migrate interactive callers from <code>login()</code>, which remains available o
 older servers. There is no automatic authentication downgrade. The server no
 longer supports legacy interactive clients; explicit PAT injection remains valid.
 The complete live suite requires rotation, replay revocation, and logout checks.</p>
-<p>The operation registry includes all 257 server operations. The seven generic
+<p>The operation registry includes all 261 server operations. The seven generic
 authentication operation IDs replace <code>ApiV0Auth</code> with <code>ApiV1Auth</code>; callers using
 those identifiers must update them. Dedicated
 convenience services remain projections of that contract. The complete typed

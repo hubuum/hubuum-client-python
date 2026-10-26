@@ -731,6 +731,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#discover-fields-and-suggest-a-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Discover fields and suggest a policy
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#stage-inspect-and-activate" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1231,6 +1242,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#discover-fields-and-suggest-a-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Discover fields and suggest a policy
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#stage-inspect-and-activate" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1321,44 +1343,128 @@
 is independent of the class or object's resource revision. Select the typed
 service with <code>client.classes.by_id(class_id).schema</code>; <code>AsyncClient</code> exposes the
 same methods with <code>await</code>.</p>
+<h2 id="discover-fields-and-suggest-a-policy">Discover fields and suggest a policy<a class="headerlink" href="#discover-fields-and-suggest-a-policy" title="Permanent link">&para;</a></h2>
+<p>Server v0.0.21 adds bounded discovery and asynchronous schema suggestions. The
+same methods work with <code>AsyncClient</code> by adding <code>await</code> to network calls:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">FieldDiscoveryOptions</span><span class="p">,</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">SchemaProfilePreset</span><span class="p">,</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">SchemaProfileRequest</span><span class="p">,</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">fields</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">classes</span><span class="o">.</span><span class="n">by_name</span><span class="p">(</span><span class="s2">"Servers"</span><span class="p">)</span><span class="o">.</span><span class="n">fields</span><span class="p">(</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">FieldDiscoveryOptions</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">depth</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">containers</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">)</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="c1"># Use an existing class ID to avoid any name lookup.</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="n">fields_by_id</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">classes</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="n">class_id</span><span class="p">)</span><span class="o">.</span><span class="n">fields</span><span class="p">()</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="n">schema</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">classes</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="n">class_id</span><span class="p">)</span><span class="o">.</span><span class="n">schema</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="n">report</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">suggest</span><span class="p">(</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">SchemaProfileRequest</span><span class="p">(</span><span class="n">preset</span><span class="o">=</span><span class="n">SchemaProfilePreset</span><span class="o">.</span><span class="n">BALANCED</span><span class="p">,</span> <span class="n">sample_limit</span><span class="o">=</span><span class="mi">100</span><span class="p">),</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="n">timeout_seconds</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="p">)</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="c1"># Review report.schema_, report.findings, and report.truncation first.</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="n">staged</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">stage</span><span class="p">(</span><span class="n">report</span><span class="o">.</span><span class="n">stage_request</span><span class="p">(</span><span class="n">validate_schema</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="c1"># Continue with whole-class impact analysis and explicit activation below.</span>
+</code></pre></div>
+<p>Discovery normally needs one request; names <code>.</code> and <code>..</code> are resolved safely
+before using the ID route. Limits are 1–250 objects and depth is 0–32. Counts
+refer to the authorized sample, not all objects in a class. Keep each field's
+<code>source</code> and structured <code>path</code>: a property named <code>a.b</code> differs from nested
+properties <code>a</code> and <code>b</code>, even if their display labels match. Array-item segments
+are distinct from property names. The <code>example</code> is a bounded display preview,
+not raw JSON. Shared and personal computed fields preserve their own sources
+and error counts. Always inspect truncation before drawing conclusions from a
+missing field.</p>
+<p>Choose an inference preset for the raw object data:</p>
+<table>
+<thead>
+<tr>
+<th>Preset</th>
+<th>Mixed unrelated types</th>
+<th>Consistently present properties</th>
+<th>Additional properties</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>STRICT</code></td>
+<td>Block the suggestion</td>
+<td>Required</td>
+<td>Denied</td>
+</tr>
+<tr>
+<td><code>BALANCED</code> (default)</td>
+<td>Preserve as a union</td>
+<td>Required</td>
+<td>Allowed</td>
+</tr>
+<tr>
+<td><code>EXPANSIVE</code></td>
+<td>Preserve as a union</td>
+<td>Optional</td>
+<td>Allowed</td>
+</tr>
+</tbody>
+</table>
+<p>Discovery and profiling require <code>ReadClass</code>; the sample includes only objects
+the caller may read. Computed fields appear in discovery but do not contribute
+to the suggested raw-data schema. Observed nulls and missing properties remain
+distinct.</p>
+<p>A sample-valid candidate still needs review and whole-class impact analysis.
+<code>stage_request</code> rejects blocked, insufficient, invalid, or missing candidates.
+Staging keeps the active policy unchanged; activation remains an explicit call
+with the existing permissions and concurrency checks.</p>
+<p>For an interactive or resumable flow, keep the submitted task ID:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">task</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">profile</span><span class="p">(</span><span class="n">SchemaProfileRequest</span><span class="p">(),</span> <span class="n">idempotency_key</span><span class="o">=</span><span class="s2">"review-servers-2026-10"</span><span class="p">)</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">client</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">wait</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">timeout_seconds</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">report</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">profile_report</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+</code></pre></div>
+<p><code>TaskKind.SCHEMA_PROFILING</code> supports class and output-state task filters. A wait
+timeout leaves the task running; resume or cancel it through <code>client.tasks</code>.
+The <code>suggest</code> helper fetches reports only after full success. Reports expire
+24 hours after creation: HTTP 410 requires a new suggestion. HTTP 403 means the
+submitting scope or current object access no longer permits reading the report;
+HTTP 404 means the report is missing or unfinished. Models and decode errors
+redact raw field previews, property names, schemas, and findings from diagnostics.</p>
 <h2 id="stage-inspect-and-activate">Stage, inspect, and activate<a class="headerlink" href="#stage-inspect-and-activate" title="Permanent link">&para;</a></h2>
 <p>Changing the schema policy of a nonempty class through ordinary class PATCH now
 returns <code>409 Conflict</code>. Stage the proposed policy, request an impact analysis,
 and explicitly activate it after inspecting the results:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">SchemaActivationPolicy</span><span class="p">,</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">SchemaActivationRequest</span><span class="p">,</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">SchemaImpactReadiness</span><span class="p">,</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">SchemaStageRequest</span><span class="p">,</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="p">)</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">schema</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">classes</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="n">class_id</span><span class="p">)</span><span class="o">.</span><span class="n">schema</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">active</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">.</span><span class="n">active</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="n">staged</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">stage</span><span class="p">(</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">SchemaStageRequest</span><span class="p">(</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        <span class="n">json_schema</span><span class="o">=</span><span class="p">{</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>            <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"object"</span><span class="p">,</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>            <span class="s2">"required"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"hostname"</span><span class="p">],</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>            <span class="s2">"properties"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"hostname"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"string"</span><span class="p">}},</span>
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>        <span class="p">},</span>
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>        <span class="n">validate_schema</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    <span class="p">)</span>
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="p">)</span>
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="n">analysis</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">impact</span><span class="p">(</span><span class="n">staged</span><span class="o">.</span><span class="n">revision</span><span class="p">)</span>
-<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="n">client</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">wait</span><span class="p">(</span><span class="n">analysis</span><span class="o">.</span><span class="n">task_id</span><span class="p">,</span> <span class="n">timeout_seconds</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
-<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="n">report</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">work</span><span class="p">(</span><span class="n">analysis</span><span class="o">.</span><span class="n">task_id</span><span class="p">)</span>
-<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="k">if</span> <span class="n">report</span><span class="o">.</span><span class="n">readiness</span> <span class="o">!=</span> <span class="n">SchemaImpactReadiness</span><span class="o">.</span><span class="n">COMPATIBLE</span><span class="p">:</span>
-<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"Inspect the impact findings and repair objects before activation"</span><span class="p">)</span>
-<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="n">activated</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">activate</span><span class="p">(</span>
-<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>    <span class="n">staged</span><span class="o">.</span><span class="n">revision</span><span class="p">,</span>
-<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>    <span class="n">SchemaActivationRequest</span><span class="p">(</span>
-<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>        <span class="n">expected_active_revision</span><span class="o">=</span><span class="n">active</span><span class="o">.</span><span class="n">revision</span><span class="p">,</span>
-<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>        <span class="n">policy</span><span class="o">=</span><span class="n">SchemaActivationPolicy</span><span class="o">.</span><span class="n">REJECT_INCOMPATIBLE</span><span class="p">,</span>
-<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>        <span class="n">impact_task_id</span><span class="o">=</span><span class="n">analysis</span><span class="o">.</span><span class="n">task_id</span><span class="p">,</span>
-<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>    <span class="p">),</span>
-<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a><span class="p">)</span>
-<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a><span class="k">if</span> <span class="n">activated</span><span class="o">.</span><span class="n">task_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>    <span class="n">client</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">wait</span><span class="p">(</span><span class="n">activated</span><span class="o">.</span><span class="n">task_id</span><span class="p">,</span> <span class="n">timeout_seconds</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">SchemaActivationPolicy</span><span class="p">,</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">SchemaActivationRequest</span><span class="p">,</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">SchemaImpactReadiness</span><span class="p">,</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">SchemaStageRequest</span><span class="p">,</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="p">)</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">schema</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">classes</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="n">class_id</span><span class="p">)</span><span class="o">.</span><span class="n">schema</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="n">active</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">.</span><span class="n">active</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="n">staged</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">stage</span><span class="p">(</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="n">SchemaStageRequest</span><span class="p">(</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>        <span class="n">json_schema</span><span class="o">=</span><span class="p">{</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>            <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"object"</span><span class="p">,</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>            <span class="s2">"required"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"hostname"</span><span class="p">],</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>            <span class="s2">"properties"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"hostname"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"string"</span><span class="p">}},</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>        <span class="p">},</span>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>        <span class="n">validate_schema</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>    <span class="p">)</span>
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="p">)</span>
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="n">analysis</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">impact</span><span class="p">(</span><span class="n">staged</span><span class="o">.</span><span class="n">revision</span><span class="p">)</span>
+<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a><span class="n">client</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">wait</span><span class="p">(</span><span class="n">analysis</span><span class="o">.</span><span class="n">task_id</span><span class="p">,</span> <span class="n">timeout_seconds</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
+<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a><span class="n">report</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">work</span><span class="p">(</span><span class="n">analysis</span><span class="o">.</span><span class="n">task_id</span><span class="p">)</span>
+<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="k">if</span> <span class="n">report</span><span class="o">.</span><span class="n">readiness</span> <span class="o">!=</span> <span class="n">SchemaImpactReadiness</span><span class="o">.</span><span class="n">COMPATIBLE</span><span class="p">:</span>
+<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a>    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"Inspect the impact findings and repair objects before activation"</span><span class="p">)</span>
+<a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a><span class="n">activated</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">activate</span><span class="p">(</span>
+<a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a>    <span class="n">staged</span><span class="o">.</span><span class="n">revision</span><span class="p">,</span>
+<a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a>    <span class="n">SchemaActivationRequest</span><span class="p">(</span>
+<a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a>        <span class="n">expected_active_revision</span><span class="o">=</span><span class="n">active</span><span class="o">.</span><span class="n">revision</span><span class="p">,</span>
+<a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a>        <span class="n">policy</span><span class="o">=</span><span class="n">SchemaActivationPolicy</span><span class="o">.</span><span class="n">REJECT_INCOMPATIBLE</span><span class="p">,</span>
+<a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a>        <span class="n">impact_task_id</span><span class="o">=</span><span class="n">analysis</span><span class="o">.</span><span class="n">task_id</span><span class="p">,</span>
+<a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a>    <span class="p">),</span>
+<a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a><span class="p">)</span>
+<a id="__codelineno-2-33" name="__codelineno-2-33" href="#__codelineno-2-33"></a><span class="k">if</span> <span class="n">activated</span><span class="o">.</span><span class="n">task_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-2-34" name="__codelineno-2-34" href="#__codelineno-2-34"></a>    <span class="n">client</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">wait</span><span class="p">(</span><span class="n">activated</span><span class="o">.</span><span class="n">task_id</span><span class="p">,</span> <span class="n">timeout_seconds</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
 </code></pre></div>
 <p>Strict activation rechecks the active revision and object population inside the
 server transaction. Concurrent writes can invalidate a completed analysis and
@@ -1383,17 +1489,17 @@ context, and omission/truncation indicators. <code>expected.status</code> distin
 available JSON <code>null</code> constraint from an omitted constraint.</p>
 <p>These findings describe saved snapshots. Repairing an object does not update
 old diagnostics or HTML. Re-run impact after repairs to obtain current evidence.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">SchemaRepairReportRequest</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">html</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">generate_report</span><span class="p">(</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">analysis</span><span class="o">.</span><span class="n">task_id</span><span class="p">,</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">SchemaRepairReportRequest</span><span class="p">(</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>        <span class="n">object_url_template</span><span class="o">=</span><span class="s2">"https://inventory.example/objects/</span><span class="si">{object_id}</span><span class="s2">"</span><span class="p">,</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="p">),</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="p">)</span>
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="n">Path</span><span class="p">(</span><span class="s2">"schema-repair.html"</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">html</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="n">retained_html</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">report</span><span class="p">(</span><span class="n">analysis</span><span class="o">.</span><span class="n">task_id</span><span class="p">,</span> <span class="n">download</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">SchemaRepairReportRequest</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">html</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">generate_report</span><span class="p">(</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">analysis</span><span class="o">.</span><span class="n">task_id</span><span class="p">,</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">SchemaRepairReportRequest</span><span class="p">(</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>        <span class="n">object_url_template</span><span class="o">=</span><span class="s2">"https://inventory.example/objects/</span><span class="si">{object_id}</span><span class="s2">"</span><span class="p">,</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="p">),</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="p">)</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="n">Path</span><span class="p">(</span><span class="s2">"schema-repair.html"</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">html</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="n">retained_html</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">report</span><span class="p">(</span><span class="n">analysis</span><span class="o">.</span><span class="n">task_id</span><span class="p">,</span> <span class="n">download</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </code></pre></div>
 <p>The object URL template must be an absolute HTTP(S) frontend URL with exactly
 one <code>{object_id}</code> placeholder and no credentials. Optional <code>template_id</code> selects
@@ -1409,16 +1515,16 @@ cancellation succeeded.</p>
 cursor queries. <code>SchemaPageOptions</code> is immutable and limits pages to 1–100
 candidates. <code>schema.revisions(options)</code> returns one page; resume after its last
 revision. Compliance pages expose <code>items</code> and <code>next_after</code>, with no totals:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">ComplianceStatus</span><span class="p">,</span> <span class="n">SchemaPageOptions</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">options</span> <span class="o">=</span> <span class="n">SchemaPageOptions</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">page</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">objects</span><span class="p">(</span><span class="n">options</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="n">ComplianceStatus</span><span class="o">.</span><span class="n">PENDING</span><span class="p">)</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">page</span><span class="o">.</span><span class="n">items</span><span class="p">:</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">object_id</span><span class="p">,</span> <span class="n">item</span><span class="o">.</span><span class="n">status</span><span class="p">)</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="k">if</span> <span class="n">page</span><span class="o">.</span><span class="n">next_after</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>        <span class="k">break</span>
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    <span class="n">options</span> <span class="o">=</span> <span class="n">SchemaPageOptions</span><span class="p">(</span><span class="n">after</span><span class="o">=</span><span class="n">page</span><span class="o">.</span><span class="n">next_after</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">ComplianceStatus</span><span class="p">,</span> <span class="n">SchemaPageOptions</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">options</span> <span class="o">=</span> <span class="n">SchemaPageOptions</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">page</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">objects</span><span class="p">(</span><span class="n">options</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="n">ComplianceStatus</span><span class="o">.</span><span class="n">PENDING</span><span class="p">)</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">page</span><span class="o">.</span><span class="n">items</span><span class="p">:</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">object_id</span><span class="p">,</span> <span class="n">item</span><span class="o">.</span><span class="n">status</span><span class="p">)</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="k">if</span> <span class="n">page</span><span class="o">.</span><span class="n">next_after</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>        <span class="k">break</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    <span class="n">options</span> <span class="o">=</span> <span class="n">SchemaPageOptions</span><span class="p">(</span><span class="n">after</span><span class="o">=</span><span class="n">page</span><span class="o">.</span><span class="n">next_after</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
 </code></pre></div>
 <p>An empty page can still have <code>next_after</code>: the continuation advances past
 inspected candidates that the caller cannot see. Evidence uses the wire field
@@ -1432,14 +1538,14 @@ item. Portable import envelopes remain version 2; full backups now use format 10
 See <a href="../compatibility/">server compatibility</a> before upgrading or restoring older
 artifacts.</p>
 <h2 id="cancel-a-task">Cancel a task<a class="headerlink" href="#cancel-a-task" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">TaskCancelRequest</span><span class="p">,</span> <span class="n">TaskStatus</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">task</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">cancel</span><span class="p">(</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">task_id</span><span class="p">,</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">TaskCancelRequest</span><span class="p">(</span><span class="n">expected_status</span><span class="o">=</span><span class="n">TaskStatus</span><span class="o">.</span><span class="n">QUEUED</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">"Superseded import"</span><span class="p">),</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="p">)</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="k">if</span> <span class="ow">not</span> <span class="n">task</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">terminal</span><span class="p">:</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="n">task</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">wait</span><span class="p">(</span><span class="n">task_id</span><span class="p">,</span> <span class="n">timeout_seconds</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">TaskCancelRequest</span><span class="p">,</span> <span class="n">TaskStatus</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">task</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">cancel</span><span class="p">(</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">task_id</span><span class="p">,</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">TaskCancelRequest</span><span class="p">(</span><span class="n">expected_status</span><span class="o">=</span><span class="n">TaskStatus</span><span class="o">.</span><span class="n">QUEUED</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="s2">"Superseded import"</span><span class="p">),</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="p">)</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="k">if</span> <span class="ow">not</span> <span class="n">task</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">terminal</span><span class="p">:</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="n">task</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">wait</span><span class="p">(</span><span class="n">task_id</span><span class="p">,</span> <span class="n">timeout_seconds</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
 </code></pre></div>
 <p>Omit the payload to send an unconditional cancellation request. <code>expected_status</code>
 protects a queued-only withdrawal; a changed status returns <code>ConflictError</code>.

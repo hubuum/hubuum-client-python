@@ -1022,6 +1022,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#v0021-target" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        v0.0.21 target
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0020-target" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1359,6 +1370,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#v0021-target" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        v0.0.21 target
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0020-target" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1563,6 +1585,12 @@
 </thead>
 <tbody>
 <tr>
+<td>0.0.14</td>
+<td><a href="https://github.com/hubuum/hubuum/tree/v0.0.21"><code>v0.0.21</code></a></td>
+<td>Verified</td>
+<td><a href="#v0021-target">46 core and 4 recovery tests against the published immutable image</a></td>
+</tr>
+<tr>
 <td>0.0.13</td>
 <td><a href="https://github.com/hubuum/hubuum/tree/v0.0.20"><code>v0.0.20</code></a></td>
 <td>Verified</td>
@@ -1643,15 +1671,30 @@
 </tbody>
 </table>
 <p><code>Verified</code> means the complete Docker-backed suite passed for the exact
-client/server pair. The current server target is selected by tag and locked to
-an immutable multi-platform image:</p>
+client/server pair. Clients 0.0.12 and 0.0.13 used this immutable
+multi-platform image:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>ghcr.io/hubuum/hubuum-server:v0.0.20@sha256:eaf59f8a4b4793030a78bc1637a8e2b9fad2f810b8621ff9a874dca534b9a23a
 </code></pre></div>
 <p>The tag identifies the supported server release; the digest prevents that tag
-from resolving to different content later. The same reference is stored in
+from resolving to different content later. The corresponding release tags retain that reference in
 <code>src/hubuum_client/_constants.py</code>, the e2e wrapper, and CI.</p>
+<h2 id="v0021-target">v0.0.21 target<a class="headerlink" href="#v0021-target" title="Permanent link">&para;</a></h2>
+<p>Client 0.0.14 targets the 261-operation, 401-schema contract from server v0.0.21.
+OpenAPI revision: <code>19db1547936f9a3844544085243e6d64b8e318a0</code>.
+OpenAPI SHA-256: <code>82d4ed17ab48ed45f7894739bbe3fe3ad2750462b394824b8b68da7ad6198a89</code>.
+Immutable image: <code>ghcr.io/hubuum/hubuum-server:v0.0.21@sha256:a5e1ad7a17281eefb4c1ed4da172a80bf815840f78bde6390d1e42bb2d51e0b6</code>.
+On 2026-10-26, the canonical wrapper passed all 46 core and 4 recovery tests
+using the installed 0.0.14 wheel, Python 3.12.15, Podman, and the published Linux
+AMD64 image. The recovery suite completed eight full restore cycles with and
+without history. Both image architectures identify the OpenAPI revision above.
+The tag document, source revision, checksum, and generated operation registry
+were verified against the authoritative server contract.</p>
+<p>Both runtimes preserve structured inventory paths, validate sampling options,
+submit and resume all three profiling presets, and require explicit staging,
+whole-class impact analysis, and activation. Failed, partial, inaccessible, and
+expired task reports do not become usable candidates.</p>
 <h2 id="v0020-target">v0.0.20 target<a class="headerlink" href="#v0020-target" title="Permanent link">&para;</a></h2>
-<p>Client 0.0.13 targets the immutable v0.0.20 image above. Both Linux image
+<p>Client 0.0.13 targeted the immutable v0.0.20 image above. Both Linux image
 architectures identify server commit <code>3bede6e5b815585f3ac5372cc829734b2ae14a68</code>.
 The <a href="../openapi.json">committed OpenAPI document</a> contains 257 operations and has
 SHA-256 <code>7ad82a5d64f7c01966eb34b9b82009955c2d5d246206190d2210c6bdf03e8dbb</code>.
