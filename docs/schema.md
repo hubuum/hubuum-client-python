@@ -5,6 +5,78 @@ is independent of the class or object's resource revision. Select the typed
 service with `client.classes.by_id(class_id).schema`; `AsyncClient` exposes the
 same methods with `await`.
 
+## Discover fields and suggest a policy
+
+Server v0.0.21 adds bounded discovery and asynchronous schema suggestions. The
+same methods work with `AsyncClient` by adding `await` to network calls:
+
+```python
+from hubuum_client import (
+    FieldDiscoveryOptions,
+    SchemaProfilePreset,
+    SchemaProfileRequest,
+)
+
+fields = client.classes.by_name("Servers").fields(
+    FieldDiscoveryOptions(limit=100, depth=6, containers=True)
+)
+# Use an existing class ID to avoid any name lookup.
+fields_by_id = client.classes.by_id(class_id).fields()
+
+schema = client.classes.by_id(class_id).schema
+report = schema.suggest(
+    SchemaProfileRequest(preset=SchemaProfilePreset.BALANCED, sample_limit=100),
+    timeout_seconds=60,
+)
+# Review report.schema_, report.findings, and report.truncation first.
+staged = schema.stage(report.stage_request(validate_schema=True))
+# Continue with whole-class impact analysis and explicit activation below.
+```
+
+Discovery normally needs one request; names `.` and `..` are resolved safely
+before using the ID route. Limits are 1–250 objects and depth is 0–32. Counts
+refer to the authorized sample, not all objects in a class. Keep each field's
+`source` and structured `path`: a property named `a.b` differs from nested
+properties `a` and `b`, even if their display labels match. Array-item segments
+are distinct from property names. The `example` is a bounded display preview,
+not raw JSON. Shared and personal computed fields preserve their own sources
+and error counts. Always inspect truncation before drawing conclusions from a
+missing field.
+
+Choose an inference preset for the raw object data:
+
+| Preset | Mixed unrelated types | Consistently present properties | Additional properties |
+| --- | --- | --- | --- |
+| `STRICT` | Block the suggestion | Required | Denied |
+| `BALANCED` (default) | Preserve as a union | Required | Allowed |
+| `EXPANSIVE` | Preserve as a union | Optional | Allowed |
+
+Discovery and profiling require `ReadClass`; the sample includes only objects
+the caller may read. Computed fields appear in discovery but do not contribute
+to the suggested raw-data schema. Observed nulls and missing properties remain
+distinct.
+
+A sample-valid candidate still needs review and whole-class impact analysis.
+`stage_request` rejects blocked, insufficient, invalid, or missing candidates.
+Staging keeps the active policy unchanged; activation remains an explicit call
+with the existing permissions and concurrency checks.
+
+For an interactive or resumable flow, keep the submitted task ID:
+
+```python
+task = schema.profile(SchemaProfileRequest(), idempotency_key="review-servers-2026-10")
+client.tasks.wait(task.id, timeout_seconds=60)
+report = schema.profile_report(task.id)
+```
+
+`TaskKind.SCHEMA_PROFILING` supports class and output-state task filters. A wait
+timeout leaves the task running; resume or cancel it through `client.tasks`.
+The `suggest` helper fetches reports only after full success. Reports expire
+24 hours after creation: HTTP 410 requires a new suggestion. HTTP 403 means the
+submitting scope or current object access no longer permits reading the report;
+HTTP 404 means the report is missing or unfinished. Models and decode errors
+redact raw field previews, property names, schemas, and findings from diagnostics.
+
 ## Stage, inspect, and activate
 
 Changing the schema policy of a nonempty class through ordinary class PATCH now

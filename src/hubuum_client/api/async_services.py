@@ -662,6 +662,38 @@ class AsyncClassesAPI:
             },
         )
 
+    async def get_by_name_fields(
+        self,
+        class_name: str,
+        *,
+        query: controls.ClassesGetByNameFieldsQuery | None = None,
+        options: OpenAPIOptions | None = None,
+    ) -> APIResponse[models.ClassFieldInventory]:
+        """GET operation.
+
+        /api/v1/classes/by-name/{class_name}/fields
+        """
+        prepared = api_options(
+            "getApiV1ClassesByNameByClassNameFields",
+            {"class_name": class_name},
+            query,
+            None,
+            options,
+            content_type=None,
+            accept="application/json",
+        )
+        response = await self._client.openapi._response(
+            "getApiV1ClassesByNameByClassNameFields", json=None, options=prepared
+        )
+        return decode_api_response(
+            response,
+            {
+                "application/json": TypeAdapter[models.ClassFieldInventory](
+                    models.ClassFieldInventory
+                )
+            },
+        )
+
     async def get_by_name_object_aggregates(
         self,
         class_name: str,
@@ -1283,6 +1315,38 @@ class AsyncClassesAPI:
             response, {"application/json": TypeAdapter[models.HubuumObject](models.HubuumObject)}
         )
 
+    async def get_fields(
+        self,
+        class_id: models.HubuumClassID,
+        *,
+        query: controls.ClassesGetFieldsQuery | None = None,
+        options: OpenAPIOptions | None = None,
+    ) -> APIResponse[models.ClassFieldInventory]:
+        """GET operation.
+
+        /api/v1/classes/{class_id}/fields
+        """
+        prepared = api_options(
+            "getApiV1ClassesByClassIdFields",
+            {"class_id": class_id},
+            query,
+            None,
+            options,
+            content_type=None,
+            accept="application/json",
+        )
+        response = await self._client.openapi._response(
+            "getApiV1ClassesByClassIdFields", json=None, options=prepared
+        )
+        return decode_api_response(
+            response,
+            {
+                "application/json": TypeAdapter[models.ClassFieldInventory](
+                    models.ClassFieldInventory
+                )
+            },
+        )
+
     async def get_history(
         self,
         class_id: int,
@@ -1873,6 +1937,72 @@ class AsyncClassesAPI:
             "deleteApiV1ClassesByClassIdRelationsByRelationId", json=None, options=prepared
         )
         return decode_api_response(response, {"": TypeAdapter[None](None)})
+
+    async def post_schema_profiles(
+        self,
+        class_id: int,
+        *,
+        body: models.SchemaProfileRequest,
+        options: OpenAPIOptions | None = None,
+    ) -> APIResponse[models.TaskResponse]:
+        """POST operation.
+
+        /api/v1/classes/{class_id}/schema/profiles
+        """
+        prepared = api_options(
+            "postApiV1ClassesByClassIdSchemaProfiles",
+            {"class_id": class_id},
+            None,
+            None,
+            options,
+            content_type="application/json",
+            accept="application/json",
+        )
+        response = await self._client.openapi._response(
+            "postApiV1ClassesByClassIdSchemaProfiles",
+            json=api_body(
+                body,
+                {
+                    "application/json": TypeAdapter[models.SchemaProfileRequest](
+                        models.SchemaProfileRequest
+                    )
+                },
+                content_type=prepared.content_type,
+                optional=False,
+            ),
+            options=prepared,
+        )
+        return decode_api_response(
+            response, {"application/json": TypeAdapter[models.TaskResponse](models.TaskResponse)}
+        )
+
+    async def get_schema_profiles_by_task_id(
+        self, class_id: int, task_id: int, *, options: OpenAPIOptions | None = None
+    ) -> APIResponse[models.SchemaProfileReport]:
+        """GET operation.
+
+        /api/v1/classes/{class_id}/schema/profiles/{task_id}
+        """
+        prepared = api_options(
+            "getApiV1ClassesByClassIdSchemaProfilesByTaskId",
+            {"class_id": class_id, "task_id": task_id},
+            None,
+            None,
+            options,
+            content_type=None,
+            accept="application/json",
+        )
+        response = await self._client.openapi._response(
+            "getApiV1ClassesByClassIdSchemaProfilesByTaskId", json=None, options=prepared
+        )
+        return decode_api_response(
+            response,
+            {
+                "application/json": TypeAdapter[models.SchemaProfileReport](
+                    models.SchemaProfileReport
+                )
+            },
+        )
 
     async def get_by_from_object_id_relations_by_to_class_id_by_to_object_id(
         self,

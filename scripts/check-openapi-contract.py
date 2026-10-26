@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the immutable Hubuum v0.0.20 OpenAPI source."""
+"""Validate the immutable Hubuum v0.0.21 OpenAPI source."""
 
 from __future__ import annotations
 
@@ -14,16 +14,20 @@ from pathlib import Path
 from typing import Any, TypeAlias
 from urllib.parse import urlsplit
 
-TARGET_REVISION = "3bede6e5b815585f3ac5372cc829734b2ae14a68"
+TARGET_REVISION = "19db1547936f9a3844544085243e6d64b8e318a0"
 TARGET_URL = f"https://raw.githubusercontent.com/hubuum/hubuum/{TARGET_REVISION}/docs/openapi.json"
-TARGET_SHA256 = "7ad82a5d64f7c01966eb34b9b82009955c2d5d246206190d2210c6bdf03e8dbb"
-TARGET_VERSION = "0.0.20"
-TARGET_OPERATION_COUNT = 257
+TARGET_SHA256 = "82d4ed17ab48ed45f7894739bbe3fe3ad2750462b394824b8b68da7ad6198a89"
+TARGET_VERSION = "0.0.21"
+TARGET_OPERATION_COUNT = 261
 MAX_SOURCE_BYTES = 10 * 1024 * 1024
 HTTP_METHODS = {"get", "put", "post", "delete", "patch", "head", "options", "trace"}
 REPOSITORY_ROOT = Path(__file__).parents[1]
 LOCAL_OPENAPI = REPOSITORY_ROOT / "docs" / "openapi.json"
 REQUIRED_OPERATIONS = {
+    ("get", "/api/v1/classes/{class_id}/fields"),
+    ("get", "/api/v1/classes/by-name/{class_name}/fields"),
+    ("post", "/api/v1/classes/{class_id}/schema/profiles"),
+    ("get", "/api/v1/classes/{class_id}/schema/profiles/{task_id}"),
     ("get", "/api/v1/collections/{collection_id}/event-sinks"),
     ("post", "/api/v1/collections/{collection_id}/event-sinks"),
     ("get", "/api/v1/collections/{collection_id}/event-sinks/{sink_id}"),

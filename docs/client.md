@@ -18,7 +18,7 @@ expired access credentials under a shared lock; uncertain rotation clears the
 credentials and requires a new login. The legacy `login()` method remains
 available only for older servers that still expose `/api/v0/auth`.
 The resulting `client.token.expires_at` contains the authoritative expiry
-persisted by Hubuum v0.0.20. A token supplied directly at construction has no
+persisted by Hubuum v0.0.21. A token supplied directly at construction has no
 known expiry unless its `AccessToken` value includes one.
 An existing bearer token can be supplied at construction:
 
@@ -180,7 +180,7 @@ maximum_page_size = config.pagination.max_page_limit
 
 ## Rotating human sessions
 
-On the supported Server v0.0.20, use the versioned session API:
+On the supported Server v0.0.21, use the versioned session API:
 
 ```python
 from hubuum_client import Client, Credentials

@@ -18,6 +18,9 @@ from hubuum_client import (
     CollectionKey,
     ComplianceStatus,
     ConflictError,
+    FieldArrayItemSegment,
+    FieldDiscoveryOptions,
+    FieldPropertySegment,
     GroupId,
     HubuumClass,
     HubuumObject,
@@ -29,10 +32,13 @@ from hubuum_client import (
     ImportWriteMode,
     ObjectCreate,
     ObjectUpdate,
+    ProfileSuggestionStatus,
     SchemaActivationPolicy,
     SchemaActivationRequest,
     SchemaImpactReadiness,
     SchemaPageOptions,
+    SchemaProfilePreset,
+    SchemaProfileRequest,
     SchemaRepairReportRequest,
     SchemaRevision,
     SchemaRevisionResponse,
@@ -40,6 +46,7 @@ from hubuum_client import (
     SchemaWorkKind,
     SchemaWorkResponse,
     TaskKind,
+    TaskOutputDiscoveryState,
     TaskQuery,
     TaskStatus,
 )
@@ -255,3 +262,117 @@ async def _inspect_candidate(
     assert f"https://inventory.example/objects/{obj.id}" in unescape(html)
     assert await _resolve(schema.report(impact.task_id, download=True)) == html
     return staged, impact, html
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+@pytest.mark.parametrize("preset", list(SchemaProfilePreset))
+async def test_field_discovery_and_reviewed_suggestion_activation(
+    client: Client,
+    admin_group_id: GroupId,
+    unique_name: str,
+    asynchronous: bool,
+    preset: SchemaProfilePreset,
+) -> None:
+    api = AsyncClient(client.base_url, token=client.token) if asynchronous else client
+    collection = await _resolve(
+        api.collections.create(
+            CollectionCreate(
+                name=unique_name,
+                description="Schema suggestion e2e",
+                group_id=admin_group_id,
+            )
+        )
+    )
+    try:
+        cls = await _resolve(
+            api.classes.create(
+                ClassCreate(
+                    name=unique_name,
+                    collection_id=collection.id,
+                    description="Schema suggestion e2e",
+                )
+            )
+        )
+        selected = api.classes.by_id(cls.id)
+        await _resolve(
+            selected.objects.create(
+                ObjectCreate(
+                    name=unique_name,
+                    description="Structured field paths",
+                    data={"a.b": 1, "a": {"b": 2}, "items": [{"name": "first"}]},
+                )
+            )
+        )
+        fields = await _resolve(selected.fields())
+        named = await _resolve(api.classes.by_name(cls.name).fields(FieldDiscoveryOptions()))
+        assert named == fields
+        assert fields.sampled_objects == 1
+        assert any(
+            field.path == (FieldPropertySegment(kind="property", name="a.b"),)
+            for field in fields.fields
+        )
+        assert any(
+            field.path
+            == (
+                FieldPropertySegment(kind="property", name="a"),
+                FieldPropertySegment(kind="property", name="b"),
+            )
+            for field in fields.fields
+        )
+        assert any(
+            any(isinstance(segment, FieldArrayItemSegment) for segment in field.path)
+            for field in fields.fields
+        )
+        schema = selected.schema
+        initial = (await _resolve(schema.get())).active
+        submitted = await _resolve(schema.profile(SchemaProfileRequest(preset=preset)))
+        assert submitted.kind is TaskKind.SCHEMA_PROFILING
+        task = await _resolve(api.tasks.wait(submitted.id, timeout_seconds=60, poll_interval=0.1))
+        assert task.status is TaskStatus.SUCCEEDED
+        report = await _resolve(schema.profile_report(submitted.id))
+        assert report.status is ProfileSuggestionStatus.CANDIDATE
+        assert report.sample_valid is True
+        assert (await _resolve(schema.get())).active.revision == initial.revision
+        tasks = await _resolve(
+            api.tasks.list(
+                TaskQuery(
+                    kind=(TaskKind.SCHEMA_PROFILING,),
+                    class_id=cls.id,
+                    output_state=TaskOutputDiscoveryState.AVAILABLE,
+                )
+            )
+        )
+        assert any(task.id == submitted.id for task in tasks)
+        staged = await _resolve(schema.stage(report.stage_request(validate_schema=True)))
+        impact = await _resolve(schema.impact(staged.revision))
+        task = await _resolve(api.tasks.wait(impact.task_id, timeout_seconds=60, poll_interval=0.1))
+        assert task.status is TaskStatus.SUCCEEDED
+        assert (
+            await _resolve(schema.work(impact.task_id))
+        ).readiness is SchemaImpactReadiness.COMPATIBLE
+        activated = await _resolve(
+            schema.activate(
+                staged.revision,
+                SchemaActivationRequest(
+                    expected_active_revision=initial.revision,
+                    policy=SchemaActivationPolicy.REJECT_INCOMPATIBLE,
+                    impact_task_id=impact.task_id,
+                ),
+            )
+        )
+        assert activated.active.revision == staged.revision
+        if activated.task_id is not None:
+            task = await _resolve(
+                api.tasks.wait(activated.task_id, timeout_seconds=60, poll_interval=0.1)
+            )
+            assert task.status is TaskStatus.SUCCEEDED
+    finally:
+        primary_failure = sys.exc_info()[0] is not None
+        try:
+            await _resolve(api.collections.delete(collection.id))
+        except Exception:
+            if not primary_failure:
+                raise
+        finally:
+            if asynchronous:
+                await _resolve(api.close())

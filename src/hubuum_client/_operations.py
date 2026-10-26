@@ -1,4 +1,4 @@
-"""Immutable Hubuum v0.0.20 OpenAPI operation manifest."""
+"""Immutable Hubuum v0.0.21 OpenAPI operation manifest."""
 
 from __future__ import annotations
 
@@ -247,6 +247,7 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         None,
     ),
     ("getApiV1ClassesByClassIdEvents", "GET", "/api/v1/classes/{class_id}/events", None),
+    ("getApiV1ClassesByClassIdFields", "GET", "/api/v1/classes/{class_id}/fields", None),
     ("getApiV1ClassesByClassIdHistory", "GET", "/api/v1/classes/{class_id}/history", None),
     (
         "getApiV1ClassesByClassIdHistoryAsOf",
@@ -348,6 +349,12 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         None,
     ),
     (
+        "getApiV1ClassesByClassIdSchemaProfilesByTaskId",
+        "GET",
+        "/api/v1/classes/{class_id}/schema/profiles/{task_id}",
+        None,
+    ),
+    (
         "getApiV1ClassesByClassIdSchemaRevisions",
         "GET",
         "/api/v1/classes/{class_id}/schema/revisions",
@@ -373,6 +380,12 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
     ),
     ("getApiV1ClassesByClassIdTrailing", "GET", "/api/v1/classes/{class_id}/", None),
     ("getApiV1ClassesByNameByClassName", "GET", "/api/v1/classes/by-name/{class_name}", None),
+    (
+        "getApiV1ClassesByNameByClassNameFields",
+        "GET",
+        "/api/v1/classes/by-name/{class_name}/fields",
+        None,
+    ),
     (
         "getApiV1ClassesByNameByClassNameObjectAggregates",
         "GET",
@@ -840,6 +853,12 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "postApiV1ClassesByClassIdRelations",
         "POST",
         "/api/v1/classes/{class_id}/relations",
+        "application/json",
+    ),
+    (
+        "postApiV1ClassesByClassIdSchemaProfiles",
+        "POST",
+        "/api/v1/classes/{class_id}/schema/profiles",
         "application/json",
     ),
     (

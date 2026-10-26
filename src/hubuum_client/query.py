@@ -24,6 +24,41 @@ from .models import (
 from .types import FilterOperator, QueryValue
 
 _MAX_SCHEMA_PAGE_LIMIT = 100
+_MAX_FIELD_SAMPLE_LIMIT = 250
+_MAX_FIELD_DEPTH = 32
+
+
+@dataclass(frozen=True, slots=True)
+class FieldDiscoveryOptions:
+    """Immutable server discovery limits; sampled counts are not whole-class totals."""
+
+    limit: int = 100
+    depth: int = 6
+    containers: bool = False
+
+    def __post_init__(self) -> None:
+        if (
+            isinstance(self.limit, bool)
+            or not isinstance(self.limit, int)
+            or not 1 <= self.limit <= _MAX_FIELD_SAMPLE_LIMIT
+        ):
+            raise ValueError("limit must be an integer between 1 and 250")
+        if (
+            isinstance(self.depth, bool)
+            or not isinstance(self.depth, int)
+            or not 0 <= self.depth <= _MAX_FIELD_DEPTH
+        ):
+            raise ValueError("depth must be an integer between 0 and 32")
+        if not isinstance(self.containers, bool):
+            raise ValueError("containers must be a boolean")
+
+    def as_params(self) -> tuple[tuple[str, str], ...]:
+        return (
+            ("limit", str(self.limit)),
+            ("depth", str(self.depth)),
+            ("containers", "true" if self.containers else "false"),
+        )
+
 
 T = TypeVar("T")
 FilterValue = QueryValue | date | datetime

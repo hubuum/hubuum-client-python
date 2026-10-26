@@ -4,6 +4,7 @@
 
 | Python client | Hubuum server contract | Status | End-to-end evidence |
 | --- | --- | --- | --- |
+| 0.0.14 | [`v0.0.21`](https://github.com/hubuum/hubuum/tree/v0.0.21) | Verified | [46 core and 4 recovery tests, including eight full restore cycles](compatibility-evidence.md#v0021-target) |
 | 0.0.13 | [`v0.0.20`](https://github.com/hubuum/hubuum/tree/v0.0.20) | Verified | [40 core and 4 recovery tests, including typed API workflows, service accounts, and eight complete restore cycles](compatibility-evidence.md#v0020-target) |
 | 0.0.12 | [`v0.0.20`](https://github.com/hubuum/hubuum/tree/v0.0.20) | Verified | [26 core and 4 recovery tests, including rotating sessions and eight complete restore cycles](compatibility-evidence.md#v0020-target) |
 | 0.0.11 | [`v0.0.18`](https://github.com/hubuum/hubuum/tree/v0.0.18) | Verified | [Evidence](compatibility-evidence.md#compatibility-matrix) |
@@ -23,7 +24,7 @@ client/server pair. The current server target is selected by tag and locked to
 an immutable multi-platform image:
 
 ```text
-ghcr.io/hubuum/hubuum-server:v0.0.20@sha256:eaf59f8a4b4793030a78bc1637a8e2b9fad2f810b8621ff9a874dca534b9a23a
+ghcr.io/hubuum/hubuum-server:v0.0.21@sha256:a5e1ad7a17281eefb4c1ed4da172a80bf815840f78bde6390d1e42bb2d51e0b6
 ```
 
 The tag identifies the supported server release; the digest prevents that tag
@@ -33,28 +34,41 @@ from resolving to different content later. The same reference is stored in
 ## Typed parity
 
 The `client.api` interface, available since 0.0.13, provides matching sync and
-async types for all 257 operations and 391 schemas in this pinned contract. See
+async types for all 261 operations and 401 schemas in this pinned contract. See
 [typed API usage](typed-api.md) and the [operation table](typed-operations.md).
 Existing convenience services retain their established return types.
 
 ## Before upgrading
 
-Client 0.0.13 targets server v0.0.20 with matching sync and async behavior.
+Client 0.0.14 targets server v0.0.21 with matching sync and async behavior.
 Use [credential approvals](credentials.md) before protected mutations and
 [schema evolution](schema.md) when changing validation policy on populated
-classes. The registered OpenAPI surface covers all 257 operations; dedicated
+classes. The registered OpenAPI surface covers all 261 operations; dedicated
 typed services and generic operation calls are distinguished in the API guides.
 
-Server v0.0.20 requires an offline migration from v0.0.19 and emits backup
-format 10. Upgrade every API, worker, and restore executor together, retain a
-pre-upgrade backup and matching binaries for rollback, and sign in again.
-Follow the [server deployment guide](https://hubuum.github.io/hubuum/v0.0.20/deployment/)
-and [backup compatibility](https://hubuum.github.io/hubuum/v0.0.20/backup-restore/).
+Server v0.0.21 requires four migrations after v0.0.20. Stop old API and worker
+processes, apply the migrations and role grants during a quiet period, then
+start matching API, worker, template-worker, and restore-executor binaries.
+Provide writable temporary disk for backup and restore spooling and keep a
+pre-upgrade backup for rollback. Backup output remains format 10; restore input
+supports formats 6–10. Follow the
+[server deployment guide](https://hubuum.github.io/hubuum/v0.0.21/deployment/)
+and [backup compatibility](https://hubuum.github.io/hubuum/v0.0.21/backup-restore/).
+
+Suggestions inspect authorized raw object data only and never activate a policy.
+Review the sampled report, stage its candidate explicitly, then run whole-class
+impact analysis before activation. Reports expire after 24 hours. See the
+[schema workflow](schema.md).
 
 ## Verification evidence
 
 [Detailed evidence and historical migrations](compatibility-evidence.md) retain tested
 image identities, dates, suite results, and earlier compatibility limits.
+
+## v0.0.21 target
+
+See [v0.0.21 evidence](compatibility-evidence.md#v0021-target) for the published
+contract and installed-wheel core/recovery verification.
 
 ## v0.0.20 target
 
@@ -117,7 +131,7 @@ older servers. There is no automatic authentication downgrade. The server no
 longer supports legacy interactive clients; explicit PAT injection remains valid.
 The complete live suite requires rotation, replay revocation, and logout checks.
 
-The operation registry includes all 257 server operations. The seven generic
+The operation registry includes all 261 server operations. The seven generic
 authentication operation IDs replace `ApiV0Auth` with `ApiV1Auth`; callers using
 those identifiers must update them. Dedicated
 convenience services remain projections of that contract. The complete typed

@@ -40,7 +40,7 @@ the attribute is `None` when the header is absent or malformed.
 
 ## Complete OpenAPI operation surface
 
-The Hubuum v0.0.20 OpenAPI contract contains 257 operations. Every operation is
+The Hubuum v0.0.21 OpenAPI contract contains 261 operations. Every operation is
 registered by its exact `operationId`, HTTP method, path template, request
 media types, and authentication policy:
 
@@ -77,7 +77,7 @@ status = client.openapi.call(
 ```
 
 `Idempotency-Key` values are validated before I/O and must contain between 1
-and 255 bytes, matching v0.0.20 task-submission endpoints.
+and 255 bytes, matching v0.0.21 task-submission endpoints.
 
 When an operation accepts multiple request representations, select one through
 `content_type`. Principal settings support JSON Merge Patch by default and RFC
@@ -118,12 +118,12 @@ with client.openapi.stream(
 
 Use `async with` and `async for` for the asynchronous client. The operation
 manifest is compared with the immutable server OpenAPI document in CI,
-including request and successful-response media types; all 257 operations must
+including request and successful-response media types; all 261 operations must
 match exactly.
 
 ## Webhook notifications and system subscriptions
 
-Hubuum v0.0.20 adds administrator webhook preview/test operations and system
+Hubuum v0.0.21 adds administrator webhook preview/test operations and system
 event subscriptions. Both clients expose them through `openapi.call()`:
 
 ```python
@@ -165,7 +165,7 @@ bearer-token secrets configured on the server. `delivery_policy.min_interval_ms`
 controls sink pacing. Delivery JSON includes `purpose` and may include
 `deferred_reason`; delivery-health subscription entries can have
 `collection_id: null`. These administrative responses remain raw JSON.
-See the [server webhook guide](https://github.com/hubuum/hubuum/blob/v0.0.20/docs/webhook_notifications.md)
+See the [server webhook guide](https://github.com/hubuum/hubuum/blob/v0.0.21/docs/webhook_notifications.md)
 for configuration and delivery rules.
 
 ## Structured search
@@ -200,12 +200,12 @@ terminal `done` events; an `error` event signals failure after streaming begins.
 The `done` event carries cursor metadata. Use `await client.openapi.call(...)`
 and `async with client.openapi.stream(..., json=search)` in asynchronous code.
 GET search streams accept no body; POST search streams require one. See the
-[server search reference](https://github.com/hubuum/hubuum/blob/v0.0.20/docs/search_api.md)
+[server search reference](https://github.com/hubuum/hubuum/blob/v0.0.21/docs/search_api.md)
 for field, sort, and predicate limits.
 
 ## Queued full restores
 
-Hubuum v0.0.20 restore confirmation returns `202 Accepted` when queued, before
+Hubuum v0.0.21 restore confirmation returns `202 Accepted` when queued, before
 the separate administrator restore executor finishes. Use
 [fresh credential approval](credentials.md#users-imports-and-restores) with
 `postApiV1RestoresByRestoreIdConfirm` to confirm a validated stage, then poll
@@ -230,7 +230,7 @@ are separate from task IDs and cannot use `client.tasks.wait()`.
 
 ## Scoped tokens
 
-Hubuum v0.0.20 nests token boundaries under one `scope` field. Omit `scope` for
+Hubuum v0.0.21 nests token boundaries under one `scope` field. Omit `scope` for
 an unscoped token; within a scope, permissions and collection/class/object
 resources are independent dimensions:
 
@@ -347,7 +347,7 @@ safety.
 ## Typed imports, exports, and task events
 
 Import graphs use strict import-v2 request models, including the timestamps
-Hubuum v0.0.20 can restore. `run()` submits the task, waits with a bounded poller, and
+Hubuum v0.0.21 can restore. `run()` submits the task, waits with a bounded poller, and
 collects per-entity results through guarded cursor pagination:
 
 ```python
@@ -496,7 +496,7 @@ Task history is available through `client.tasks.events()`, `event_pages()`, and
 ## Custom extension routes
 
 `request()` remains the lower-level escape hatch for a server extension that is
-not part of the pinned v0.0.20 OpenAPI document:
+not part of the pinned v0.0.21 OpenAPI document:
 
 ```python
 from hubuum_client import RequestOptions

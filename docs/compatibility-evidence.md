@@ -4,6 +4,7 @@
 
 | Python client | Hubuum server contract | Status | End-to-end evidence |
 | --- | --- | --- | --- |
+| 0.0.14 | [`v0.0.21`](https://github.com/hubuum/hubuum/tree/v0.0.21) | Verified | [46 core and 4 recovery tests against the published immutable image](#v0021-target) |
 | 0.0.13 | [`v0.0.20`](https://github.com/hubuum/hubuum/tree/v0.0.20) | Verified | 40 core and 4 recovery tests passed on 2026-10-24 using the installed 0.0.13 wheel (Python 3.13.3, Podman, released Linux AMD64 image), including typed API workflows, relation pagination, IAM/integration imports, service-account lifecycle/token invalidation, and eight complete restore cycles |
 | 0.0.12 | [`v0.0.20`](https://github.com/hubuum/hubuum/tree/v0.0.20) | Verified | 26 core and 4 recovery tests passed on 2026-10-22 using the installed 0.0.12 wheel (Python 3.12.15, Podman, released Linux AMD64 image), including rotation, replay revocation, logout, approvals, and eight complete restore cycles |
 | 0.0.11 | [`v0.0.18`](https://github.com/hubuum/hubuum/tree/v0.0.18) | Verified | 24 core and 4 recovery tests passed on 2026-10-06 using the installed wheel (Python 3.13.3, Podman, released Linux AMD64 image), including delegated setup in both runtimes and eight complete restore cycles |
@@ -19,20 +20,38 @@
 | 0.0.1 | [`v0.0.3`](https://github.com/hubuum/hubuum/releases/tag/v0.0.3) | Verified | [Pinned e2e passed on 2026-07-24](https://github.com/hubuum/hubuum-client-python/actions/runs/30128172912) |
 
 `Verified` means the complete Docker-backed suite passed for the exact
-client/server pair. The current server target is selected by tag and locked to
-an immutable multi-platform image:
+client/server pair. Clients 0.0.12 and 0.0.13 used this immutable
+multi-platform image:
 
 ```text
 ghcr.io/hubuum/hubuum-server:v0.0.20@sha256:eaf59f8a4b4793030a78bc1637a8e2b9fad2f810b8621ff9a874dca534b9a23a
 ```
 
 The tag identifies the supported server release; the digest prevents that tag
-from resolving to different content later. The same reference is stored in
+from resolving to different content later. The corresponding release tags retain that reference in
 `src/hubuum_client/_constants.py`, the e2e wrapper, and CI.
+
+## v0.0.21 target
+
+Client 0.0.14 targets the 261-operation, 401-schema contract from server v0.0.21.
+OpenAPI revision: `19db1547936f9a3844544085243e6d64b8e318a0`.
+OpenAPI SHA-256: `82d4ed17ab48ed45f7894739bbe3fe3ad2750462b394824b8b68da7ad6198a89`.
+Immutable image: `ghcr.io/hubuum/hubuum-server:v0.0.21@sha256:a5e1ad7a17281eefb4c1ed4da172a80bf815840f78bde6390d1e42bb2d51e0b6`.
+On 2026-10-26, the canonical wrapper passed all 46 core and 4 recovery tests
+using the installed 0.0.14 wheel, Python 3.12.15, Podman, and the published Linux
+AMD64 image. The recovery suite completed eight full restore cycles with and
+without history. Both image architectures identify the OpenAPI revision above.
+The tag document, source revision, checksum, and generated operation registry
+were verified against the authoritative server contract.
+
+Both runtimes preserve structured inventory paths, validate sampling options,
+submit and resume all three profiling presets, and require explicit staging,
+whole-class impact analysis, and activation. Failed, partial, inaccessible, and
+expired task reports do not become usable candidates.
 
 ## v0.0.20 target
 
-Client 0.0.13 targets the immutable v0.0.20 image above. Both Linux image
+Client 0.0.13 targeted the immutable v0.0.20 image above. Both Linux image
 architectures identify server commit `3bede6e5b815585f3ac5372cc829734b2ae14a68`.
 The [committed OpenAPI document](openapi.json) contains 257 operations and has
 SHA-256 `7ad82a5d64f7c01966eb34b9b82009955c2d5d246206190d2210c6bdf03e8dbb`.

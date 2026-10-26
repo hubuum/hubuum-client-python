@@ -26,6 +26,7 @@ both `Client.api` and `AsyncClient.api`; see [typed API usage](typed-api.md).
 | GET | `/api/v1/classes/by-name/{class_name}` | `api.classes.get_by_name()` |
 | DELETE | `/api/v1/classes/by-name/{class_name}` | `api.classes.delete_by_name()` |
 | PATCH | `/api/v1/classes/by-name/{class_name}` | `api.classes.patch_by_name()` |
+| GET | `/api/v1/classes/by-name/{class_name}/fields` | `api.classes.get_by_name_fields()` |
 | GET | `/api/v1/classes/by-name/{class_name}/object-aggregates` | `api.classes.get_by_name_object_aggregates()` |
 | GET | `/api/v1/classes/by-name/{class_name}/objects` | `api.classes.get_by_name_objects()` |
 | POST | `/api/v1/classes/by-name/{class_name}/objects` | `api.classes.post_by_name_objects()` |
@@ -45,6 +46,7 @@ both `Client.api` and `AsyncClient.api`; see [typed API usage](typed-api.md).
 | PATCH | `/api/v1/classes/{class_id}` | `api.classes.update()` |
 | GET | `/api/v1/classes/{class_id}/` | `api.classes.get_objects()` |
 | POST | `/api/v1/classes/{class_id}/` | `api.classes.post_objects()` |
+| GET | `/api/v1/classes/{class_id}/fields` | `api.classes.get_fields()` |
 | GET | `/api/v1/classes/{class_id}/history` | `api.classes.get_history()` |
 | GET | `/api/v1/classes/{class_id}/history/as-of` | `api.classes.get_history_as_of()` |
 | GET | `/api/v1/classes/{class_id}/history/entries/{history_id}` | `api.classes.get_history_entries_by_history_id()` |
@@ -64,6 +66,8 @@ both `Client.api` and `AsyncClient.api`; see [typed API usage](typed-api.md).
 | GET | `/api/v1/classes/{class_id}/relations/history/as-of` | `api.classes.get_relations_history_as_of()` |
 | GET | `/api/v1/classes/{class_id}/relations/{relation_id}` | `api.classes.get_relations_by_relation_id()` |
 | DELETE | `/api/v1/classes/{class_id}/relations/{relation_id}` | `api.classes.delete_relations_by_relation_id()` |
+| POST | `/api/v1/classes/{class_id}/schema/profiles` | `api.classes.post_schema_profiles()` |
+| GET | `/api/v1/classes/{class_id}/schema/profiles/{task_id}` | `api.classes.get_schema_profiles_by_task_id()` |
 | GET | `/api/v1/classes/{class_id}/{from_object_id}/relations/{to_class_id}/{to_object_id}` | `api.classes.get_by_from_object_id_relations_by_to_class_id_by_to_object_id()` |
 | POST | `/api/v1/classes/{class_id}/{from_object_id}/relations/{to_class_id}/{to_object_id}` | `api.classes.post_by_from_object_id_relations_by_to_class_id_by_to_object_id()` |
 | DELETE | `/api/v1/classes/{class_id}/{from_object_id}/relations/{to_class_id}/{to_object_id}` | `api.classes.delete_by_from_object_id_relations_by_to_class_id_by_to_object_id()` |

@@ -223,6 +223,10 @@
     "method": "get_classes_by_class_id_events",
     "service": "events"
   },
+  "getApiV1ClassesByClassIdFields": {
+    "method": "get_fields",
+    "service": "classes"
+  },
   "getApiV1ClassesByClassIdHistory": {
     "method": "get_history",
     "service": "classes"
@@ -303,6 +307,10 @@
     "method": "get_objects",
     "service": "schema_evolution"
   },
+  "getApiV1ClassesByClassIdSchemaProfilesByTaskId": {
+    "method": "get_schema_profiles_by_task_id",
+    "service": "classes"
+  },
   "getApiV1ClassesByClassIdSchemaRevisions": {
     "method": "get_revisions",
     "service": "schema_evolution"
@@ -325,6 +333,10 @@
   },
   "getApiV1ClassesByNameByClassName": {
     "method": "get_by_name",
+    "service": "classes"
+  },
+  "getApiV1ClassesByNameByClassNameFields": {
+    "method": "get_by_name_fields",
     "service": "classes"
   },
   "getApiV1ClassesByNameByClassNameObjectAggregates": {
@@ -821,6 +833,10 @@
   },
   "postApiV1ClassesByClassIdRelations": {
     "method": "post_relations",
+    "service": "classes"
+  },
+  "postApiV1ClassesByClassIdSchemaProfiles": {
+    "method": "post_schema_profiles",
     "service": "classes"
   },
   "postApiV1ClassesByClassIdSchemaRevisions": {

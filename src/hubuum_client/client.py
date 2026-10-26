@@ -283,7 +283,7 @@ class Client:
 
     @property
     def openapi(self) -> OpenAPIOperations:
-        """Return the complete operation-ID interface for all 257 v0.0.20 operations."""
+        """Return the complete operation-ID interface for all 261 v0.0.21 operations."""
         return OpenAPIOperations(self)
 
     @cached_property

@@ -1,13 +1,13 @@
 # Hubuum client for Python
 
 `hubuum-client` is a small, modern interface to the Hubuum REST API. Version
-0.0.13 targets Hubuum server v0.0.20 and gives synchronous and
+0.0.14 targets Hubuum server v0.0.21 and gives synchronous and
 asynchronous applications the same typed resource model.
 
 ## Installation
 
 ```bash
-python -m pip install "hubuum-client==0.0.13"
+python -m pip install "hubuum-client==0.0.14"
 ```
 
 Python 3.11 and later are supported.
@@ -33,7 +33,7 @@ with Client("https://hubuum.example.com") as client:
 - **Predictable typing.** Request and response bodies are Pydantic v2 models;
   resource identities use distinct `NewType` declarations.
 - **Runtime parity.** `Client` and `AsyncClient` expose matching resources,
-  errors, authentication behavior, pagination semantics, and all 257 pinned
+  errors, authentication behavior, pagination semantics, and all 261 pinned
   OpenAPI operations.
 - **Secure defaults.** TLS validation is enabled, tokens and credentials are
   redacted, and raw requests cannot switch origin or traverse URL paths.
@@ -53,8 +53,8 @@ measures, task events, import v2, and exports. Health, readiness, and public
 configuration are available before authentication.
 
 The [`client.api` interface](typed-api.md) provides matching sync and
-async types for all 257 operations and 391 named schemas in the immutable
-v0.0.20 specification, including administrative domains. Existing convenience
+async types for all 261 operations and 401 named schemas in the immutable
+v0.0.21 specification, including administrative domains. Existing convenience
 services remain available. The `openapi` service also exposes every operation
 by `operationId` for callers that need generic JSON, text, or byte values.
 CI checks both interfaces against the authoritative server contract.
@@ -62,7 +62,7 @@ CI checks both interfaces against the authoritative server contract.
 Continue with [client setup](client.md), then see
 [queries and pagination](querying.md).
 
-Use [credential approvals](credentials.md) for the v0.0.20 protected mutations,
+Use [credential approvals](credentials.md) for the v0.0.21 protected mutations,
 and [task discovery](querying.md#task-discovery) for lifecycle and resource filters.
 
 ## Explore a shared example
