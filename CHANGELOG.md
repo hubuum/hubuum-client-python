@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Maintenance
+
+- Refresh the dependency lock with deepmerge 4.0.0, mkdocs-material 9.8.0,
+  and pytest-asyncio 1.4.1 before preparing the next release. Update the pinned
+  Markdown lint action to v25.0.0.
+
 ## [0.0.13] - 2026-10-24
 
 ### Maintenance
