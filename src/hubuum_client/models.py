@@ -1677,7 +1677,7 @@ class ImportMode(RequestModel):
 
 
 class ImportGraph(_ImportModel):
-    """Strictly typed Hubuum v0.0.20 graph, including identity and integrations."""
+    """Strictly typed Hubuum v0.0.21 graph, including identity and integrations."""
 
     collections: tuple[ImportCollectionInput, ...] = ()
     classes: tuple[ImportClassInput, ...] = ()

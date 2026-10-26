@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any, TypeAlias
 from urllib.parse import urlsplit
 
-TARGET_REVISION = "ea42d82f52f7b5b4217ecefd83f0daea44bd8ea2"
+TARGET_REVISION = "19db1547936f9a3844544085243e6d64b8e318a0"
 TARGET_URL = f"https://raw.githubusercontent.com/hubuum/hubuum/{TARGET_REVISION}/docs/openapi.json"
 TARGET_SHA256 = "82d4ed17ab48ed45f7894739bbe3fe3ad2750462b394824b8b68da7ad6198a89"
 TARGET_VERSION = "0.0.21"

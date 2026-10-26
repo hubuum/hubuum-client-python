@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.0.14] - 2026-10-26
+
+This release targets Hubuum server v0.0.21. Upgrade the server before using
+field discovery and schema suggestions.
+
 ### Added
 
 - Bounded field discovery by class ID or exact name with validated limits,
@@ -503,7 +508,8 @@ All notable changes to this project are documented here. The format follows
   error diagnostics.
 - Redacted login tokens from model representations.
 
-[Unreleased]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.13...HEAD
+[Unreleased]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.14...HEAD
+[0.0.14]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.13...v0.0.14
 [0.0.13]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.12...v0.0.13
 [0.0.12]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.11...v0.0.12
 [0.0.11]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.10...v0.0.11

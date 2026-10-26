@@ -2,7 +2,7 @@
 
 The e2e suite builds the project wheel, installs that artifact into an isolated
 virtual environment, and exercises the installed distribution against a real
-Hubuum v0.0.20 server and PostgreSQL database. It covers public probes, login,
+Hubuum v0.0.21 server and PostgreSQL database. It covers public probes, login,
 public configuration, typed CRUD, natural-key addressing, forced multi-page
 cursor traversal and metadata, typed nested object-data filters (including
 scalar, numeric, array, structure, null, combined, and network cases),
@@ -11,7 +11,7 @@ class and object relations, non-administrator permission boundaries, live
 `400`, `401`, `403`, `404`, `409`, and `412` errors, successful and stale
 `If-Match` updates and deletes in both runtimes, principal-settings JSON Patch,
 scoped-token mint/list/inspect/renew/use/revoke lifecycles in both runtimes,
-v0.0.20 relation cardinality enforcement, import-v2 timestamp restoration,
+v0.0.21 relation cardinality enforcement, import-v2 timestamp restoration,
 export phase timings and task events, cleanup, and a complete async
 create/query/update/patch/delete lifecycle. Structured JSON and SSE searches
 are also checked in both runtimes.
@@ -98,7 +98,7 @@ also checks the generated container name and matching local mapped URL.
 
 | Variable | Purpose | Default |
 | --- | --- | --- |
-| `HUBUUM_E2E_SERVER_IMAGE` | Override the server image | Immutable v0.0.20 tag and digest |
+| `HUBUUM_E2E_SERVER_IMAGE` | Override the server image | Immutable v0.0.21 tag and digest |
 | `HUBUUM_E2E_POSTGRES_IMAGE` | Override PostgreSQL | `postgres:18` |
 | `HUBUUM_E2E_CONTAINER_RUNTIME` | Select `docker` or `podman` | Auto-detected |
 | `HUBUUM_E2E_PYTHON` | Interpreter used for the isolated wheel environment | `python3` |
@@ -122,7 +122,7 @@ after the selected core tests pass. Every test uses a random resource prefix.
 The core suite cleans up resources in reverse dependency order; recovery
 resources are removed with the disposable database when the wrapper exits.
 
-The v0.0.20 suite also obtains operation-bound approvals for protected user,
+The v0.0.21 suite also obtains operation-bound approvals for protected user,
 token, import, and restore mutations. It verifies bearer-only rejection,
 approval consumption and replay rejection, credential-import dry runs with
 idempotent admission, and retained task discovery through paginated and
@@ -133,11 +133,11 @@ between the client and server.
 
 ## Session API verification
 
-The complete pinned v0.0.20 suite requires session checks in both runtimes.
+The complete pinned v0.0.21 suite requires session checks in both runtimes.
 They exercise real rotation, family replay invalidation, and logout without
 waiting for the access-token deadline.
 
-For focused iteration against a caller-managed disposable v0.0.20 server, run:
+For focused iteration against a caller-managed disposable v0.0.21 server, run:
 
 ```bash
 HUBUUM_E2E_BASE_URL=http://127.0.0.1:8080 \

@@ -1,8 +1,8 @@
 # Complete typed API
 
-Client 0.0.13 provides `client.api` and `async_client.api` for all **257
-operations** in the pinned Hubuum v0.0.20 contract. Every operation has an explicit
-Python signature, request type, and response type. All **391 named schemas** are
+Client 0.0.14 provides `client.api` and `async_client.api` for all **261
+operations** in the pinned Hubuum v0.0.21 contract. Every operation has an explicit
+Python signature, request type, and response type. All **401 named schemas** are
 available in `hubuum_client.api.models`, including discriminated variants, enums,
 scalar aliases, arbitrary JSON where the contract permits it, and nested results.
 The [operation table](typed-operations.md) maps every route to its typed method.
