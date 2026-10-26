@@ -940,6 +940,122 @@ class SchemaReference(HubuumModel):
     revision: SchemaRevision
 
 
+class FieldSource(StrEnum):
+    DATA = "data"
+    SHARED_COMPUTED = "shared_computed"
+    PERSONAL_COMPUTED = "personal_computed"
+
+
+class ObservedFieldType(StrEnum):
+    NULL = "null"
+    BOOL = "bool"
+    NUMBER = "number"
+    STRING = "string"
+    ARRAY = "array"
+    OBJECT = "object"
+
+
+class FieldDiscoveryTruncation(StrEnum):
+    SAMPLE_LIMIT = "sample_limit"
+    CANDIDATE_LIMIT = "candidate_limit"
+    DEPTH = "depth"
+    WORK_LIMIT = "work_limit"
+    FIELD_LIMIT = "field_limit"
+    PATH_LIMIT = "path_limit"
+    RESPONSE_LIMIT = "response_limit"
+
+
+class FieldPropertySegment(APIModel):
+    """A literal property name, including names containing dots or brackets."""
+
+    kind: Literal["property"]
+    name: str
+
+
+class FieldArrayItemSegment(APIModel):
+    """Traversal of every array item, distinct from a literal property name."""
+
+    kind: Literal["array_item"]
+
+
+FieldPathSegment: TypeAlias = Annotated[
+    FieldPropertySegment | FieldArrayItemSegment, Field(discriminator="kind")
+]
+
+
+class DiscoveredField(APIModel):
+    """Sample observations; example is a bounded display preview, not raw JSON."""
+
+    field: str
+    source: FieldSource
+    path: tuple[FieldPathSegment, ...]
+    observation_count: int = Field(ge=0)
+    object_count: int = Field(ge=0)
+    types: dict[ObservedFieldType, int]
+    example: str | None = None
+    example_truncated: bool
+    error_count: int = Field(ge=0)
+
+
+class ClassFieldInventory(APIModel):
+    """Bounded, permission-filtered fields; counts never imply whole-class totals."""
+
+    sampled: bool
+    sampled_objects: int = Field(ge=0)
+    effective_sample_limit: int
+    max_depth: int
+    include_containers: bool
+    truncation: tuple[FieldDiscoveryTruncation, ...]
+    fields: tuple[DiscoveredField, ...]
+
+
+class SchemaProfilePreset(StrEnum):
+    STRICT = "strict"
+    BALANCED = "balanced"
+    EXPANSIVE = "expansive"
+
+
+class SchemaProfileRequest(RequestModel):
+    """Validated inference controls. Suggestions never activate a schema."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
+    preset: SchemaProfilePreset = SchemaProfilePreset.BALANCED
+    sample_limit: int = Field(default=100, ge=1, le=250, strict=True)
+
+
+class ProfileSuggestionStatus(StrEnum):
+    CANDIDATE = "candidate"
+    BLOCKED = "blocked"
+    INSUFFICIENT = "insufficient"
+
+
+class SchemaProfileReport(APIModel):
+    """A retained suggestion, available for 24 hours and subject to current access."""
+
+    class_id: ClassId
+    sampled: bool
+    sampled_objects: int = Field(ge=0)
+    effective_sample_limit: int
+    truncation: FieldDiscoveryTruncation | None = None
+    options: SchemaProfileRequest
+    status: ProfileSuggestionStatus
+    schema_: JsonValue = Field(default=None, alias="schema")
+    profile: JsonValue = None
+    findings: tuple[JsonValue, ...]
+    replay: JsonValue = None
+    sample_valid: bool | None = None
+
+    def stage_request(self, *, validate_schema: bool) -> SchemaStageRequest:
+        """Copy a reviewed candidate into a request; whole-class impact is still required."""
+        if self.status != ProfileSuggestionStatus.CANDIDATE or self.sample_valid is not True:
+            raise ValueError(
+                "report has no sample-valid candidate; inspect findings or suggest again"
+            )
+        if self.schema_ is None:
+            raise ValueError("candidate report is missing its schema")
+        return SchemaStageRequest(json_schema=self.schema_, validate_schema=validate_schema)
+
+
 class SchemaStageRequest(RequestModel):
     json_schema: JsonValue = Field(default=None, repr=False)
     validate_schema: bool
@@ -1964,6 +2080,7 @@ class TaskKind(StrEnum):
     REINDEX = "reindex"
     REMOTE_CALL = "remote_call"
     SCHEMA_VALIDATION = "schema_validation"
+    SCHEMA_PROFILING = "schema_profiling"
 
 
 class TaskRemoteSideEffectState(StrEnum):
@@ -2071,6 +2188,11 @@ class RetainedBackupDetails(HubuumModel):
     include_history: bool | None = None
 
 
+class SchemaProfileTaskDetails(APIModel):
+    class_id: ClassId | None = None
+    output_url: str | None = None
+
+
 class SchemaTaskDetails(HubuumModel):
     class_id: ClassId | None = None
     schema_revision: SchemaRevision | None = None
@@ -2133,6 +2255,7 @@ class TaskDetails(HubuumModel):
     export: ExportTaskDetails | None = None
     backup: BackupTaskDetails | None = None
     schema_validation: SchemaTaskDetails | None = None
+    schema_profiling: SchemaProfileTaskDetails | None = None
     reindex: RebuildTaskDetails | None = None
     remote_call: RemoteCallTaskDetails | None = None
 

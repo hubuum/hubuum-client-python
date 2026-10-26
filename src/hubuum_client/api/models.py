@@ -7,6 +7,7 @@ from typing import Annotated, Literal, TypeAlias
 from uuid import UUID
 
 from pydantic import ConfigDict, Field, JsonValue, SecretStr
+from typing_extensions import TypeAliasType
 
 from hubuum_client.models import APIModel
 
@@ -154,6 +155,9 @@ class DbStateResponse(APIModel):
     total_connections: Annotated[int, Field(ge=0)]
 
 
+TypesAdditionalProperty = TypeAliasType("TypesAdditionalProperty", Annotated[int, Field(ge=0)])
+
+
 class EventConfig(APIModel):
     delivery_batch_size: Annotated[int, Field(ge=0)]
     delivery_lock_timeout_ms: Annotated[int, Field(ge=0)]
@@ -278,6 +282,15 @@ class ExportWarning(APIModel):
     code: str
     message: str
     path: str | None = None
+
+
+class FieldPathSegmentProperty(APIModel):
+    kind: Literal["property"]
+    name: str
+
+
+class FieldPathSegmentArrayItem(APIModel):
+    kind: Literal["array_item"]
 
 
 class GroupKey(APIModel):
@@ -848,6 +861,17 @@ class SchemaIssue(APIModel):
     reason: SchemaFailure
 
 
+class SchemaProfileRequest(APIModel):
+    model_config = ConfigDict(extra="forbid")
+    preset: Literal["strict", "balanced", "expansive"] | None = "balanced"
+    sample_limit: Annotated[int | None, Field(ge=1, le=250)] = 100
+
+
+class SchemaProfileTaskDetails(APIModel):
+    class_id: HubuumClassID | None = None
+    output_url: str | None = None
+
+
 class SchemaRepairReportRequest(APIModel):
     model_config = ConfigDict(extra="forbid")
     object_url_template: str
@@ -1008,6 +1032,7 @@ class TaskConfig(APIModel):
     reindex_execution_timeout_seconds: Annotated[int, Field(ge=0)]
     remote_call_execution_timeout_seconds: Annotated[int, Field(ge=0)]
     remote_call_max_active_per_user: Annotated[int, Field(ge=0)]
+    schema_profiling_execution_timeout_seconds: Annotated[int, Field(ge=0)]
     schema_validation_execution_timeout_seconds: Annotated[int, Field(ge=0)]
     workers: Annotated[int, Field(ge=0)]
 
@@ -1522,6 +1547,20 @@ class DatabaseConfig(APIModel):
     url: SecretStatus
 
 
+class DiscoveredField(APIModel):
+    error_count: Annotated[int, Field(ge=0)]
+    example: str | None = None
+    example_truncated: bool
+    field: str
+    object_count: Annotated[int, Field(ge=0)]
+    observation_count: Annotated[int, Field(ge=0)]
+    path: list[FieldPathSegmentProperty | FieldPathSegmentArrayItem]
+    source: Literal["data", "shared_computed", "personal_computed"]
+    types: dict[
+        Literal["null", "bool", "number", "string", "array", "object"], TypesAdditionalProperty
+    ]
+
+
 class EventNotificationPreview(APIModel):
     payload: JsonValue
     sink_kind: Literal["webhook", "amqp", "valkey_stream", "email"]
@@ -1570,7 +1609,17 @@ class EventSubscriptionFilter(APIModel):
     subject_is_admin: bool | None = None
     subject_principal_ids: list[PrincipalID] | None = None
     task_kinds: (
-        list[Literal["import", "export", "backup", "reindex", "remote_call", "schema_validation"]]
+        list[
+            Literal[
+                "import",
+                "export",
+                "backup",
+                "reindex",
+                "remote_call",
+                "schema_validation",
+                "schema_profiling",
+            ]
+        ]
         | None
     ) = None
 
@@ -2400,6 +2449,32 @@ class SchemaDiagnostics(APIModel):
     truncated: bool
 
 
+class SchemaProfileReport(APIModel):
+    class_id: int
+    effective_sample_limit: Annotated[int, Field(ge=0)]
+    findings: list[JsonValue]
+    options: SchemaProfileRequest
+    profile: JsonValue | None = None
+    replay: JsonValue | None = None
+    sample_valid: bool | None = None
+    sampled: bool
+    sampled_objects: Annotated[int, Field(ge=0)]
+    schema_: Annotated[JsonValue | None, Field(alias="schema")] = None
+    status: Literal["candidate", "blocked", "insufficient"]
+    truncation: (
+        Literal[
+            "sample_limit",
+            "candidate_limit",
+            "depth",
+            "work_limit",
+            "field_limit",
+            "path_limit",
+            "response_limit",
+        ]
+        | None
+    ) = None
+
+
 class SchemaReference(APIModel):
     class_id: Annotated[int, Field(ge=1)]
     revision: Annotated[int, Field(ge=1)]
@@ -2694,6 +2769,26 @@ class BackupTaskDetails(APIModel):
     output_url: str
     retained: RetainedBackupDetails | None = None
     sha256: str | None = None
+
+
+class ClassFieldInventory(APIModel):
+    effective_sample_limit: Annotated[int, Field(ge=0)]
+    fields: list[DiscoveredField]
+    include_containers: bool
+    max_depth: Annotated[int, Field(ge=0)]
+    sampled: bool
+    sampled_objects: Annotated[int, Field(ge=0)]
+    truncation: list[
+        Literal[
+            "sample_limit",
+            "candidate_limit",
+            "depth",
+            "work_limit",
+            "field_limit",
+            "path_limit",
+            "response_limit",
+        ]
+    ]
 
 
 class ClassSchemaResponse(APIModel):
@@ -3358,6 +3453,7 @@ class TaskDetails(APIModel):
     import_: Annotated[ImportTaskDetails | None, Field(alias="import")] = None
     reindex: RebuildTaskDetails | None = None
     remote_call: RemoteCallTaskDetails | None = None
+    schema_profiling: SchemaProfileTaskDetails | None = None
     schema_validation: SchemaTaskDetails | None = None
 
 
@@ -3380,7 +3476,15 @@ class TaskResponse(APIModel):
     execution_deadline_at: datetime | None = None
     finished_at: datetime | None = None
     id: int
-    kind: Literal["import", "export", "backup", "reindex", "remote_call", "schema_validation"]
+    kind: Literal[
+        "import",
+        "export",
+        "backup",
+        "reindex",
+        "remote_call",
+        "schema_validation",
+        "schema_profiling",
+    ]
     links: TaskLinks
     progress: TaskProgress
     remote_side_effect_state: Literal["not_sent", "possibly_sent", "legacy_unknown"] | None = None
@@ -3845,6 +3949,17 @@ ExportScopeKind: TypeAlias = Literal[
 ]
 ExportTemplateID: TypeAlias = Annotated[int, Field(ge=1)]
 ExportTemplateKind: TypeAlias = Literal["export", "fragment"]
+FieldDiscoveryTruncation: TypeAlias = Literal[
+    "sample_limit",
+    "candidate_limit",
+    "depth",
+    "work_limit",
+    "field_limit",
+    "path_limit",
+    "response_limit",
+]
+FieldPathSegment: TypeAlias = FieldPathSegmentProperty | FieldPathSegmentArrayItem
+FieldSource: TypeAlias = Literal["data", "shared_computed", "personal_computed"]
 HistoricalComputationMode: TypeAlias = Literal["historical_recomputation"]
 HistoricalComputedField: TypeAlias = (
     HistoricalComputedField2
@@ -3970,6 +4085,8 @@ PrincipalSettingsPatchDocument: TypeAlias = Annotated[
     ],
     Field(max_length=1000),
 ]
+ProfilePreset: TypeAlias = Literal["strict", "balanced", "expansive"]
+ProfileSuggestionStatus: TypeAlias = Literal["candidate", "blocked", "insufficient"]
 QueryUsageAnalysisStatus: TypeAlias = Literal["unavailable", "insufficient_evidence", "complete"]
 QueryUsageCompatibility: TypeAlias = Literal["compatible", "incompatible", "unknown"]
 QueryUsageOperation: TypeAlias = Literal["equals", "gt", "gte", "lt", "lte", "between"]
@@ -4120,7 +4237,7 @@ TaskDiscoveryTarget: TypeAlias = (
 )
 TaskID: TypeAlias = Annotated[int, Field(ge=1)]
 TaskKind: TypeAlias = Literal[
-    "import", "export", "backup", "reindex", "remote_call", "schema_validation"
+    "import", "export", "backup", "reindex", "remote_call", "schema_validation", "schema_profiling"
 ]
 TaskOutputDiscoveryState: TypeAlias = Literal["available", "expired", "not_produced", "unknown"]
 TaskRemoteSideEffectState: TypeAlias = Literal["not_sent", "possibly_sent", "legacy_unknown"]

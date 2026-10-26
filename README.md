@@ -19,8 +19,10 @@ against the tag-and-digest server image recorded in the
 [compatibility matrix](docs/compatibility.md), including repeated full restores
 and JSON-null recovery in both runtimes.
 
-Schema revisions, impact diagnostics, retained HTML repair reports, and task
-cancellation have matching typed sync/async APIs. See the
+Bounded field discovery and asynchronous schema suggestions join schema revisions,
+impact diagnostics, retained HTML repair reports, and task cancellation with
+matching typed sync/async APIs. Discover fields, review a candidate, then stage it
+for whole-class impact analysis and explicit activation. See the
 [schema workflow](docs/schema.md) and [upgrade notes](docs/compatibility.md#before-upgrading).
 
 Credential management now requires [single-use password approval](docs/credentials.md),

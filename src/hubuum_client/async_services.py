@@ -25,6 +25,7 @@ from ._transport import (
 from .errors import ResultCardinalityError, TaskUnsuccessfulError
 from .models import (
     ClassCreate,
+    ClassFieldInventory,
     ClassRelation,
     ClassRelationCreate,
     ClassRelationUpdate,
@@ -73,6 +74,8 @@ from .models import (
     SchemaActivationRequest,
     SchemaActivationResponse,
     SchemaCompliancePage,
+    SchemaProfileReport,
+    SchemaProfileRequest,
     SchemaRepairReportRequest,
     SchemaRevisionResponse,
     SchemaStageRequest,
@@ -84,6 +87,7 @@ from .models import (
     Task,
     TaskCancelRequest,
     TaskEvent,
+    TaskStatus,
     User,
     UserCreate,
     UserPoint,
@@ -92,7 +96,7 @@ from .models import (
     _object_data_patch_payload,
 )
 from .options import Params, RequestOptions
-from .query import Page, Query, SchemaPageOptions, TokenListState
+from .query import FieldDiscoveryOptions, Page, Query, SchemaPageOptions, TokenListState
 from .streaming import AsyncResponseStream
 from .types import (
     AccessToken,
@@ -344,6 +348,15 @@ class AsyncClassService:
         self.class_id = class_id
         self._base = f"/api/v1/classes/{_segment(class_id)}"
 
+    async def fields(self, options: FieldDiscoveryOptions | None = None) -> ClassFieldInventory:
+        """Discover authorized fields in one bounded request without downloading object data."""
+        return await self._client.request(
+            "GET",
+            f"{self._base}/fields",
+            response_model=ClassFieldInventory,
+            options=RequestOptions(params=(options or FieldDiscoveryOptions()).as_params()),
+        )
+
     @property
     def schema(self) -> AsyncClassSchemaService:
         return AsyncClassSchemaService(self._client, self.class_id)
@@ -373,6 +386,49 @@ class AsyncClassSchemaService:
     def __init__(self, client: AsyncClient, class_id: ClassId) -> None:
         self._client = client
         self._base = f"/api/v1/classes/{_segment(class_id)}/schema"
+
+    async def profile(
+        self,
+        payload: SchemaProfileRequest | None = None,
+        *,
+        idempotency_key: str | None = None,
+    ) -> Task:
+        """Queue a suggestion; this never stages or activates a schema."""
+        headers = {"Idempotency-Key": idempotency_key} if idempotency_key is not None else None
+        return await self._client.request(
+            "POST",
+            f"{self._base}/profiles",
+            json=payload or SchemaProfileRequest(),
+            response_model=Task,
+            options=RequestOptions(headers=headers),
+        )
+
+    async def profile_report(self, task_id: TaskId | int) -> SchemaProfileReport:
+        """Read a completed suggestion. Expired reports return HTTP 410 after 24 hours."""
+        return await self._client.request(
+            "GET",
+            f"{self._base}/profiles/{_segment(TaskId(task_id))}",
+            response_model=SchemaProfileReport,
+        )
+
+    async def suggest(
+        self,
+        payload: SchemaProfileRequest | None = None,
+        *,
+        idempotency_key: str | None = None,
+        timeout_seconds: float = 300.0,
+        poll_interval: float = 0.5,
+    ) -> SchemaProfileReport:
+        """Submit, wait, and fetch a suggestion for explicit review and staging."""
+        submitted = await self.profile(payload, idempotency_key=idempotency_key)
+        task = await self._client.tasks.wait(
+            submitted.id,
+            timeout_seconds=timeout_seconds,
+            poll_interval=poll_interval,
+        )
+        if task.status is not TaskStatus.SUCCEEDED:
+            raise TaskUnsuccessfulError(int(task.id), task.status.value)
+        return await self.profile_report(task.id)
 
     async def get(self) -> ClassSchemaResponse:
         """Return the active schema and administrator compliance counts."""
@@ -658,6 +714,22 @@ class AsyncNamedClassService:
         self._client = client
         self.class_name = _required_name(class_name, "class")
         self._base = f"/api/v1/classes/by-name/{_segment(self.class_name)}"
+
+    async def fields(self, options: FieldDiscoveryOptions | None = None) -> ClassFieldInventory:
+        """Discover by exact name, using an ID route for URL dot segments."""
+        if self.class_name in {".", ".."}:
+            matches = await self._client.classes.list(
+                Query().where("name", self.class_name).limit(2).include_total(False)
+            )
+            if len(matches) != 1:
+                raise ResultCardinalityError("expected exactly one class for field discovery")
+            return await self._client.classes.by_id(matches[0].id).fields(options)
+        return await self._client.request(
+            "GET",
+            f"{self._base}/fields",
+            response_model=ClassFieldInventory,
+            options=RequestOptions(params=(options or FieldDiscoveryOptions()).as_params()),
+        )
 
     @property
     def objects(self) -> AsyncNamedObjectsService:

@@ -33,6 +33,14 @@ class ClassesPatchByNameHeader(APIModel):
     if_match: Annotated[str | None, Field(alias="If-Match")] = None
 
 
+class ClassesGetByNameFieldsQuery(APIModel):
+    """Immutable operation parameters; omitted fields are not sent."""
+
+    limit: Annotated[int | None, Field(ge=1, le=250)] = None
+    depth: Annotated[int | None, Field(ge=0, le=32)] = None
+    containers: bool | None = None
+
+
 class ClassesGetByNameObjectAggregatesQuery(APIModel):
     """Immutable operation parameters; omitted fields are not sent."""
 
@@ -142,6 +150,14 @@ class ClassesGetObjectsQuery(APIModel):
     limit: Annotated[int | None, Field(ge=1, le=250)] = None
     cursor: str | None = None
     include_total: bool | None = None
+
+
+class ClassesGetFieldsQuery(APIModel):
+    """Immutable operation parameters; omitted fields are not sent."""
+
+    limit: Annotated[int | None, Field(ge=1, le=250)] = None
+    depth: Annotated[int | None, Field(ge=0, le=32)] = None
+    containers: bool | None = None
 
 
 class ClassesGetHistoryQuery(APIModel):
