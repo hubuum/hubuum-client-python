@@ -43,7 +43,19 @@ not raw JSON. Shared and personal computed fields preserve their own sources
 and error counts. Always inspect truncation before drawing conclusions from a
 missing field.
 
-The `STRICT`, `BALANCED`, and `EXPANSIVE` presets choose inference policy.
+Choose an inference preset for the raw object data:
+
+| Preset | Mixed unrelated types | Consistently present properties | Additional properties |
+| --- | --- | --- | --- |
+| `STRICT` | Block the suggestion | Required | Denied |
+| `BALANCED` (default) | Preserve as a union | Required | Allowed |
+| `EXPANSIVE` | Preserve as a union | Optional | Allowed |
+
+Discovery and profiling require `ReadClass`; the sample includes only objects
+the caller may read. Computed fields appear in discovery but do not contribute
+to the suggested raw-data schema. Observed nulls and missing properties remain
+distinct.
+
 A sample-valid candidate still needs review and whole-class impact analysis.
 `stage_request` rejects blocked, insufficient, invalid, or missing candidates.
 Staging keeps the active policy unchanged; activation remains an explicit call
