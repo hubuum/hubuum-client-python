@@ -317,6 +317,65 @@ async def test_typed_query_usage(typed_client: Any, graph: tuple[Any, ...]) -> N
     assert isinstance(observation.enabled, bool)
 
 
+async def test_typed_unified_search(typed_client: Any, graph: tuple[Any, ...]) -> None:
+    collection, classes, objects, _, _ = graph
+    api = typed_client.api
+    controls = query.SearchListQuery(
+        q=collection.name,
+        kinds="collection,class,object",
+        limit_per_kind=1,
+        search_class_schema=False,
+        search_object_data=False,
+    )
+    first = (await resolve(api.search.list(query=controls))).body
+    assert [item.id for item in first.results.collections] == [collection.id]
+    assert len(first.results.classes) == len(first.results.objects) == 1
+    assert first.next.classes
+    assert first.next.objects
+    second = (
+        await resolve(
+            api.search.list(
+                query=controls.model_copy(
+                    update={
+                        "kinds": "class,object",
+                        "cursor_classes": first.next.classes,
+                        "cursor_objects": first.next.objects,
+                    }
+                )
+            )
+        )
+    ).body
+    assert second.results.collections == []
+    assert {item.id for item in first.results.classes + second.results.classes} == {
+        item.id for item in classes
+    }
+    assert {item.id for item in first.results.objects + second.results.objects} == {
+        item.id for item in objects
+    }
+    assert second.next.classes is second.next.objects is None
+    marker = collection.name + "-data-only"
+    await resolve(
+        api.classes.patch_object(
+            classes[0].id,
+            objects[0].id,
+            body=models.UpdateHubuumObjectRequest(data={"marker": marker}),
+        )
+    )
+    for enabled in (False, True):
+        found = (
+            await resolve(
+                api.search.list(
+                    query=query.SearchListQuery(
+                        q=marker,
+                        kinds="object",
+                        search_object_data=enabled,
+                    )
+                )
+            )
+        ).body
+        assert [item.id for item in found.results.objects] == ([objects[0].id] if enabled else [])
+
+
 async def test_typed_search_hydration_and_events(typed_client: Any, graph: tuple[Any, ...]) -> None:
     _, classes, objects, _, edge = graph
     api = typed_client.api

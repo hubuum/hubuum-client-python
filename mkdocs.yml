@@ -1,5 +1,5 @@
 site_name: Hubuum Client for Python
-site_description: Typed synchronous and asynchronous Python client for Hubuum server v0.0.20
+site_description: Typed synchronous and asynchronous Python client for Hubuum server v0.0.21
 site_url: https://hubuum.github.io/hubuum-client-python/
 repo_url: https://github.com/hubuum/hubuum-client-python
 repo_name: hubuum/hubuum-client-python
@@ -60,6 +60,7 @@ nav:
   - Service accounts: service-accounts.md
   - Querying and pagination: querying.md
   - Schema evolution: schema.md
+  - Resource workflows: workflows.md
   - Advanced usage: advanced.md
   - Complete typed API: typed-api.md
   - Typed operation coverage: typed-operations.md

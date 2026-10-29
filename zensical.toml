@@ -18,6 +18,7 @@ nav = [
     { "Service accounts" = "service-accounts.md" },
     { "Querying and pagination" = "querying.md" },
     { "Schema evolution" = "schema.md" },
+    { "Resource workflows" = "workflows.md" },
     { "Advanced usage" = "advanced.md" },
     { "Complete typed API" = "typed-api.md" },
   ] },

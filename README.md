@@ -159,6 +159,10 @@ exports, and the search event stream. `request()` remains available for
 server extensions outside the pinned specification. Both interfaces are
 constrained to the configured origin.
 
+The [resource workflow guide](docs/workflows.md) covers permission delegation,
+audit/history, computed fields, export templates, remote targets, delivery
+controls, principal settings, administration, and full backup/restore.
+
 ## Querying and pagination
 
 Queries are immutable and reusable:

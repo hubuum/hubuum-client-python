@@ -48,6 +48,22 @@ _SENSITIVE_KEY_PARTS = (
     "secret",
     "token",
 )
+_SENSITIVE_BODY_KEYS = {
+    "auth_config",
+    "body_override",
+    "body_template",
+    "config",
+    "definition",
+    "headers_template",
+    "history",
+    "operation",
+    "parameters",
+    "settings",
+    "sha256",
+    "state",
+    "template",
+    "url_template",
+}
 _MAX_PATH_DECODING_PASSES = 8
 _MAX_IDEMPOTENCY_KEY_BYTES = 255
 _ASCII_CONTROL_END = 32
@@ -193,12 +209,26 @@ def _sensitive_key(value: object) -> bool:
 def _collect_sensitive_values(value: Any, result: set[str], *, sensitive: bool = False) -> None:
     if isinstance(value, Mapping):
         for key, item in value.items():
-            _collect_sensitive_values(item, result, sensitive=_sensitive_key(key))
+            _collect_sensitive_values(
+                item,
+                result,
+                sensitive=sensitive or _sensitive_key(key) or key in _SENSITIVE_BODY_KEYS,
+            )
     elif isinstance(value, (list, tuple)):
         for item in value:
             _collect_sensitive_values(item, result, sensitive=sensitive)
     elif sensitive and isinstance(value, str) and value:
         result.add(value)
+        # URL validation failures may echo only the embedded credential rather
+        # than the complete configured URL. Never retain either form.
+        if "://" in value:
+            with suppress(ValueError):
+                url = urlsplit(value)
+                if url.password:
+                    result.update((url.password, unquote(url.password)))
+                for key, item in httpx.QueryParams(url.query).multi_items():
+                    if _sensitive_key(key) and item:
+                        result.add(item)
 
 
 def sensitive_request_values(

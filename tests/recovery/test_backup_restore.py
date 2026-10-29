@@ -6,7 +6,6 @@ import asyncio
 import os
 import shutil
 import subprocess
-import time
 import uuid
 from dataclasses import dataclass
 from typing import Any
@@ -16,6 +15,7 @@ import pytest
 from hubuum_client import (
     AsyncClient,
     AuthenticationError,
+    BackupRequest,
     ClassCreate,
     Client,
     CollectionCreate,
@@ -25,10 +25,8 @@ from hubuum_client import (
     NotFoundError,
     ObjectCreate,
     ObjectUpdate,
-    OpenAPIOptions,
     RestoreConfirmRequest,
     RestoreJobId,
-    Task,
 )
 
 pytestmark = pytest.mark.e2e
@@ -89,15 +87,6 @@ def recovery_stack() -> RecoveryStack:
     return RecoveryStack(runtime, server, base_url)
 
 
-def _stage_options(stage: dict[str, Any], *, capability: bool = False) -> OpenAPIOptions:
-    return OpenAPIOptions(
-        path_params={"restore_id": stage["id"]},
-        headers={"X-Hubuum-Restore-Capability": stage["restore_capability"]}
-        if capability
-        else None,
-    )
-
-
 def _confirmation(stage: dict[str, Any]) -> dict[str, str]:
     return {
         "restore_capability": stage["restore_capability"],
@@ -110,14 +99,6 @@ def _validated_stage(value: Any) -> dict[str, Any]:
     assert isinstance(value, dict)
     assert value["status"] == "validated"
     return value
-
-
-def _check_status(status: Any) -> bool:
-    if not isinstance(status, dict):
-        pytest.fail("restore status must be a JSON object")
-    if status["status"] == "failed":
-        pytest.fail("the disposable restore executor reported failure")
-    return bool(status["status"] == "succeeded")
 
 
 def _sync_roundtrip(stack: RecoveryStack, *, include_history: bool | None = None) -> None:
@@ -151,27 +132,21 @@ def _sync_roundtrip(stack: RecoveryStack, *, include_history: bool | None = None
         )
         nullable = objects.patch_data(nullable.id, [{"op": "replace", "path": "", "value": None}])
         assert nullable.data is None
-        task = Task.model_validate(
-            client.openapi.call(
-                "postApiV1Backups",
-                json={} if include_history is None else {"include_history": include_history},
-            )
+        backup = client.backups.run(
+            BackupRequest()
+            if include_history is None
+            else BackupRequest(include_history=include_history),
+            timeout_seconds=90,
+            poll_interval=0.2,
         )
-        completed = client.tasks.wait(task.id, timeout_seconds=90, poll_interval=0.2)
-        assert completed.status.successful
-        backup = client.openapi.call(
-            "getApiV1BackupsByTaskIdOutput",
-            options=OpenAPIOptions(path_params={"task_id": task.id}),
-        )
-        assert isinstance(backup, dict)
-        assert backup["backup_version"] == 10
-        assert (backup.get("history") is not None) is (include_history is not False)
+        assert backup.backup_version == 10
+        assert (backup.history is not None) is (include_history is not False)
         objects.update(original.id, ObjectUpdate(data={"phase": "after"}))
         objects.update(nullable.id, ObjectUpdate(data={"phase": "after"}))
         extra = objects.create(
             ObjectCreate(name=f"{prefix}-later", description="After backup", data={})
         )
-        stage = _validated_stage(client.openapi.call("postApiV1Restores", json=backup))
+        stage = _validated_stage((client.restores.stage(backup)).wire_payload())
         approval = client.credential_approvals.create(
             CredentialApprovalRequest(
                 password=password,
@@ -181,28 +156,21 @@ def _sync_roundtrip(stack: RecoveryStack, *, include_history: bool | None = None
                 ),
             )
         )
-        confirmed = client.openapi.call(
-            "postApiV1RestoresByRestoreIdConfirm",
-            json=_confirmation(stage),
-            options=OpenAPIOptions(
-                path_params={"restore_id": stage["id"]}, headers=approval.headers()
-            ),
+        confirmed = client.restores.confirm(
+            RestoreJobId(stage["id"]),
+            RestoreConfirmRequest.model_validate(_confirmation(stage)),
+            credential_approval=approval.approval,
         )
-        assert isinstance(confirmed, dict)
-        assert confirmed["status"] == "confirmed"
-        with Client(stack.base_url) as status_client:
-            deadline = time.monotonic() + 90
-            while time.monotonic() < deadline:
-                if _check_status(
-                    status_client.openapi.call(
-                        "getApiV1RestoresByRestoreIdStatus",
-                        options=_stage_options(stage, capability=True),
-                    )
-                ):
-                    break
-                time.sleep(0.2)
-            else:
-                pytest.fail("disposable restore did not complete within 90 seconds")
+        assert confirmed.status == "confirmed"
+        # Keep the now-invalid bearer session installed: capability polling must
+        # neither refresh it nor send it to the restore-status route.
+        completed = client.restores.wait(
+            RestoreJobId(stage["id"]),
+            capability=stage["restore_capability"],
+            timeout_seconds=90,
+            poll_interval=0.2,
+        )
+        assert completed.status == "succeeded"
         with pytest.raises(AuthenticationError):
             client.me()
         client.login_session(Credentials("admin", stack.reset_password()))
@@ -251,27 +219,21 @@ async def _async_roundtrip(stack: RecoveryStack, *, include_history: bool | None
             nullable.id, [{"op": "replace", "path": "", "value": None}]
         )
         assert nullable.data is None
-        task = Task.model_validate(
-            await client.openapi.call(
-                "postApiV1Backups",
-                json={} if include_history is None else {"include_history": include_history},
-            )
+        backup = await client.backups.run(
+            BackupRequest()
+            if include_history is None
+            else BackupRequest(include_history=include_history),
+            timeout_seconds=90,
+            poll_interval=0.2,
         )
-        completed = await client.tasks.wait(task.id, timeout_seconds=90, poll_interval=0.2)
-        assert completed.status.successful
-        backup = await client.openapi.call(
-            "getApiV1BackupsByTaskIdOutput",
-            options=OpenAPIOptions(path_params={"task_id": task.id}),
-        )
-        assert isinstance(backup, dict)
-        assert backup["backup_version"] == 10
-        assert (backup.get("history") is not None) is (include_history is not False)
+        assert backup.backup_version == 10
+        assert (backup.history is not None) is (include_history is not False)
         await objects.update(original.id, ObjectUpdate(data={"phase": "after"}))
         await objects.update(nullable.id, ObjectUpdate(data={"phase": "after"}))
         extra = await objects.create(
             ObjectCreate(name=f"{prefix}-later", description="After backup", data={})
         )
-        stage = _validated_stage(await client.openapi.call("postApiV1Restores", json=backup))
+        stage = _validated_stage((await client.restores.stage(backup)).wire_payload())
         approval = await client.credential_approvals.create(
             CredentialApprovalRequest(
                 password=password,
@@ -281,28 +243,21 @@ async def _async_roundtrip(stack: RecoveryStack, *, include_history: bool | None
                 ),
             )
         )
-        confirmed = await client.openapi.call(
-            "postApiV1RestoresByRestoreIdConfirm",
-            json=_confirmation(stage),
-            options=OpenAPIOptions(
-                path_params={"restore_id": stage["id"]}, headers=approval.headers()
-            ),
+        confirmed = await client.restores.confirm(
+            RestoreJobId(stage["id"]),
+            RestoreConfirmRequest.model_validate(_confirmation(stage)),
+            credential_approval=approval.approval,
         )
-        assert isinstance(confirmed, dict)
-        assert confirmed["status"] == "confirmed"
-        async with AsyncClient(stack.base_url) as status_client:
-            deadline = time.monotonic() + 90
-            while time.monotonic() < deadline:
-                if _check_status(
-                    await status_client.openapi.call(
-                        "getApiV1RestoresByRestoreIdStatus",
-                        options=_stage_options(stage, capability=True),
-                    )
-                ):
-                    break
-                await asyncio.sleep(0.2)
-            else:
-                pytest.fail("disposable restore did not complete within 90 seconds")
+        assert confirmed.status == "confirmed"
+        # Keep the now-invalid bearer session installed: capability polling must
+        # neither refresh it nor send it to the restore-status route.
+        completed = await client.restores.wait(
+            RestoreJobId(stage["id"]),
+            capability=stage["restore_capability"],
+            timeout_seconds=90,
+            poll_interval=0.2,
+        )
+        assert completed.status == "succeeded"
         with pytest.raises(AuthenticationError):
             await client.me()
         await client.login_session(

@@ -93,6 +93,23 @@ history = client.api.classes.get_object_history_computed_as_of(
 print(history.mode, history.shared.status)
 ```
 
+## Unified search
+
+`client.api.search.list(query=SearchListQuery(...))` performs typed GET search.
+Import `SearchListQuery` from `hubuum_client.api.query`. The required `q` is plain
+text; `kinds="collection,class,object"` selects the result kinds. Results are
+separate typed lists under `.body.results.collections`, `.classes`, and `.objects`.
+`limit_per_kind` applies independently to each list (1–250; server default 100).
+
+Cursors live in `.body.next.collections`, `.classes`, and `.objects`. Copy each
+non-null cursor to its corresponding `cursor_collections`, `cursor_classes`, or
+`cursor_objects` control, keeping the original query and flags. Omit exhausted
+kinds on subsequent requests; starting a kind without its cursor starts that
+kind from the beginning. Unified search does not use one shared next cursor.
+`search_class_schema=True` includes class-schema text in matching;
+`search_object_data=True` includes JSON string values in object matching.
+These flags expand matching rather than selecting fields in the response.
+
 ## Typed search events
 
 Streaming methods retain raw byte, text, and line iteration and add `events()`.
@@ -107,7 +124,11 @@ with client.api.search.get_stream(query=query.SearchGetStreamQuery(q="server")) 
 ```
 
 For asynchronous use, enter with `async with` and iterate with
-`async for event in stream.events()`.
+`async for event in stream.events()`. Events arrive as soon as a complete SSE
+frame is available, including when UTF-8 characters or line endings cross HTTP
+chunks. Keep consumption inside the context: leaving it closes the response on
+completion, early exit, decoding failure, and async cancellation. An `error`
+event is typed protocol data; inspect it even when HTTP status is 200.
 
 ## Maintaining parity
 

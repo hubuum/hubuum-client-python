@@ -15,6 +15,7 @@ from hubuum_client import (
     GroupId,
     NotFoundError,
     OpenAPIOptions,
+    Query,
 )
 
 pytestmark = pytest.mark.e2e
@@ -134,6 +135,7 @@ async def test_notification_preview_test_and_system_subscriptions(
         assert isinstance(delivery, dict)
         assert delivery["purpose"] == "test"
         assert delivery["subscription_id"] == subscription["id"]
+        await _check_delivery_controls(api, delivery["id"], subscription["id"])
 
         await _resolve(
             api.openapi.call(
@@ -185,3 +187,23 @@ async def _check_system_subscription(api: Client | AsyncClient, system_id: int) 
     assert isinstance(health, dict)
     entry = next(item for item in health["subscriptions"] if item["subscription_id"] == system_id)
     assert entry["collection_id"] is None
+
+
+async def _check_delivery_controls(
+    api: Client | AsyncClient, delivery_id: int, subscription_id: int
+) -> None:
+    fetched_delivery = await _resolve(api.event_deliveries.get(delivery_id))
+    assert fetched_delivery.purpose == "test"
+    dead = await _resolve(api.event_deliveries.mark_dead(fetched_delivery.id))
+    assert dead.delivery.status == "dead"
+    retried = await _resolve(api.event_deliveries.retry(fetched_delivery.id))
+    assert retried.delivery.id == fetched_delivery.id
+    await _resolve(api.event_deliveries.mark_dead(fetched_delivery.id))
+    assert any(
+        item.id == fetched_delivery.id
+        for item in await _resolve(
+            api.event_deliveries.all(Query().where("id", delivery_id).limit(1))
+        )
+    )
+    health = await _resolve(api.event_deliveries.health())
+    assert any(item.collection_id is None for item in health.subscriptions)
