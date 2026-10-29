@@ -699,6 +699,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../workflows/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Resource workflows
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../advanced/" class="md-nav__link">
         
   
@@ -811,6 +838,17 @@
     <span class="md-ellipsis">
       <span class="md-typeset">
         Query and header controls
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#unified-search" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Unified search
       </span>
     </span>
   </a>
@@ -1286,6 +1324,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#unified-search" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Unified search
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#typed-search-events" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1436,6 +1485,20 @@ same keys in options. Supply path arguments directly to the method.</p>
 <a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="p">)</span><span class="o">.</span><span class="n">body</span>
 <a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="nb">print</span><span class="p">(</span><span class="n">history</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span> <span class="n">history</span><span class="o">.</span><span class="n">shared</span><span class="o">.</span><span class="n">status</span><span class="p">)</span>
 </code></pre></div>
+<h2 id="unified-search">Unified search<a class="headerlink" href="#unified-search" title="Permanent link">&para;</a></h2>
+<p><code>client.api.search.list(query=SearchListQuery(...))</code> performs typed GET search.
+Import <code>SearchListQuery</code> from <code>hubuum_client.api.query</code>. The required <code>q</code> is plain
+text; <code>kinds="collection,class,object"</code> selects the result kinds. Results are
+separate typed lists under <code>.body.results.collections</code>, <code>.classes</code>, and <code>.objects</code>.
+<code>limit_per_kind</code> applies independently to each list (1–250; server default 100).</p>
+<p>Cursors live in <code>.body.next.collections</code>, <code>.classes</code>, and <code>.objects</code>. Copy each
+non-null cursor to its corresponding <code>cursor_collections</code>, <code>cursor_classes</code>, or
+<code>cursor_objects</code> control, keeping the original query and flags. Omit exhausted
+kinds on subsequent requests; starting a kind without its cursor starts that
+kind from the beginning. Unified search does not use one shared next cursor.
+<code>search_class_schema=True</code> includes class-schema text in matching;
+<code>search_object_data=True</code> includes JSON string values in object matching.
+These flags expand matching rather than selecting fields in the response.</p>
 <h2 id="typed-search-events">Typed search events<a class="headerlink" href="#typed-search-events" title="Permanent link">&para;</a></h2>
 <p>Streaming methods retain raw byte, text, and line iteration and add <code>events()</code>.
 Each event has an <code>event</code> name and typed <code>data</code>. Both unified and structured
@@ -1446,7 +1509,11 @@ without including response content.</p>
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">event</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
 </code></pre></div>
 <p>For asynchronous use, enter with <code>async with</code> and iterate with
-<code>async for event in stream.events()</code>.</p>
+<code>async for event in stream.events()</code>. Events arrive as soon as a complete SSE
+frame is available, including when UTF-8 characters or line endings cross HTTP
+chunks. Keep consumption inside the context: leaving it closes the response on
+completion, early exit, decoding failure, and async cancellation. An <code>error</code>
+event is typed protocol data; inspect it even when HTTP status is 200.</p>
 <h2 id="maintaining-parity">Maintaining parity<a class="headerlink" href="#maintaining-parity" title="Permanent link">&para;</a></h2>
 <p>The implementation and route table are generated offline from the committed
 <code>docs/openapi.json</code>. The development-only model generator is pinned; it is not a

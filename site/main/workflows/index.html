@@ -1,0 +1,1805 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Typed synchronous and asynchronous Python clients for Hubuum.">
+      
+      
+      
+        <link rel="canonical" href="https://hubuum.github.io/hubuum-client-python/main/workflows/">
+      
+      
+      
+        <link rel="prev" href="../schema/">
+      
+      
+        <link rel="next" href="../advanced/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="zensical-0.0.72">
+    
+    
+      
+        <title>Resource workflows - Hubuum Python client</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../assets/stylesheets/modern/main.4ab2de0c.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="../assets/stylesheets/modern/palette.b60ce83d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="https://hubuum.github.io/assets/stylesheets/hubuum.css">
+    
+    <script>__md_scope=new URL("..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="deep-orange">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-hidden="true"></label>
+    <div data-md-component="skip">
+      <a href="#__skip" class="md-skip">
+        Skip to content
+      </a>
+    </div>
+    <div data-md-component="announce">
+      
+        <aside class="md-banner">
+          <div class="md-banner__inner md-grid md-typeset">
+            
+            
+  <nav class="hubuum-ecosystem" aria-label="Hubuum projects">
+    <a href="https://hubuum.github.io/"><strong>Hubuum</strong></a>
+    
+      <a href="https://hubuum.github.io/hubuum/">Server</a>
+    
+      <a href="https://hubuum.github.io/hubuum-frontend/">Frontend</a>
+    
+      <a href="https://hubuum.github.io/hubuum-cli/">CLI</a>
+    
+      <a href="https://hubuum.github.io/hubuum-client-rust/">Rust client</a>
+    
+      <a href="https://hubuum.github.io/hubuum-client-python/">Python client</a>
+    
+  </nav>
+  
+  
+    <strong>Development documentation</strong> — may describe unreleased changes.
+  
+  <label for="docs-version">Version</label>
+  <select id="docs-version" data-version="main"
+    data-manifest="../../versions.json">
+    <option value="main">main</option>
+  </select>
+  
+
+          </div>
+          
+        </aside>
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="./.." title="Hubuum Python client" class="md-header__button md-logo" aria-label="Hubuum Python client" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-network" viewBox="0 0 24 24"><rect width="6" height="6" x="16" y="16" rx="1"/><rect width="6" height="6" x="2" y="16" rx="1"/><rect width="6" height="6" x="9" y="2" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3M12 12V8"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+      <span class="md-visually-hidden">Navigation</span>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Hubuum Python client
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Resource workflows
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="deep-orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-moon" viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="deep-orange"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+          <span class="md-visually-hidden">Search</span>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+        <a href="https://github.com/hubuum/hubuum-client-python" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M216.5 362.5c-66-8-112.5-55.5-112.5-117 0-25 9-52 24-70-6.5-16.5-5.5-51.5 2-66 20-2.5 47 8 63 22.5 19-6 39-9 63.5-9s44.5 3 62.5 8.5c15.5-14 43-24.5 63-22 7 13.5 8 48.5 1.5 65.5 16 19 24.5 44.5 24.5 70.5 0 61.5-46.5 108-113.5 116.5 17 11 28.5 35 28.5 62.5v52c0 15 12.5 23.5 27.5 17.5C441 459.5 512 369 512 257 512 115.5 397 0 255.5 0S0 115.5 0 257c0 111 70.5 203 165.5 237.5 13.5 5 26.5-4 26.5-17.5v-40c-7 3-16 5-24 5-33 0-52.5-18-66.5-51.5-5.5-13.5-11.5-21.5-23-23-6-.5-8-3-8-6 0-6 10-10.5 20-10.5 14.5 0 27 9 40 27.5 10 14.5 20.5 21 33 21s20.5-4.5 32-16c8.5-8.5 15-16 21-21"/></svg>
+  </div>
+  <div class="md-source__repository">
+    hubuum/hubuum-client-python
+  </div>
+</a>
+      
+    </div>
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+      
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="./.." class="md-tabs__link">
+          
+  
+  Overview
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+      
+    
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../credentials/" class="md-tabs__link">
+          
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../api/" class="md-tabs__link">
+          
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+      
+    
+    
+    
+      <li class="md-tabs__item">
+        <a href="../compatibility-evidence/" class="md-tabs__link">
+          
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="./.." title="Hubuum Python client" class="md-nav__button md-logo" aria-label="Hubuum Python client" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-network" viewBox="0 0 24 24"><rect width="6" height="6" x="16" y="16" rx="1"/><rect width="6" height="6" x="2" y="16" rx="1"/><rect width="6" height="6" x="9" y="2" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3M12 12V8"/></svg>
+
+    </a>
+    Hubuum Python client
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/hubuum/hubuum-client-python" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M216.5 362.5c-66-8-112.5-55.5-112.5-117 0-25 9-52 24-70-6.5-16.5-5.5-51.5 2-66 20-2.5 47 8 63 22.5 19-6 39-9 63.5-9s44.5 3 62.5 8.5c15.5-14 43-24.5 63-22 7 13.5 8 48.5 1.5 65.5 16 19 24.5 44.5 24.5 70.5 0 61.5-46.5 108-113.5 116.5 17 11 28.5 35 28.5 62.5v52c0 15 12.5 23.5 27.5 17.5C441 459.5 512 369 512 257 512 115.5 397 0 255.5 0S0 115.5 0 257c0 111 70.5 203 165.5 237.5 13.5 5 26.5-4 26.5-17.5v-40c-7 3-16 5-24 5-33 0-52.5-18-66.5-51.5-5.5-13.5-11.5-21.5-23-23-6-.5-8-3-8-6 0-6 10-10.5 20-10.5 14.5 0 27 9 40 27.5 10 14.5 20.5 21 33 21s20.5-4.5 32-16c8.5-8.5 15-16 21-21"/></svg>
+  </div>
+  <div class="md-source__repository">
+    hubuum/hubuum-client-python
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Overview
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_1">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Overview
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Welcome
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../example-dataset/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Atlas example inventory
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../client/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Client setup
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../compatibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Server compatibility
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Guides
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+            <label class="md-nav__title" for="__nav_2">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Guides
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../credentials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Credential approvals
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../service-accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Service accounts
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../querying/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Querying and pagination
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../schema/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Schema evolution
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Resource workflows
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Resource workflows
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#discovery-and-concurrency" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Discovery and concurrency
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#permissions-and-delegation" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Permissions and delegation
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#audit-and-historical-reads" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Audit and historical reads
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#computed-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Computed fields
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#export-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Export templates
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#remote-targets" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Remote targets
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#event-delivery-controls" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Event delivery controls
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#principal-settings-and-administration" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Principal settings and administration
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#full-backup-and-restore" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Full backup and restore
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../advanced/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Advanced usage
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../typed-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Complete typed API
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Reference
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_3">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Reference
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Python API
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../typed-operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Typed operation coverage
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Release notes
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Contributing
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_4">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Contributing
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../compatibility-evidence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Compatibility evidence
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Contributor guide
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../e2e/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  End-to-end tests
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../releasing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Release process
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../documentation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Documentation website
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                      
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#discovery-and-concurrency" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Discovery and concurrency
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#permissions-and-delegation" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Permissions and delegation
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#audit-and-historical-reads" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Audit and historical reads
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#computed-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Computed fields
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#export-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Export templates
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#remote-targets" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Remote targets
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#event-delivery-controls" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Event delivery controls
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#principal-settings-and-administration" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Principal settings and administration
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#full-backup-and-restore" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Full backup and restore
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+
+              
+              <article class="md-content__inner md-typeset">
+                <a id="__skip" tabindex="-1"></a>
+                
+                  
+
+  
+    <a href="https://github.com/hubuum/hubuum-client-python/edit/main/docs/workflows.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-file-pen" viewBox="0 0 24 24"><path d="M12.659 22H18a2 2 0 0 0 2-2V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v9.34"/><path d="M14 2v5a1 1 0 0 0 1 1h5M10.378 12.622a1 1 0 0 1 3 3.003L8.36 20.637a2 2 0 0 1-.854.506l-2.867.837a.5.5 0 0 1-.62-.62l.836-2.869a2 2 0 0 1 .506-.853z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="resource-workflows">Resource workflows<a class="headerlink" href="#resource-workflows" title="Permanent link">&para;</a></h1>
+<p>The convenience services below are available on both <code>Client</code> and <code>AsyncClient</code>.
+Await asynchronous network calls; service selection itself does not perform IO.
+They use the committed Hubuum v0.0.21 contract. Response types are the exact
+models in <code>hubuum_client.api.models</code>, except task and export results, which use
+<code>Task</code> and <code>ExportOutput</code> from the existing convenience API.</p>
+<p>Request models are exported from <code>hubuum_client</code>. They reject unknown top-level
+fields and hide inputs in validation errors. Explicit nulls in these requests
+are preserved. <code>wire_payload()</code> exposes values for transmission; do not log it.</p>
+<h2 id="discovery-and-concurrency">Discovery and concurrency<a class="headerlink" href="#discovery-and-concurrency" title="Permanent link">&para;</a></h2>
+<p>Cursor-backed services expose <code>list()</code> (one page), <code>page()</code> (items and metadata),
+<code>pages()</code>, and <code>all()</code>. Traversal detects repeated cursors and defaults to at most
+100 pages and 10,000 collected items. Supply <code>max_pages</code> and <code>max_items</code> when a
+larger result is intentional. Filters use the existing immutable <code>Query</code>.</p>
+<p>Conditional mutations accept <code>if_match</code>. Obtain the opaque ETag from the
+corresponding <code>client.api</code> point response; do not manufacture it from a numeric
+revision. A stale validator raises <code>PreconditionFailedError</code>.</p>
+<h2 id="permissions-and-delegation">Permissions and delegation<a class="headerlink" href="#permissions-and-delegation" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">Permission</span><span class="p">,</span> <span class="n">Query</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">permissions</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">collections</span><span class="o">.</span><span class="n">permissions</span><span class="p">(</span><span class="n">collection_id</span><span class="p">)</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">assignments</span> <span class="o">=</span> <span class="n">permissions</span><span class="o">.</span><span class="n">assignments</span><span class="p">()</span>  <span class="c1"># CollectionPermissionSet, including revision</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="k">for</span> <span class="n">assignment</span> <span class="ow">in</span> <span class="n">permissions</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">Query</span><span class="p">()</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">20</span><span class="p">)):</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">assignment</span><span class="o">.</span><span class="n">group_id</span><span class="p">,</span> <span class="n">assignment</span><span class="o">.</span><span class="n">has_read_object</span><span class="p">)</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">permissions</span><span class="o">.</span><span class="n">grant</span><span class="p">(</span><span class="n">group_id</span><span class="p">,</span> <span class="p">[</span><span class="n">Permission</span><span class="o">.</span><span class="n">READ_COLLECTION</span><span class="p">,</span> <span class="n">Permission</span><span class="o">.</span><span class="n">READ_OBJECT</span><span class="p">])</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">permissions</span><span class="o">.</span><span class="n">grant_permission</span><span class="p">(</span><span class="n">group_id</span><span class="p">,</span> <span class="n">Permission</span><span class="o">.</span><span class="n">READ_AUDIT</span><span class="p">)</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="k">assert</span> <span class="n">permissions</span><span class="o">.</span><span class="n">check</span><span class="p">(</span><span class="n">group_id</span><span class="p">,</span> <span class="n">Permission</span><span class="o">.</span><span class="n">READ_AUDIT</span><span class="p">)</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="n">effective</span> <span class="o">=</span> <span class="n">permissions</span><span class="o">.</span><span class="n">effective_principal</span><span class="p">(</span><span class="n">principal_id</span><span class="p">)</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="k">for</span> <span class="n">grant</span> <span class="ow">in</span> <span class="n">effective</span><span class="p">:</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">grant</span><span class="o">.</span><span class="n">inherited</span><span class="p">,</span> <span class="n">grant</span><span class="o">.</span><span class="n">depth</span><span class="p">,</span> <span class="n">grant</span><span class="o">.</span><span class="n">source_collection</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+</code></pre></div>
+<p><code>group()</code> reads one group's direct assignment set. <code>principal()</code> returns a
+cursor-backed service of group assignments for one principal. <code>effective_group()</code>
+and <code>effective_principal()</code> retain inheritance depth, source/target collections,
+and group identity. <code>with_permission(Permission.READ_OBJECT)</code> returns a paginated
+group service. <code>check()</code> returns false for an absent grant; authorization errors
+still propagate. <code>grant()</code> adds permissions, <code>replace()</code> replaces the group set,
+<code>revoke()</code> removes it, and <code>revoke_permission()</code> removes a single permission.</p>
+<p>Class permissions are inherited from collections and have no class-specific
+write route: use <code>client.classes.by_id(class_id).permissions</code> for guarded reads.
+Use <code>client.principals.permissions()</code> for the current principal or pass an ID to
+inspect another principal. These responses retain the contributing group grants.
+All writes remain subject to the server's management and delegation rules;
+ordinary read access does not authorize granting oneself more permissions.</p>
+<p><strong>Migration:</strong> <code>client.classes.by_name(name).permissions()</code> now returns
+<code>list[GroupPermission]</code>. Replace dictionary indexing with attributes, for example
+<code>entry.permission.has_read_class</code> and <code>entry.group.id</code>. Use
+<code>entry.model_dump(mode="json")</code> when a dictionary is required. Invalid permission
+records raise <code>DecodeError</code>, just like other typed responses.</p>
+<h2 id="audit-and-historical-reads">Audit and historical reads<a class="headerlink" href="#audit-and-historical-reads" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">UTC</span><span class="p">,</span> <span class="n">datetime</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventQuery</span><span class="p">,</span> <span class="n">Query</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">feed</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">audit</span><span class="o">.</span><span class="n">collection</span><span class="p">(</span><span class="n">collection_id</span><span class="p">)</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">events</span> <span class="o">=</span> <span class="n">feed</span><span class="o">.</span><span class="n">events</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">EventQuery</span><span class="p">(</span><span class="n">action</span><span class="o">=</span><span class="s2">"updated"</span><span class="p">)</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">20</span><span class="p">))</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">versions</span> <span class="o">=</span> <span class="n">feed</span><span class="o">.</span><span class="n">history</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">Query</span><span class="p">()</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="mi">20</span><span class="p">))</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">then</span> <span class="o">=</span> <span class="n">feed</span><span class="o">.</span><span class="n">history</span><span class="o">.</span><span class="n">as_of</span><span class="p">(</span><span class="n">datetime</span><span class="p">(</span><span class="mi">2026</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">29</span><span class="p">,</span> <span class="n">tzinfo</span><span class="o">=</span><span class="n">UTC</span><span class="p">))</span>
+</code></pre></div>
+<p><code>client.audit.events</code> is the global feed. Resource selectors are <code>collection(id)</code>,
+<code>class_(id)</code>, <code>object(class_id, object_id)</code>, <code>export_template(id)</code>, and
+<code>remote_target(id)</code>, each exposing <code>.events</code> and <code>.history</code>. <code>user(id)</code> and
+<code>group(id)</code> return event services only: the contract has no temporal routes for
+those identities. Templates and remote targets also expose <code>.audit(id)</code>.</p>
+<p><code>EventQuery</code> supplies plain action, actor, initiator, entity, collection, relation,
+and time filters. <code>occurred_after</code>, <code>occurred_before</code>, and <code>history.as_of(at)</code>
+require timezone-aware datetimes, avoiding implicit local-time conversion.
+Events retain provenance and before/after snapshots; history retains the exact
+resource-specific version model and validity interval.</p>
+<p>Audit reads require separate <code>ReadAudit</code> authorization. Related-collection
+visibility may omit snapshots. Historical reads use current authorization and
+the server's historical visibility rules; a timestamp is not permission to read
+otherwise inaccessible data. Retention gaps are not filled from current state.
+Advanced timeline, relationship, and historical-computation operations remain
+available through <code>client.api</code>.</p>
+<h2 id="computed-fields">Computed fields<a class="headerlink" href="#computed-fields" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">ComputedFieldCreate</span><span class="p">,</span> <span class="n">ComputedFieldPreviewRequest</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">fields</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">classes</span><span class="o">.</span><span class="n">by_id</span><span class="p">(</span><span class="n">class_id</span><span class="p">)</span><span class="o">.</span><span class="n">computed_fields</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">definition</span> <span class="o">=</span> <span class="n">ComputedFieldCreate</span><span class="p">(</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">key</span><span class="o">=</span><span class="s2">"total"</span><span class="p">,</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">"Total"</span><span class="p">,</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">result_type</span><span class="o">=</span><span class="s2">"number"</span><span class="p">,</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="n">operation</span><span class="o">=</span><span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"sum"</span><span class="p">,</span> <span class="s2">"paths"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"/compute_cost"</span><span class="p">,</span> <span class="s2">"/storage_cost"</span><span class="p">]},</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="p">)</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="n">preview</span> <span class="o">=</span> <span class="n">fields</span><span class="o">.</span><span class="n">preview</span><span class="p">(</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="n">ComputedFieldPreviewRequest</span><span class="p">(</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>        <span class="n">definition</span><span class="o">=</span><span class="n">definition</span><span class="p">,</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>        <span class="n">data</span><span class="o">=</span><span class="p">{</span><span class="s2">"compute_cost"</span><span class="p">:</span> <span class="mi">45</span><span class="p">,</span> <span class="s2">"storage_cost"</span><span class="p">:</span> <span class="mi">5</span><span class="p">},</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>    <span class="p">)</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="p">)</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="n">created</span> <span class="o">=</span> <span class="n">fields</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">definition</span><span class="p">)</span>  <span class="c1"># definition plus class computation state</span>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="n">state</span> <span class="o">=</span> <span class="n">fields</span><span class="o">.</span><span class="n">rebuild</span><span class="p">()</span>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="k">if</span> <span class="n">state</span><span class="o">.</span><span class="n">active_task_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>    <span class="n">task</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">wait</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">active_task_id</span><span class="p">)</span>
+</code></pre></div>
+<p>Shared fields support <code>list</code>, <code>get</code>, <code>create</code>, <code>update</code>, <code>delete</code>, <code>preview</code>, and
+<code>rebuild</code>. List, mutation, deletion, preview, and rebuild return distinct contract
+models. Shared mutation requires collection update authority. Value-affecting
+changes can queue a rebuild; rebuild returns computation state rather than a task
+object. Follow <code>active_task_id</code> when present.</p>
+<p>Personal definitions use <code>client.computed_fields</code>, <code>PersonalComputedFieldCreate</code>
+(which includes <code>class_id</code>), and <code>ComputedFieldUpdate</code>. Select one class with
+<code>.for_class(class_id)</code>. Personal list results support guarded pagination;
+mutations return the definition directly and deletion returns <code>None</code>. Personal
+preview also requires <code>class_id</code>. Personal fields belong to a human principal,
+require class read access, and are evaluated on read; they have no rebuild route.</p>
+<p>Preview selects either sample <code>data</code> or an existing <code>object_id</code>. Expressions use
+the server's bounded operation catalog and JSON Pointer paths into raw object
+data. They cannot depend on other computed fields, relations, external services,
+or time. Computed values do not modify canonical object data. The server
+validates operation semantics; Python preserves the operation JSON without
+inventing another expression language.</p>
+<h2 id="export-templates">Export templates<a class="headerlink" href="#export-templates" title="Permanent link">&para;</a></h2>
+<p><code>client.export_templates</code> provides CRUD, guarded pagination, <code>.audit(id)</code>,
+<code>submit(id, ExportTemplateRunRequest(...))</code>, and <code>run(id, ...)</code>.
+Create/update requests are <code>ExportTemplateCreate</code> and <code>ExportTemplateUpdate</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExportTemplateCreate</span><span class="p">,</span> <span class="n">ExportTemplateRunRequest</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">template</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">export_templates</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">ExportTemplateCreate</span><span class="p">(</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>        <span class="n">name</span><span class="o">=</span><span class="s2">"inventory"</span><span class="p">,</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>        <span class="n">description</span><span class="o">=</span><span class="s2">"Inventory report"</span><span class="p">,</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>        <span class="n">collection_id</span><span class="o">=</span><span class="n">collection_id</span><span class="p">,</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>        <span class="n">class_id</span><span class="o">=</span><span class="n">class_id</span><span class="p">,</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>        <span class="n">scope_kind</span><span class="o">=</span><span class="s2">"objects_in_class"</span><span class="p">,</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>        <span class="n">kind</span><span class="o">=</span><span class="s2">"export"</span><span class="p">,</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>        <span class="n">content_type</span><span class="o">=</span><span class="s2">"text/plain"</span><span class="p">,</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>        <span class="n">template</span><span class="o">=</span><span class="s2">"Inventory report"</span><span class="p">,</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>    <span class="p">)</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="p">)</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="n">result</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">export_templates</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">template</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">ExportTemplateRunRequest</span><span class="p">())</span>
+</code></pre></div>
+<p>Templates render on the server with its template context and execution limits.
+The <code>strict</code>, <code>null</code>, and <code>omit</code> missing-data policies control missing values;
+choose the policy when creating a template or running it. <code>submit()</code> returns a
+<code>Task</code>, whose status can be resumed with <code>client.tasks.wait()</code>. Retrieve output
+with <code>client.exports.output(task.id)</code> or stream it with <code>.output_stream(task.id)</code>.
+JSON output remains typed; rendered text retains its content type and body.
+For explicit media negotiation use <code>client.api.exports.get_output(..., accept=...)</code>.
+<code>run()</code> waits for <code>succeeded</code> before fetching output and raises
+<code>TaskUnsuccessfulError</code> for other terminal states. The same success requirement
+applies to the new backup and remote-target <code>run()</code> helpers.</p>
+<h2 id="remote-targets">Remote targets<a class="headerlink" href="#remote-targets" title="Permanent link">&para;</a></h2>
+<p><code>client.remote_targets</code> provides CRUD, guarded pagination, <code>.audit(id)</code>,
+<code>invoke(id, RemoteTargetInvokeRequest(...))</code>, and <code>run(id, ...)</code>.
+<code>RemoteTargetCreate</code> and <code>RemoteTargetUpdate</code> preserve the exact authentication,
+subject, header, URL, and body-template fields. Omitting <code>body_template</code> leaves it
+unchanged; explicitly setting it to <code>None</code> clears it.</p>
+<p>An invocation returns a queued <code>Task</code>; acceptance does not establish successful
+delivery. <code>run()</code> returns the completed task, including typed remote-call details.
+Task events remain available through <code>client.tasks.all_events(task.id)</code>. The
+pinned contract has no public remote-call response-output endpoint: this client
+does not invent one or expose an untyped internal result row.</p>
+<p>The server requires HTTPS, screens destination addresses, rejects embedded URL
+credentials, and does not follow redirects. Credential-bearing targets require
+administrator approval of a fixed destination binding. Permission and target
+revision are rechecked before dispatch. Response previews have a server-configured
+size cap, and task cancellation cannot undo an outbound action already sent.
+Keep reusable secrets in server secret references. Configuration and response
+models redact representations and validation diagnostics, but their explicit
+field access and wire serialization still expose values to the caller.</p>
+<h2 id="event-delivery-controls">Event delivery controls<a class="headerlink" href="#event-delivery-controls" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">Query</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">health</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">event_deliveries</span><span class="o">.</span><span class="n">health</span><span class="p">()</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">delivery</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">event_deliveries</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">delivery_id</span><span class="p">)</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">client</span><span class="o">.</span><span class="n">event_deliveries</span><span class="o">.</span><span class="n">mark_dead</span><span class="p">(</span><span class="n">delivery</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">client</span><span class="o">.</span><span class="n">event_deliveries</span><span class="o">.</span><span class="n">retry</span><span class="p">(</span><span class="n">delivery</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>  <span class="c1"># Explicitly requeue this delivery</span>
+</code></pre></div>
+<p>Delivery list/page traversal uses the usual bounds. <code>retry()</code> and <code>mark_dead()</code>
+return <code>EventDeliveryUpdateResponse</code>, whose <code>.delivery</code> contains the updated
+record. Health preserves system subscription entries with <code>collection_id=None</code>.
+Administrative authority is required for delivery control.</p>
+<p>Delivery is at least once: deduplicate with <code>event_id</code>. Failed deliveries back
+off according to server policy and can reach the dead-letter state. Retrying
+reuses the original event snapshot. It can cause another external delivery;
+marking a record dead cannot retract a notification already sent.</p>
+<p>Existing convenience APIs remain <code>client.event_sinks</code> for administrator sink
+management/grants and <code>client.collections.event_sinks(id)</code> /
+<code>.event_subscriptions(id)</code> for collection integrations. Sink kinds are webhook,
+email, AMQP, and Valkey streams. System subscriptions and preview/test admission
+remain in <code>client.api</code>. Subscription scope and sink grants determine which events
+may reach a destination; resource read access alone does not authorize delivery.</p>
+<h2 id="principal-settings-and-administration">Principal settings and administration<a class="headerlink" href="#principal-settings-and-administration" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">SettingsRequest</span><span class="p">,</span> <span class="n">SettingsPatchOperation</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">settings</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">principals</span><span class="o">.</span><span class="n">settings</span><span class="p">()</span>  <span class="c1"># Or settings(principal_id)</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">point</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">principals</span><span class="o">.</span><span class="n">get_me_settings</span><span class="p">()</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">settings</span><span class="o">.</span><span class="n">merge_patch</span><span class="p">(</span><span class="n">SettingsRequest</span><span class="p">(</span><span class="n">settings</span><span class="o">=</span><span class="p">{</span><span class="s2">"theme"</span><span class="p">:</span> <span class="kc">None</span><span class="p">}),</span> <span class="n">if_match</span><span class="o">=</span><span class="n">point</span><span class="o">.</span><span class="n">etag</span><span class="p">)</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="n">settings</span><span class="o">.</span><span class="n">json_patch</span><span class="p">([</span><span class="n">SettingsPatchOperation</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="s2">"add"</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s2">"/theme"</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="s2">"dark"</span><span class="p">)])</span>
+</code></pre></div>
+<p><code>get</code>, <code>replace</code>, <code>delete</code>, <code>merge_patch</code>, and <code>json_patch</code> preserve revision
+responses and conditional writes. Settings keys are application-defined JSON;
+requests enforce a JSON object or a strict RFC 6902 operation list. Merge Patch
+null deletes a key; a JSON Patch <code>value=None</code> explicitly stores JSON null.
+Each helper sends its corresponding media type. <code>client.principals.groups(id)</code>
+supports cursor pagination; omit the ID for current-principal groups.</p>
+<p><code>client.auth.providers()</code> is public and omits bearer credentials. <code>validate()</code>
+is authenticated. <code>revoke_token</code>, <code>revoke_user</code>, and <code>revoke_all</code> perform explicit
+server revocation subject to its authorization rules. Revocation can invalidate
+other clients. These calls do not install or rotate this client's managed
+credentials: continue using <code>login_session()</code> and <code>logout()</code> for local session
+lifecycle, as with low-level <code>client.api.auth</code> calls.</p>
+<p><code>client.admin</code> exposes <code>config</code>, <code>counts</code>, <code>database</code>, <code>tasks</code>, and <code>rate_limits</code>.
+Running configuration is authenticated administrator data, unlike the public
+<code>client.config()</code>. <code>release_rate_limit(entry_id)</code> releases one entry;
+<code>clear_rate_limits()</code> clears the global table. These actions remove login
+throttling state and require administrative authorization. Prefer a targeted
+release when investigating one caller.</p>
+<h2 id="full-backup-and-restore">Full backup and restore<a class="headerlink" href="#full-backup-and-restore" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="n">BackupRequest</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">backup</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">backups</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">BackupRequest</span><span class="p">(</span><span class="n">include_history</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">staged</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">restores</span><span class="o">.</span><span class="n">stage</span><span class="p">(</span><span class="n">backup</span><span class="p">)</span>
+</code></pre></div>
+<p><code>backups.submit()</code> returns a <code>Task</code>; <code>.get(task_id)</code> and <code>.output(task_id)</code> allow
+resuming work. Output is the strict <code>BackupDocument</code>, not a portable import.
+Restore job IDs (<code>RestoreJobId</code>) are distinct from task IDs (<code>TaskId</code>).</p>
+<p>Staging validates the document. Confirmation replaces <strong>all Hubuum data</strong> and
+requires a fresh operation-bound credential approval:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">hubuum_client</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="n">ConfirmRestoreOperation</span><span class="p">,</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    <span class="n">CredentialApprovalRequest</span><span class="p">,</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>    <span class="n">RestoreConfirmRequest</span><span class="p">,</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>    <span class="n">RestoreJobId</span><span class="p">,</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="p">)</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="n">confirmation</span> <span class="o">=</span> <span class="n">RestoreConfirmRequest</span><span class="p">(</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>    <span class="n">restore_capability</span><span class="o">=</span><span class="n">staged</span><span class="o">.</span><span class="n">restore_capability</span><span class="p">,</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>    <span class="n">sha256</span><span class="o">=</span><span class="n">staged</span><span class="o">.</span><span class="n">sha256</span><span class="p">,</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>    <span class="n">confirmation</span><span class="o">=</span><span class="s2">"REPLACE ALL HUBUUM DATA"</span><span class="p">,</span>
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="p">)</span>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="n">approval</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">credential_approvals</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>    <span class="n">CredentialApprovalRequest</span><span class="p">(</span>
+<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>        <span class="n">password</span><span class="o">=</span><span class="n">password</span><span class="p">,</span>
+<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a>        <span class="n">operation</span><span class="o">=</span><span class="n">ConfirmRestoreOperation</span><span class="p">(</span>
+<a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a>            <span class="n">restore_id</span><span class="o">=</span><span class="n">RestoreJobId</span><span class="p">(</span><span class="n">staged</span><span class="o">.</span><span class="n">id</span><span class="p">),</span>
+<a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a>            <span class="n">confirmation</span><span class="o">=</span><span class="n">confirmation</span><span class="p">,</span>
+<a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a>        <span class="p">),</span>
+<a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a>    <span class="p">)</span>
+<a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a><span class="p">)</span>
+<a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a><span class="n">client</span><span class="o">.</span><span class="n">restores</span><span class="o">.</span><span class="n">confirm</span><span class="p">(</span><span class="n">staged</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">confirmation</span><span class="p">,</span> <span class="n">credential_approval</span><span class="o">=</span><span class="n">approval</span><span class="o">.</span><span class="n">approval</span><span class="p">)</span>
+<a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a><span class="n">result</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">restores</span><span class="o">.</span><span class="n">wait</span><span class="p">(</span><span class="n">staged</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">capability</span><span class="o">=</span><span class="n">staged</span><span class="o">.</span><span class="n">restore_capability</span><span class="p">)</span>
+<a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a><span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"succeeded"</span>
+</code></pre></div>
+<p>Keep the staged capability and digest private. <code>status()</code> and <code>wait()</code> authorize
+with the capability and omit bearer credentials, even when an invalidated managed
+session is still installed. <code>wait()</code> returns <code>succeeded</code>, <code>failed</code>, or <code>expired</code>;
+callers must inspect the status. Its timeout bounds polling and does not cancel
+the restore. The stage has its own expiry, and execution requires a matching
+v0.0.21 restore executor. Reauthenticate after recovery.</p>
+<p>Full restore tests run only on the wrapper-owned disposable stack. Caller-managed
+servers never run destructive recovery tests. See <a href="../e2e/">end-to-end tests</a>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../schema/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Schema evolution">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Schema evolution
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../advanced/" class="md-footer__link md-footer__link--next" aria-label="Next: Advanced usage">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Advanced usage
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Hubuum · MIT licensed
+    </div>
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog" role="status" aria-atomic="true">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      
+<div class="md-progress" data-md-component="progress" role="progressbar" aria-label="Loading"></div>
+    
+    
+    
+      
+      
+      
+      
+        
+        
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["navigation.tabs","navigation.tabs.sticky","navigation.sections","navigation.path","navigation.top","navigation.footer","navigation.instant","navigation.instant.progress","content.action.edit","content.code.copy","toc.follow"],"redirect":null,"search":"../assets/javascripts/workers/search.c47bb847.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.10ee5ab6.min.js"></script>
+      
+        <script src="../assets/javascripts/versions.js"></script>
+      
+    
+  </body>
+</html>
