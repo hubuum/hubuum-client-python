@@ -1849,12 +1849,17 @@ class RenewTokenRequest(RequestModel):
 TokenRequestT = TypeVar("TokenRequestT", NewTokenRequest, RenewTokenRequest)
 
 
-class RestoreConfirmRequest(RequestModel):
+class RestoreConfirmRequest(APIModel):
     """Exact confirmation bound to a staged restore and its capability."""
+
+    model_config = ConfigDict(extra="forbid")
 
     restore_capability: str = Field(repr=False)
     sha256: str
     confirmation: str
+
+    def payload(self) -> dict[str, JsonValue]:
+        return self.wire_payload()
 
 
 class CreateTokenOperation(RequestModel):
@@ -2206,7 +2211,7 @@ class RebuildTaskDetails(HubuumModel):
     computation_revision: int | None = None
 
 
-class RemoteCallTaskDetails(HubuumModel):
+class RemoteCallTaskDetails(APIModel):
     remote_target_id: int | None = None
     target: TaskDiscoveryTarget | None = None
 
@@ -2374,7 +2379,7 @@ class CollectionEventSink(HubuumModel):
     routing: EventSinkRouting
 
 
-class EventSink(HubuumModel):
+class EventSink(APIModel):
     """Administrator sink configuration; sensitive values are hidden from repr."""
 
     id: EventSinkId
@@ -2390,7 +2395,9 @@ class EventSink(HubuumModel):
     revision: ResourceRevision
 
 
-class EventSinkCreate(RequestModel):
+class EventSinkCreate(RequestModel, APIModel):
+    model_config = ConfigDict(extra="forbid")
+
     name: str
     kind: Literal["webhook", "email", "amqp", "valkey_stream"]
     config: dict[str, JsonValue] = Field(default_factory=dict, repr=False)
@@ -2398,8 +2405,13 @@ class EventSinkCreate(RequestModel):
     secret_ref: str | None = Field(default=None, repr=False)
     delivery_policy: dict[str, JsonValue] | None = None
 
+    def wire_payload(self) -> dict[str, JsonValue]:
+        return cast(dict[str, JsonValue], self.payload())
 
-class EventSinkUpdate(RequestModel):
+
+class EventSinkUpdate(RequestModel, APIModel):
+    model_config = ConfigDict(extra="forbid")
+
     name: str | None = None
     kind: Literal["webhook", "email", "amqp", "valkey_stream"] | None = None
     config: dict[str, JsonValue] | None = Field(default=None, repr=False)
@@ -2413,6 +2425,9 @@ class EventSinkUpdate(RequestModel):
         if "secret_ref" in self.model_fields_set:
             payload["secret_ref"] = self.secret_ref
         return payload
+
+    def wire_payload(self) -> dict[str, JsonValue]:
+        return cast(dict[str, JsonValue], self.payload())
 
 
 class EventSubscription(HubuumModel):
@@ -2455,3 +2470,69 @@ class EventSubscriptionUpdate(RequestModel):
 
 class _EventSinkCollectionIds(RootModel[list[CollectionId]]):
     """Internal decoder for the administrator's direct collection grant list."""
+
+
+# Exact wire models depend on APIModel above. Import them only after the shared
+# bases are defined; convenience requests retain their contract and redaction.
+from .api import models as _wire_models  # noqa: E402
+
+
+class BackupRequest(_wire_models.BackupRequest):
+    model_config = ConfigDict(extra="forbid")
+
+
+class ExportTemplateCreate(_wire_models.NewExportTemplate):
+    model_config = ConfigDict(extra="forbid")
+
+
+class ExportTemplateUpdate(_wire_models.UpdateExportTemplate):
+    model_config = ConfigDict(extra="forbid")
+
+
+class ExportTemplateRunRequest(_wire_models.ExportTemplateRunRequest):
+    model_config = ConfigDict(extra="forbid")
+
+
+class RemoteTargetCreate(_wire_models.NewRemoteTarget):
+    model_config = ConfigDict(extra="forbid")
+
+
+class RemoteTargetUpdate(_wire_models.UpdateRemoteTarget):
+    model_config = ConfigDict(extra="forbid")
+
+
+class RemoteTargetInvokeRequest(_wire_models.RemoteTargetInvokeRequest):
+    model_config = ConfigDict(extra="forbid")
+
+
+class ComputedFieldCreate(_wire_models.ComputedFieldDefinitionRequest):
+    model_config = ConfigDict(extra="forbid")
+
+
+class PersonalComputedFieldCreate(_wire_models.PersonalComputedFieldDefinitionRequest):
+    model_config = ConfigDict(extra="forbid")
+
+
+class ComputedFieldUpdate(_wire_models.ComputedFieldDefinitionPatch):
+    model_config = ConfigDict(extra="forbid")
+
+
+class ComputedFieldPreviewRequest(_wire_models.ComputedFieldPreviewRequest):
+    model_config = ConfigDict(extra="forbid")
+
+
+class SettingsRequest(APIModel):
+    """Strict JSON object for settings replacement or merge patch; keys are application-defined."""
+
+    model_config = ConfigDict(extra="forbid")
+    settings: dict[str, JsonValue]
+
+
+class SettingsPatchOperation(ObjectDataPatchOperation, APIModel):
+    """Strict RFC 6902 operation with redacted validation and explicit null preservation."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, hide_input_in_errors=True)
+
+
+RemoteTargetCreate.model_rebuild(_types_namespace=vars(_wire_models))
+RemoteTargetUpdate.model_rebuild(_types_namespace=vars(_wire_models))

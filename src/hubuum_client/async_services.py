@@ -4,15 +4,16 @@ from __future__ import annotations
 
 import asyncio
 import builtins
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager
 from dataclasses import replace
+from datetime import datetime
 from math import isfinite
 from time import monotonic
 from typing import TYPE_CHECKING, Generic, TypeVar
 from urllib.parse import quote
 
-from pydantic import BaseModel
+from pydantic import BaseModel, SecretStr
 
 from ._transport import (
     decode_content_type,
@@ -22,8 +23,10 @@ from ._transport import (
     decode_model,
     decode_model_list,
 )
-from .errors import ResultCardinalityError, TaskUnsuccessfulError
+from .api import models as wire
+from .errors import NotFoundError, ResultCardinalityError, TaskUnsuccessfulError
 from .models import (
+    BackupRequest,
     ClassCreate,
     ClassFieldInventory,
     ClassRelation,
@@ -36,6 +39,9 @@ from .models import (
     CollectionEventSink,
     CollectionUpdate,
     ComplianceStatus,
+    ComputedFieldCreate,
+    ComputedFieldPreviewRequest,
+    ComputedFieldUpdate,
     CredentialApprovalRecord,
     CredentialApprovalRequest,
     CredentialApprovalResponse,
@@ -49,6 +55,9 @@ from .models import (
     ExportJsonResponse,
     ExportOutput,
     ExportRequest,
+    ExportTemplateCreate,
+    ExportTemplateRunRequest,
+    ExportTemplateUpdate,
     Group,
     GroupCreate,
     GroupPoint,
@@ -66,11 +75,17 @@ from .models import (
     ObjectRelation,
     ObjectRelationCreate,
     ObjectUpdate,
+    Permission,
+    PersonalComputedFieldCreate,
     PrincipalMember,
     PrincipalTokenMetadata,
     PrincipalTokenPoint,
+    RemoteTargetCreate,
+    RemoteTargetInvokeRequest,
+    RemoteTargetUpdate,
     RenderedExport,
     RenewTokenRequest,
+    RestoreConfirmRequest,
     SchemaActivationRequest,
     SchemaActivationResponse,
     SchemaCompliancePage,
@@ -84,6 +99,8 @@ from .models import (
     ServiceAccountCreate,
     ServiceAccountPoint,
     ServiceAccountUpdate,
+    SettingsPatchOperation,
+    SettingsRequest,
     Task,
     TaskCancelRequest,
     TaskEvent,
@@ -96,16 +113,30 @@ from .models import (
     _object_data_patch_payload,
 )
 from .options import Params, RequestOptions
-from .query import FieldDiscoveryOptions, Page, Query, SchemaPageOptions, TokenListState
+from .query import (
+    FieldDiscoveryOptions,
+    Page,
+    Query,
+    SchemaPageOptions,
+    TokenListState,
+    aware_timestamp,
+)
 from .streaming import AsyncResponseStream
 from .types import (
     AccessToken,
     ClassId,
     CollectionId,
+    ComputedFieldId,
     CredentialApprovalId,
+    CredentialApprovalSecret,
+    EventDeliveryId,
     EventSinkId,
+    ExportTemplateId,
     GroupId,
+    ObjectId,
     PrincipalId,
+    RemoteTargetId,
+    RestoreJobId,
     SchemaRevision,
     ServiceAccountId,
     TaskId,
@@ -270,6 +301,9 @@ class AsyncCollectionsService(
             point_model=Collection,
         )
 
+    def permissions(self, collection_id: CollectionId | int) -> AsyncCollectionPermissionsService:
+        return AsyncCollectionPermissionsService(self._client, collection_id)
+
     def event_sinks(self, collection_id: CollectionId | int) -> AsyncCollectionEventSinksService:
         """Permitted destinations and owned-webhook management (server v0.0.18 and newer)."""
         return AsyncCollectionEventSinksService(self._client, CollectionId(collection_id))
@@ -355,6 +389,16 @@ class AsyncClassService:
             f"{self._base}/fields",
             response_model=ClassFieldInventory,
             options=RequestOptions(params=(options or FieldDiscoveryOptions()).as_params()),
+        )
+
+    @property
+    def computed_fields(self) -> AsyncClassComputedFieldsService:
+        return AsyncClassComputedFieldsService(self._client, self.class_id)
+
+    @property
+    def permissions(self) -> _AsyncCursorService[wire.GroupPermission]:
+        return _AsyncCursorService(
+            self._client, collection_path=f"{self._base}/permissions", model=wire.GroupPermission
         )
 
     @property
@@ -746,8 +790,12 @@ class AsyncNamedClassService:
     async def delete(self) -> None:
         await self._client.request("DELETE", self._base)
 
-    async def permissions(self, *, params: Params = None) -> builtins.list[dict[str, object]]:
-        return await _json_object_list(self._client, f"{self._base}/permissions", params=params)
+    async def permissions(self, *, params: Params = None) -> builtins.list[wire.GroupPermission]:
+        response = await self._client._request_response(
+            "GET", f"{self._base}/permissions", options=RequestOptions(params=params)
+        )
+        decode_json_object_list(response)
+        return decode_model_list(response, wire.GroupPermission)
 
     async def related_classes(self, *, params: Params = None) -> builtins.list[dict[str, object]]:
         return await _json_object_list(self._client, f"{self._base}/related/classes", params=params)
@@ -1618,4 +1666,832 @@ class AsyncEventSinksService(
         await self._client.request(
             "DELETE",
             f"/api/v1/event-sinks/{_segment(sink_id)}/collections/{_segment(collection_id)}",
+        )
+
+
+class AsyncEventsService(_AsyncCursorService[wire.EventResponse]):
+    """A bounded global or resource-scoped audit feed; requires audit permission."""
+
+    def __init__(self, client: AsyncClient, path: str = "/api/v1/events") -> None:
+        super().__init__(client, collection_path=path, model=wire.EventResponse)
+
+
+class AsyncHistoryService(_AsyncCursorService[ModelT]):
+    """Bounded versions and a point-in-time read of one supported resource."""
+
+    async def as_of(self, at: datetime) -> ModelT:
+        return await self._client.request(
+            "GET",
+            f"{self._collection_path}/as-of",
+            response_model=self._model,
+            options=RequestOptions(params={"at": aware_timestamp(at)}),
+        )
+
+
+class AsyncResourceAuditService(Generic[ModelT]):
+    def __init__(self, client: AsyncClient, path: str, model: type[ModelT]) -> None:
+        self.events = AsyncEventsService(client, f"{path}/events")
+        self.history = AsyncHistoryService(client, collection_path=f"{path}/history", model=model)
+
+
+class AsyncAuditService:
+    """Audit and temporal reads, exposing only routes supported by the server."""
+
+    def __init__(self, client: AsyncClient) -> None:
+        self._client = client
+        self.events = AsyncEventsService(client)
+
+    def collection(
+        self, collection_id: CollectionId | int
+    ) -> AsyncResourceAuditService[wire.HistoryResponseCollectionHistory]:
+        return AsyncResourceAuditService(
+            self._client,
+            f"/api/v1/collections/{_segment(collection_id)}",
+            wire.HistoryResponseCollectionHistory,
+        )
+
+    def class_(
+        self, class_id: ClassId | int
+    ) -> AsyncResourceAuditService[wire.HistoryResponseHubuumClassHistory]:
+        return AsyncResourceAuditService(
+            self._client,
+            f"/api/v1/classes/{_segment(class_id)}",
+            wire.HistoryResponseHubuumClassHistory,
+        )
+
+    def object(
+        self, class_id: ClassId | int, object_id: ObjectId | int
+    ) -> AsyncResourceAuditService[wire.HistoryResponseHubuumObjectHistory]:
+        return AsyncResourceAuditService(
+            self._client,
+            f"/api/v1/classes/{_segment(class_id)}/{_segment(object_id)}",
+            wire.HistoryResponseHubuumObjectHistory,
+        )
+
+    def export_template(
+        self, template_id: ExportTemplateId | int
+    ) -> AsyncResourceAuditService[wire.HistoryResponseExportTemplateHistory]:
+        return AsyncResourceAuditService(
+            self._client,
+            f"/api/v1/export-templates/{_segment(template_id)}",
+            wire.HistoryResponseExportTemplateHistory,
+        )
+
+    def remote_target(
+        self, target_id: RemoteTargetId | int
+    ) -> AsyncResourceAuditService[wire.HistoryResponseRemoteTargetHistory]:
+        return AsyncResourceAuditService(
+            self._client,
+            f"/api/v1/remote-targets/{_segment(target_id)}",
+            wire.HistoryResponseRemoteTargetHistory,
+        )
+
+    def user(self, user_id: UserId | int) -> AsyncEventsService:
+        return AsyncEventsService(self._client, f"/api/v1/iam/users/{_segment(user_id)}/events")
+
+    def group(self, group_id: GroupId | int) -> AsyncEventsService:
+        return AsyncEventsService(self._client, f"/api/v1/iam/groups/{_segment(group_id)}/events")
+
+
+class AsyncCollectionPermissionsService(_AsyncCursorService[wire.Permission]):
+    """Assignments, inherited grants, and explicit group delegation."""
+
+    def __init__(self, client: AsyncClient, collection_id: CollectionId | int) -> None:
+        super().__init__(
+            client,
+            collection_path=f"/api/v1/collections/{_segment(collection_id)}/permissions",
+            model=wire.Permission,
+        )
+
+    async def page(self, query: Query | None = None) -> Page[wire.Permission]:
+        response = await self._client._request_response(
+            "GET",
+            self._collection_path,
+            options=RequestOptions(params=(query or Query()).as_params()),
+        )
+        body = decode_model(response, wire.CollectionPermissionSet)
+        return Page(
+            items=tuple(body.permissions),
+            next_cursor=response.headers.get("x-next-cursor"),
+            total_count=_header_int(response.headers.get("x-total-count")),
+            page_limit=_header_int(response.headers.get("x-page-limit")),
+        )
+
+    async def assignments(self, query: Query | None = None) -> wire.CollectionPermissionSet:
+        return await self._client.request(
+            "GET",
+            self._collection_path,
+            response_model=wire.CollectionPermissionSet,
+            options=RequestOptions(params=(query or Query()).as_params()),
+        )
+
+    async def group(self, group_id: GroupId | int) -> wire.CollectionPermissionSet:
+        return await self._client.request(
+            "GET",
+            f"{self._collection_path}/group/{_segment(group_id)}",
+            response_model=wire.CollectionPermissionSet,
+        )
+
+    def principal(
+        self, principal_id: PrincipalId | int
+    ) -> _AsyncCursorService[wire.GroupPermission]:
+        return _AsyncCursorService(
+            self._client,
+            collection_path=f"{self._collection_path}/principal/{_segment(principal_id)}",
+            model=wire.GroupPermission,
+        )
+
+    async def effective_group(
+        self, group_id: GroupId | int
+    ) -> builtins.list[wire.EffectiveGroupPermission]:
+        return await _model_list(
+            self._client,
+            f"{self._collection_path}/effective/group/{_segment(group_id)}",
+            wire.EffectiveGroupPermission,
+        )
+
+    async def effective_principal(
+        self, principal_id: PrincipalId | int
+    ) -> builtins.list[wire.EffectiveGroupPermission]:
+        return await _model_list(
+            self._client,
+            f"{self._collection_path}/effective/principal/{_segment(principal_id)}",
+            wire.EffectiveGroupPermission,
+        )
+
+    def with_permission(self, permission: Permission) -> _AsyncCursorService[wire.GroupResponse]:
+        path = self._collection_path.removesuffix("/permissions")
+        return _AsyncCursorService(
+            self._client,
+            collection_path=f"{path}/has_permissions/{_segment(permission.value)}",
+            model=wire.GroupResponse,
+        )
+
+    async def check(self, group_id: GroupId | int, permission: Permission) -> bool:
+        try:
+            await self._client.request(
+                "GET",
+                f"{self._collection_path}/group/{_segment(group_id)}/{_segment(permission.value)}",
+            )
+        except NotFoundError:
+            return False
+        return True
+
+    async def grant(
+        self,
+        group_id: GroupId | int,
+        permissions: Sequence[Permission],
+        *,
+        if_match: str | None = None,
+    ) -> wire.CollectionPermissionSet:
+        return await self._client.request(
+            "POST",
+            f"{self._collection_path}/group/{_segment(group_id)}",
+            json=[p.value for p in permissions],
+            response_model=wire.CollectionPermissionSet,
+            options=_conditional_options(if_match),
+        )
+
+    async def replace(
+        self,
+        group_id: GroupId | int,
+        permissions: Sequence[Permission],
+        *,
+        if_match: str | None = None,
+    ) -> wire.CollectionPermissionSet:
+        return await self._client.request(
+            "PUT",
+            f"{self._collection_path}/group/{_segment(group_id)}",
+            json=[p.value for p in permissions],
+            response_model=wire.CollectionPermissionSet,
+            options=_conditional_options(if_match),
+        )
+
+    async def revoke(
+        self, group_id: GroupId | int, *, if_match: str | None = None
+    ) -> wire.CollectionPermissionSet:
+        return await self._client.request(
+            "DELETE",
+            f"{self._collection_path}/group/{_segment(group_id)}",
+            response_model=wire.CollectionPermissionSet,
+            options=_conditional_options(if_match),
+        )
+
+    async def grant_permission(
+        self, group_id: GroupId | int, permission: Permission, *, if_match: str | None = None
+    ) -> wire.CollectionPermissionSet:
+        return await self._client.request(
+            "POST",
+            f"{self._collection_path}/group/{_segment(group_id)}/{_segment(permission.value)}",
+            response_model=wire.CollectionPermissionSet,
+            options=_conditional_options(if_match),
+        )
+
+    async def revoke_permission(
+        self, group_id: GroupId | int, permission: Permission, *, if_match: str | None = None
+    ) -> wire.CollectionPermissionSet:
+        return await self._client.request(
+            "DELETE",
+            f"{self._collection_path}/group/{_segment(group_id)}/{_segment(permission.value)}",
+            response_model=wire.CollectionPermissionSet,
+            options=_conditional_options(if_match),
+        )
+
+
+class AsyncEventDeliveriesService(_AsyncCursorService[wire.EventDeliveryResponse]):
+    """Inspect deliveries and explicitly retry or mark one delivery dead."""
+
+    def __init__(self, client: AsyncClient) -> None:
+        super().__init__(
+            client, collection_path="/api/v1/event-deliveries", model=wire.EventDeliveryResponse
+        )
+
+    async def get(self, delivery_id: EventDeliveryId | int) -> wire.EventDeliveryResponse:
+        return await self._client.request(
+            "GET",
+            f"{self._collection_path}/{_segment(delivery_id)}",
+            response_model=wire.EventDeliveryResponse,
+        )
+
+    async def health(self) -> wire.EventDeliveryHealthResponse:
+        return await self._client.request(
+            "GET",
+            f"{self._collection_path}/health",
+            response_model=wire.EventDeliveryHealthResponse,
+        )
+
+    async def retry(self, delivery_id: EventDeliveryId | int) -> wire.EventDeliveryUpdateResponse:
+        return await self._client.request(
+            "POST",
+            f"{self._collection_path}/{_segment(delivery_id)}/retry",
+            response_model=wire.EventDeliveryUpdateResponse,
+        )
+
+    async def mark_dead(
+        self, delivery_id: EventDeliveryId | int
+    ) -> wire.EventDeliveryUpdateResponse:
+        return await self._client.request(
+            "POST",
+            f"{self._collection_path}/{_segment(delivery_id)}/dead",
+            response_model=wire.EventDeliveryUpdateResponse,
+        )
+
+
+class AsyncExportTemplatesService(
+    AsyncResourceService[
+        wire.ExportTemplate, wire.ExportTemplate, ExportTemplateCreate, ExportTemplateUpdate
+    ]
+):
+    """Reusable exports with bounded discovery, conditional writes, and task output."""
+
+    def __init__(self, client: AsyncClient) -> None:
+        super().__init__(
+            client,
+            collection_path="/api/v1/export-templates",
+            item_path="/api/v1/export-templates/{id}",
+            list_model=wire.ExportTemplate,
+            point_model=wire.ExportTemplate,
+        )
+
+    async def update(
+        self, resource_id: object, payload: ExportTemplateUpdate, *, if_match: str | None = None
+    ) -> wire.ExportTemplate:
+        return await self._client.request(
+            "PATCH",
+            self._item_path.format(id=_segment(resource_id)),
+            json=payload,
+            response_model=wire.ExportTemplate,
+            options=_conditional_options(if_match),
+        )
+
+    async def delete(self, resource_id: object, *, if_match: str | None = None) -> None:
+        await self._client.request(
+            "DELETE",
+            self._item_path.format(id=_segment(resource_id)),
+            options=_conditional_options(if_match),
+        )
+
+    def audit(
+        self, template_id: ExportTemplateId | int
+    ) -> AsyncResourceAuditService[wire.HistoryResponseExportTemplateHistory]:
+        return self._client.audit.export_template(template_id)
+
+    async def submit(
+        self, template_id: ExportTemplateId | int, payload: ExportTemplateRunRequest | None = None
+    ) -> Task:
+        return await self._client.request(
+            "POST",
+            f"{self._collection_path}/{_segment(template_id)}/exports",
+            json=payload or ExportTemplateRunRequest(),
+            response_model=Task,
+        )
+
+    async def run(
+        self,
+        template_id: ExportTemplateId | int,
+        payload: ExportTemplateRunRequest | None = None,
+        *,
+        timeout_seconds: float = 300.0,
+        poll_interval: float = 0.5,
+    ) -> ExportOutput:
+        _validate_polling(timeout_seconds, poll_interval)
+        submitted = await self.submit(template_id, payload)
+        task = await self._client.tasks.wait(
+            submitted.id, timeout_seconds=timeout_seconds, poll_interval=poll_interval
+        )
+        if task.status is not TaskStatus.SUCCEEDED:
+            raise TaskUnsuccessfulError(int(task.id), task.status.value)
+        return await self._client.exports.output(task.id)
+
+
+class AsyncRemoteTargetsService(
+    AsyncResourceService[
+        wire.RemoteTarget, wire.RemoteTarget, RemoteTargetCreate, RemoteTargetUpdate
+    ]
+):
+    """Remote invocation configuration and explicit queued execution."""
+
+    def __init__(self, client: AsyncClient) -> None:
+        super().__init__(
+            client,
+            collection_path="/api/v1/remote-targets",
+            item_path="/api/v1/remote-targets/{id}",
+            list_model=wire.RemoteTarget,
+            point_model=wire.RemoteTarget,
+        )
+
+    async def update(
+        self, resource_id: object, payload: RemoteTargetUpdate, *, if_match: str | None = None
+    ) -> wire.RemoteTarget:
+        return await self._client.request(
+            "PATCH",
+            self._item_path.format(id=_segment(resource_id)),
+            json=payload,
+            response_model=wire.RemoteTarget,
+            options=_conditional_options(if_match),
+        )
+
+    async def delete(self, resource_id: object, *, if_match: str | None = None) -> None:
+        await self._client.request(
+            "DELETE",
+            self._item_path.format(id=_segment(resource_id)),
+            options=_conditional_options(if_match),
+        )
+
+    def audit(
+        self, target_id: RemoteTargetId | int
+    ) -> AsyncResourceAuditService[wire.HistoryResponseRemoteTargetHistory]:
+        return self._client.audit.remote_target(target_id)
+
+    async def invoke(
+        self, target_id: RemoteTargetId | int, payload: RemoteTargetInvokeRequest
+    ) -> Task:
+        return await self._client.request(
+            "POST",
+            f"{self._collection_path}/{_segment(target_id)}/invoke",
+            json=payload,
+            response_model=Task,
+        )
+
+    async def run(
+        self,
+        target_id: RemoteTargetId | int,
+        payload: RemoteTargetInvokeRequest,
+        *,
+        timeout_seconds: float = 300.0,
+        poll_interval: float = 0.5,
+    ) -> Task:
+        _validate_polling(timeout_seconds, poll_interval)
+        submitted = await self.invoke(target_id, payload)
+        task = await self._client.tasks.wait(
+            submitted.id, timeout_seconds=timeout_seconds, poll_interval=poll_interval
+        )
+        if task.status is not TaskStatus.SUCCEEDED:
+            raise TaskUnsuccessfulError(int(task.id), task.status.value)
+        return task
+
+
+class AsyncClassComputedFieldsService:
+    """Shared definitions, previews, and asynchronous class computation state."""
+
+    def __init__(self, client: AsyncClient, class_id: ClassId | int) -> None:
+        self._client = client
+        self._base = f"/api/v1/classes/{_segment(class_id)}/computed-fields"
+
+    async def list(self) -> wire.ComputedFieldListResponse:
+        return await self._client.request(
+            "GET", self._base, response_model=wire.ComputedFieldListResponse
+        )
+
+    async def get(self, field_id: ComputedFieldId | int) -> wire.ComputedFieldDefinition:
+        return await self._client.request(
+            "GET", f"{self._base}/{_segment(field_id)}", response_model=wire.ComputedFieldDefinition
+        )
+
+    async def create(self, payload: ComputedFieldCreate) -> wire.ComputedFieldMutationResponse:
+        return await self._client.request(
+            "POST", self._base, json=payload, response_model=wire.ComputedFieldMutationResponse
+        )
+
+    async def update(
+        self,
+        field_id: ComputedFieldId | int,
+        payload: ComputedFieldUpdate,
+        *,
+        if_match: str | None = None,
+    ) -> wire.ComputedFieldMutationResponse:
+        return await self._client.request(
+            "PATCH",
+            f"{self._base}/{_segment(field_id)}",
+            json=payload,
+            response_model=wire.ComputedFieldMutationResponse,
+            options=_conditional_options(if_match),
+        )
+
+    async def delete(
+        self, field_id: ComputedFieldId | int, *, if_match: str | None = None
+    ) -> wire.ComputedFieldDeleteResponse:
+        return await self._client.request(
+            "DELETE",
+            f"{self._base}/{_segment(field_id)}",
+            response_model=wire.ComputedFieldDeleteResponse,
+            options=_conditional_options(if_match),
+        )
+
+    async def preview(
+        self, payload: ComputedFieldPreviewRequest
+    ) -> wire.ComputedFieldPreviewResponse:
+        return await self._client.request(
+            "POST",
+            f"{self._base}/preview",
+            json=payload,
+            response_model=wire.ComputedFieldPreviewResponse,
+        )
+
+    async def rebuild(self) -> wire.ClassComputationState:
+        return await self._client.request(
+            "POST", f"{self._base}/rebuild", response_model=wire.ClassComputationState
+        )
+
+
+class AsyncPersonalComputedFieldsService(_AsyncCursorService[wire.ComputedFieldDefinition]):
+    """Definitions owned by the current principal, evaluated independently of shared fields."""
+
+    def __init__(self, client: AsyncClient, *, class_id: ClassId | int | None = None) -> None:
+        super().__init__(
+            client,
+            collection_path="/api/v1/iam/me/computed-fields",
+            model=wire.ComputedFieldDefinition,
+            fixed_params=() if class_id is None else (("class_id", str(class_id)),),
+        )
+
+    def for_class(self, class_id: ClassId | int) -> AsyncPersonalComputedFieldsService:
+        return AsyncPersonalComputedFieldsService(self._client, class_id=class_id)
+
+    async def get(self, field_id: ComputedFieldId | int) -> wire.ComputedFieldDefinition:
+        return await self._client.request(
+            "GET",
+            f"{self._collection_path}/{_segment(field_id)}",
+            response_model=wire.ComputedFieldDefinition,
+        )
+
+    async def create(self, payload: PersonalComputedFieldCreate) -> wire.ComputedFieldDefinition:
+        return await self._client.request(
+            "POST", self._collection_path, json=payload, response_model=wire.ComputedFieldDefinition
+        )
+
+    async def update(
+        self,
+        field_id: ComputedFieldId | int,
+        payload: ComputedFieldUpdate,
+        *,
+        if_match: str | None = None,
+    ) -> wire.ComputedFieldDefinition:
+        return await self._client.request(
+            "PATCH",
+            f"{self._collection_path}/{_segment(field_id)}",
+            json=payload,
+            response_model=wire.ComputedFieldDefinition,
+            options=_conditional_options(if_match),
+        )
+
+    async def delete(self, field_id: ComputedFieldId | int, *, if_match: str | None = None) -> None:
+        await self._client.request(
+            "DELETE",
+            f"{self._collection_path}/{_segment(field_id)}",
+            options=_conditional_options(if_match),
+        )
+
+    async def preview(
+        self, payload: ComputedFieldPreviewRequest
+    ) -> wire.ComputedFieldPreviewResponse:
+        return await self._client.request(
+            "POST",
+            f"{self._collection_path}/preview",
+            json=payload,
+            response_model=wire.ComputedFieldPreviewResponse,
+        )
+
+
+class AsyncBackupsService:
+    """Submit full backups and retrieve the exact backup document."""
+
+    def __init__(self, client: AsyncClient) -> None:
+        self._client = client
+
+    async def submit(self, payload: BackupRequest | None = None) -> Task:
+        return await self._client.request(
+            "POST", "/api/v1/backups", json=payload or BackupRequest(), response_model=Task
+        )
+
+    async def get(self, task_id: TaskId | int) -> Task:
+        return await self._client.request(
+            "GET", f"/api/v1/backups/{_segment(task_id)}", response_model=Task
+        )
+
+    async def output(self, task_id: TaskId | int) -> wire.BackupDocument:
+        return await self._client.request(
+            "GET", f"/api/v1/backups/{_segment(task_id)}/output", response_model=wire.BackupDocument
+        )
+
+    async def run(
+        self,
+        payload: BackupRequest | None = None,
+        *,
+        timeout_seconds: float = 300.0,
+        poll_interval: float = 0.5,
+    ) -> wire.BackupDocument:
+        _validate_polling(timeout_seconds, poll_interval)
+        submitted = await self.submit(payload)
+        task = await self._client.tasks.wait(
+            submitted.id, timeout_seconds=timeout_seconds, poll_interval=poll_interval
+        )
+        if task.status is not TaskStatus.SUCCEEDED:
+            raise TaskUnsuccessfulError(int(task.id), task.status.value)
+        return await self.output(task.id)
+
+
+class AsyncRestoresService:
+    """Destructive restore staging, explicit approved confirmation, and capability polling."""
+
+    def __init__(self, client: AsyncClient) -> None:
+        self._client = client
+
+    async def stage(self, backup: wire.BackupDocument) -> wire.RestoreStageResponse:
+        return await self._client.request(
+            "POST", "/api/v1/restores", json=backup, response_model=wire.RestoreStageResponse
+        )
+
+    async def confirm(
+        self,
+        restore_id: RestoreJobId | int,
+        payload: RestoreConfirmRequest,
+        *,
+        credential_approval: CredentialApprovalSecret | str,
+    ) -> wire.RestoreStageResponse:
+        approval = (
+            credential_approval.get_secret_value()
+            if isinstance(credential_approval, CredentialApprovalSecret)
+            else credential_approval
+        )
+        return await self._client.request(
+            "POST",
+            f"/api/v1/restores/{_segment(restore_id)}/confirm",
+            json=payload,
+            response_model=wire.RestoreStageResponse,
+            options=RequestOptions(headers={"X-Hubuum-Credential-Approval": approval}),
+        )
+
+    async def status(
+        self, restore_id: RestoreJobId | int, *, capability: SecretStr | str
+    ) -> wire.RestoreStageResponse:
+        secret = capability.get_secret_value() if isinstance(capability, SecretStr) else capability
+        return await self._client.request(
+            "GET",
+            f"/api/v1/restores/{_segment(restore_id)}/status",
+            response_model=wire.RestoreStageResponse,
+            options=RequestOptions(
+                authenticated=False, headers={"X-Hubuum-Restore-Capability": secret}
+            ),
+        )
+
+    async def wait(
+        self,
+        restore_id: RestoreJobId | int,
+        *,
+        capability: SecretStr | str,
+        timeout_seconds: float = 300.0,
+        poll_interval: float = 0.5,
+    ) -> wire.RestoreStageResponse:
+        _validate_polling(timeout_seconds, poll_interval)
+        deadline = monotonic() + timeout_seconds
+        while True:
+            result = await self.status(restore_id, capability=capability)
+            if result.status in {"succeeded", "failed", "expired"}:
+                return result
+            remaining = deadline - monotonic()
+            if remaining <= 0:
+                raise TimeoutError("restore did not finish before the polling deadline")
+            await asyncio.sleep(min(poll_interval, remaining))
+
+
+def _conditional_options(if_match: str | None) -> RequestOptions:
+    return RequestOptions(headers={"If-Match": if_match} if if_match is not None else None)
+
+
+def _validate_polling(timeout_seconds: float, poll_interval: float) -> None:
+    if not isfinite(timeout_seconds) or timeout_seconds < 0:
+        raise ValueError("timeout_seconds must be finite and non-negative")
+    if not isfinite(poll_interval) or poll_interval <= 0:
+        raise ValueError("poll_interval must be finite and greater than 0")
+
+
+class AsyncSettingsService:
+    """Principal settings with explicit JSON Patch/Merge Patch media and ETag controls."""
+
+    def __init__(self, client: AsyncClient, path: str) -> None:
+        self._client = client
+        self._path = path
+
+    async def get(self) -> wire.PrincipalSettingsResponse:
+        return await self._client.request(
+            "GET", self._path, response_model=wire.PrincipalSettingsResponse
+        )
+
+    async def replace(
+        self, payload: SettingsRequest, *, if_match: str | None = None
+    ) -> wire.PrincipalSettingsResponse:
+        return await self._client.request(
+            "PUT",
+            self._path,
+            json=payload.settings,
+            response_model=wire.PrincipalSettingsResponse,
+            options=_conditional_options(if_match),
+        )
+
+    async def merge_patch(
+        self, payload: SettingsRequest, *, if_match: str | None = None
+    ) -> wire.PrincipalSettingsResponse:
+        headers = {"Content-Type": "application/merge-patch+json"}
+        if if_match is not None:
+            headers["If-Match"] = if_match
+        return await self._client.request(
+            "PATCH",
+            self._path,
+            json=payload.settings,
+            response_model=wire.PrincipalSettingsResponse,
+            options=RequestOptions(headers=headers),
+        )
+
+    async def json_patch(
+        self, operations: Sequence[SettingsPatchOperation], *, if_match: str | None = None
+    ) -> wire.PrincipalSettingsResponse:
+        headers = {"Content-Type": "application/json-patch+json"}
+        if if_match is not None:
+            headers["If-Match"] = if_match
+        return await self._client.request(
+            "PATCH",
+            self._path,
+            json=[operation.payload() for operation in operations],
+            response_model=wire.PrincipalSettingsResponse,
+            options=RequestOptions(headers=headers),
+        )
+
+    async def delete(self, *, if_match: str | None = None) -> None:
+        await self._client.request("DELETE", self._path, options=_conditional_options(if_match))
+
+
+class AsyncPrincipalsService:
+    """Current-principal or explicitly addressed settings, groups, and permissions."""
+
+    def __init__(self, client: AsyncClient) -> None:
+        self._client = client
+
+    def settings(self, principal_id: PrincipalId | int | None = None) -> AsyncSettingsService:
+        return AsyncSettingsService(self._client, f"{_principal_path(principal_id)}/settings")
+
+    def groups(
+        self, principal_id: PrincipalId | int | None = None
+    ) -> _AsyncCursorService[wire.GroupResponse]:
+        return _AsyncCursorService(
+            self._client,
+            collection_path=f"{_principal_path(principal_id)}/groups",
+            model=wire.GroupResponse,
+        )
+
+    async def permissions(
+        self, principal_id: PrincipalId | int | None = None
+    ) -> builtins.list[wire.PrincipalCollectionPermissions]:
+        return await _model_list(
+            self._client,
+            f"{_principal_path(principal_id)}/permissions",
+            wire.PrincipalCollectionPermissions,
+        )
+
+
+def _principal_path(principal_id: PrincipalId | int | None) -> str:
+    return (
+        "/api/v1/iam/me"
+        if principal_id is None
+        else f"/api/v1/iam/principals/{_segment(principal_id)}"
+    )
+
+
+class AsyncAuthService:
+    """Provider discovery, validation, and explicit administrative revocation.
+
+    Use Client.login_session()/logout() for managed client session state.
+    Administrative revocation does not silently replace local credentials.
+    """
+
+    def __init__(self, client: AsyncClient) -> None:
+        self._client = client
+
+    async def providers(self) -> wire.AuthProvidersResponse:
+        return await self._client.request(
+            "GET",
+            "/api/v1/auth/providers",
+            response_model=wire.AuthProvidersResponse,
+            options=RequestOptions(authenticated=False),
+        )
+
+    async def validate(self) -> wire.MessageResponse:
+        return await self._client.request(
+            "GET", "/api/v1/auth/validate", response_model=wire.MessageResponse
+        )
+
+    async def revoke_token(self, token: AccessToken | str) -> wire.MessageResponse:
+        return await self._client.request(
+            "POST",
+            "/api/v1/auth/logout/token",
+            json=wire.LogoutTokenRequest(
+                token=SecretStr(token.value if isinstance(token, AccessToken) else token)
+            ),
+            response_model=wire.MessageResponse,
+        )
+
+    async def revoke_user(self, user_id: UserId | int) -> wire.MessageResponse:
+        return await self._client.request(
+            "POST",
+            f"/api/v1/auth/logout/uid/{_segment(user_id)}",
+            response_model=wire.MessageResponse,
+        )
+
+    async def revoke_all(self) -> wire.MessageResponse:
+        return await self._client.request(
+            "POST", "/api/v1/auth/logout_all", response_model=wire.MessageResponse
+        )
+
+
+class AsyncAdminService:
+    """Running configuration and operational state; authorization remains server-enforced."""
+
+    def __init__(self, client: AsyncClient) -> None:
+        self._client = client
+
+    async def config(self) -> wire.RunningConfig:
+        return await self._client.request(
+            "GET", "/api/v1/admin/config", response_model=wire.RunningConfig
+        )
+
+    async def counts(self) -> wire.CountsResponse:
+        return await self._client.request(
+            "GET", "/api/v0/meta/counts", response_model=wire.CountsResponse
+        )
+
+    async def database(self) -> wire.DbStateResponse:
+        return await self._client.request(
+            "GET", "/api/v0/meta/db", response_model=wire.DbStateResponse
+        )
+
+    async def tasks(self) -> wire.TaskQueueStateResponse:
+        return await self._client.request(
+            "GET", "/api/v0/meta/tasks", response_model=wire.TaskQueueStateResponse
+        )
+
+    async def rate_limits(
+        self, *, include: str | None = None, scope: str | None = None, q: str | None = None
+    ) -> wire.LoginRateLimitStateResponse:
+        params = {
+            key: value
+            for (key, value) in (("include", include), ("scope", scope), ("q", q))
+            if value is not None
+        }
+        return await self._client.request(
+            "GET",
+            "/api/v0/meta/login-rate-limit",
+            response_model=wire.LoginRateLimitStateResponse,
+            options=RequestOptions(params=params),
+        )
+
+    async def release_rate_limit(self, entry_id: str) -> wire.ReleaseRateLimitResponse:
+        return await self._client.request(
+            "DELETE",
+            f"/api/v0/meta/login-rate-limit/{_segment(entry_id)}",
+            response_model=wire.ReleaseRateLimitResponse,
+        )
+
+    async def clear_rate_limits(self) -> wire.ClearRateLimitResponse:
+        return await self._client.request(
+            "DELETE", "/api/v0/meta/login-rate-limit", response_model=wire.ClearRateLimitResponse
         )

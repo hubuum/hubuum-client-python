@@ -217,6 +217,46 @@ class Client:
         return self.request("GET", "/api/v1/iam/me", response_model=MeResponse)
 
     @cached_property
+    def audit(self) -> AuditService:
+        return AuditService(self)
+
+    @cached_property
+    def event_deliveries(self) -> EventDeliveriesService:
+        return EventDeliveriesService(self)
+
+    @cached_property
+    def export_templates(self) -> ExportTemplatesService:
+        return ExportTemplatesService(self)
+
+    @cached_property
+    def remote_targets(self) -> RemoteTargetsService:
+        return RemoteTargetsService(self)
+
+    @cached_property
+    def computed_fields(self) -> PersonalComputedFieldsService:
+        return PersonalComputedFieldsService(self)
+
+    @cached_property
+    def backups(self) -> BackupsService:
+        return BackupsService(self)
+
+    @cached_property
+    def restores(self) -> RestoresService:
+        return RestoresService(self)
+
+    @cached_property
+    def principals(self) -> PrincipalsService:
+        return PrincipalsService(self)
+
+    @cached_property
+    def auth(self) -> AuthService:
+        return AuthService(self)
+
+    @cached_property
+    def admin(self) -> AdminService:
+        return AdminService(self)
+
+    @cached_property
     def event_sinks(self) -> EventSinksService:
         """Administrator sink management and explicit collection grants."""
         return EventSinksService(self)
@@ -452,16 +492,26 @@ class Client:
 
 
 from .openapi import OpenAPIOperations  # noqa: E402
-from .services import (  # noqa: E402
+from .services import (  # noqa: E402 -- Services reference the client type.
+    AdminService,
+    AuditService,
+    AuthService,
+    BackupsService,
     ClassesService,
     ClassRelationsService,
     CollectionsService,
     CredentialApprovalsService,
+    EventDeliveriesService,
     EventSinksService,
     ExportsService,
+    ExportTemplatesService,
     GroupsService,
     ImportsService,
     ObjectRelationsService,
+    PersonalComputedFieldsService,
+    PrincipalsService,
+    RemoteTargetsService,
+    RestoresService,
     ServiceAccountsService,
     TasksService,
     TokensService,

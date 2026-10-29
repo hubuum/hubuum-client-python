@@ -217,6 +217,46 @@ class AsyncClient:
         return await self.request("GET", "/api/v1/iam/me", response_model=MeResponse)
 
     @cached_property
+    def audit(self) -> AsyncAuditService:
+        return AsyncAuditService(self)
+
+    @cached_property
+    def event_deliveries(self) -> AsyncEventDeliveriesService:
+        return AsyncEventDeliveriesService(self)
+
+    @cached_property
+    def export_templates(self) -> AsyncExportTemplatesService:
+        return AsyncExportTemplatesService(self)
+
+    @cached_property
+    def remote_targets(self) -> AsyncRemoteTargetsService:
+        return AsyncRemoteTargetsService(self)
+
+    @cached_property
+    def computed_fields(self) -> AsyncPersonalComputedFieldsService:
+        return AsyncPersonalComputedFieldsService(self)
+
+    @cached_property
+    def backups(self) -> AsyncBackupsService:
+        return AsyncBackupsService(self)
+
+    @cached_property
+    def restores(self) -> AsyncRestoresService:
+        return AsyncRestoresService(self)
+
+    @cached_property
+    def principals(self) -> AsyncPrincipalsService:
+        return AsyncPrincipalsService(self)
+
+    @cached_property
+    def auth(self) -> AsyncAuthService:
+        return AsyncAuthService(self)
+
+    @cached_property
+    def admin(self) -> AsyncAdminService:
+        return AsyncAdminService(self)
+
+    @cached_property
     def event_sinks(self) -> AsyncEventSinksService:
         """Administrator sink management and explicit collection grants."""
         return AsyncEventSinksService(self)
@@ -451,16 +491,26 @@ class AsyncClient:
         return response
 
 
-from .async_services import (  # noqa: E402
+from .async_services import (  # noqa: E402 -- Services reference the client type.
+    AsyncAdminService,
+    AsyncAuditService,
+    AsyncAuthService,
+    AsyncBackupsService,
     AsyncClassesService,
     AsyncClassRelationsService,
     AsyncCollectionsService,
     AsyncCredentialApprovalsService,
+    AsyncEventDeliveriesService,
     AsyncEventSinksService,
     AsyncExportsService,
+    AsyncExportTemplatesService,
     AsyncGroupsService,
     AsyncImportsService,
     AsyncObjectRelationsService,
+    AsyncPersonalComputedFieldsService,
+    AsyncPrincipalsService,
+    AsyncRemoteTargetsService,
+    AsyncRestoresService,
     AsyncServiceAccountsService,
     AsyncTasksService,
     AsyncTokensService,

@@ -6,6 +6,31 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Matching sync/async convenience workflows for permission delegation, guarded
+  audit/history and temporal reads, shared/personal computed fields, export
+  templates, remote targets, event delivery controls, principal settings,
+  authentication administration, and operational state.
+- Full backup/restore services with typed documents, explicit approved
+  confirmation, bounded polling, and capability-only status reads after restored
+  credentials invalidate a session.
+- Search streaming regression coverage for split UTF-8/framing, incremental
+  delivery, early exit, decode errors, and cancellation, plus typed unified-search
+  cursor/control coverage against the pinned server.
+
+### Changed
+
+- Named-class permission reads return exact-contract `GroupPermission` models.
+  Replace dictionary indexing with attributes, or call `model_dump()`; see the
+  resource workflow migration guide.
+
+### Fixed
+
+- Redact nested integration configuration, embedded URL credentials, backup
+  content, restore digests, and expression/request payloads in diagnostics.
+  Sink requests and restore confirmations also redact validation inputs.
+
 ## [0.0.14] - 2026-10-26
 
 This release targets Hubuum server v0.0.21. Upgrade the server before using

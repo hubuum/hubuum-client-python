@@ -18,6 +18,7 @@ from hubuum_client import (
     ObjectUpdate,
     Query,
 )
+from hubuum_client.api import models as wire
 
 
 def _response_for_named_route(
@@ -51,7 +52,28 @@ def _response_for_named_route(
             headers={"X-Total-Count": "1", "X-Page-Limit": "10"},
         )
     if path.endswith("/permissions"):
-        return httpx.Response(200, json=[{"permission": "ReadClass"}])
+        permission: dict[str, Any] = {
+            name: False for name in wire.Permission.model_fields if name.startswith("has_")
+        }
+        permission.update(
+            id=1,
+            group_id=2,
+            collection_id=11,
+            created_at="2026-10-29T10:00:00Z",
+            updated_at="2026-10-29T10:00:00Z",
+            has_read_class=True,
+        )
+        group = {
+            "id": 2,
+            "groupname": "readers",
+            "description": "Readers",
+            "identity_scope_id": 1,
+            "managed_by": "local",
+            "revision": 1,
+            "created_at": "2026-10-29T10:00:00Z",
+            "updated_at": "2026-10-29T10:00:00Z",
+        }
+        return httpx.Response(200, json=[{"permission": permission, "group": group}])
     if path.endswith("/related/classes"):
         return httpx.Response(200, json=[{"id": 12, "path": [12]}])
     if path.endswith("/related/relations"):
@@ -103,7 +125,7 @@ def test_complete_by_name_surface_and_miami_workflow(
         assert selected.objects.class_name == "Hosts 2"
         assert selected.get().id == 12
         assert selected.update(ClassUpdate(description="updated")).id == 12
-        assert selected.permissions()[0]["permission"] == "ReadClass"
+        assert selected.permissions()[0].permission.has_read_class
         assert selected.related_classes()[0]["id"] == 12
         assert selected.related_relations()[0]["id"] == 30
         assert selected.related_graph()["objects"] == []
@@ -201,7 +223,7 @@ async def test_async_complete_by_name_surface(
         assert selected.objects.class_name == "Hosts"
         assert (await selected.get()).id == 12
         assert (await selected.update(ClassUpdate(description="updated"))).id == 12
-        assert (await selected.permissions())[0]["permission"] == "ReadClass"
+        assert (await selected.permissions())[0].permission.has_read_class
         assert (await selected.related_classes())[0]["id"] == 12
         assert (await selected.related_relations())[0]["id"] == 30
         assert (await selected.related_graph())["objects"] == []

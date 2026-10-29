@@ -436,3 +436,39 @@ class SchemaPageOptions:
 
     def as_params(self) -> list[tuple[str, QueryValue | None]]:
         return [("after", str(self.after)), ("limit", str(self.limit))]
+
+
+def aware_timestamp(value: datetime) -> str:
+    """Serialize a temporal boundary without silently assuming a timezone."""
+    if value.tzinfo is None or value.utcoffset() is None:
+        raise ValueError("timestamp must include a timezone")
+    return value.isoformat()
+
+
+@dataclass(frozen=True, slots=True)
+class EventQuery(Query):
+    """Audit filters are plain parameters, with explicit aware time boundaries."""
+
+    entity_type: str | None = None
+    entity_id: int | None = None
+    include_relations: bool | None = None
+    action: str | None = None
+    actor_kind: str | None = None
+    actor_user_id: int | None = None
+    initiator_user_id: int | None = None
+    collection_id: int | None = None
+    occurred_after: datetime | None = None
+    occurred_before: datetime | None = None
+
+    def as_params(self) -> list[tuple[str, QueryValue | None]]:
+        params = list(Query.as_params(self))
+        for field in fields(self):
+            if field.name in {item.name for item in fields(Query)}:
+                continue
+            value = getattr(self, field.name)
+            if value is not None:
+                rendered = (
+                    aware_timestamp(value) if isinstance(value, datetime) else _wire_value(value)
+                )
+                params.append((field.name, rendered))
+        return params
