@@ -313,8 +313,10 @@ async def test_typed_query_usage(typed_client: Any, graph: tuple[Any, ...]) -> N
         )
     )
     assert (await resolve(api.query_usage.list(cls.id))).body == []
-    observation = (await resolve(api.admin.get_query_observations())).body
-    assert isinstance(observation.enabled, bool)
+    observation = (
+        await resolve(api.admin.get_runtime_settings_by_group("query_observations"))
+    ).body
+    assert isinstance(observation.effective["enabled"], bool)
 
 
 async def test_typed_unified_search(typed_client: Any, graph: tuple[Any, ...]) -> None:

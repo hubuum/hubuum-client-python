@@ -12,6 +12,37 @@ from hubuum_client.models import APIModel
 from . import models
 
 
+class AdminDeleteRuntimeSettingsAuthenticationQuery(APIModel):
+    """Immutable operation parameters; omitted fields are not sent."""
+
+    expected_revision: models.ResourceRevision
+
+
+class AdminDeleteRuntimeSettingsAuthorizationQuery(APIModel):
+    """Immutable operation parameters; omitted fields are not sent."""
+
+    expected_revision: models.ResourceRevision
+
+
+class AdminGetRuntimeSettingsHistoryByGroupQuery(APIModel):
+    """Immutable operation parameters; omitted fields are not sent."""
+
+    limit: Annotated[int | None, Field(ge=1, le=100)] = None
+    before_revision: models.ResourceRevision | None = None
+
+
+class AdminDeleteRuntimeSettingsPaginationQuery(APIModel):
+    """Immutable operation parameters; omitted fields are not sent."""
+
+    expected_revision: models.ResourceRevision
+
+
+class AdminDeleteRuntimeSettingsQueryObservationsQuery(APIModel):
+    """Immutable operation parameters; omitted fields are not sent."""
+
+    expected_revision: models.ResourceRevision
+
+
 class ClassesListQuery(APIModel):
     """Immutable operation parameters; omitted fields are not sent."""
 

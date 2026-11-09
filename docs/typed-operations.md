@@ -6,8 +6,19 @@ both `Client.api` and `AsyncClient.api`; see [typed API usage](typed-api.md).
 | HTTP method | Route | Typed method |
 | --- | --- | --- |
 | GET | `/api/v1/admin/config` | `api.admin.get_config()` |
-| GET | `/api/v1/admin/query-observations` | `api.admin.get_query_observations()` |
-| PUT | `/api/v1/admin/query-observations` | `api.admin.put_query_observations()` |
+| GET | `/api/v1/admin/runtime-settings` | `api.admin.get_runtime_settings()` |
+| DELETE | `/api/v1/admin/runtime-settings/authentication` | `api.admin.delete_runtime_settings_authentication()` |
+| POST | `/api/v1/admin/runtime-settings/authentication/preflight` | `api.admin.post_runtime_settings_authentication_preflight()` |
+| PUT | `/api/v1/admin/runtime-settings/authorization` | `api.admin.put_runtime_settings_authorization()` |
+| DELETE | `/api/v1/admin/runtime-settings/authorization` | `api.admin.delete_runtime_settings_authorization()` |
+| GET | `/api/v1/admin/runtime-settings/history/{group}` | `api.admin.get_runtime_settings_history_by_group()` |
+| PUT | `/api/v1/admin/runtime-settings/pagination` | `api.admin.put_runtime_settings_pagination()` |
+| DELETE | `/api/v1/admin/runtime-settings/pagination` | `api.admin.delete_runtime_settings_pagination()` |
+| PUT | `/api/v1/admin/runtime-settings/query_observations` | `api.admin.put_runtime_settings_query_observations()` |
+| DELETE | `/api/v1/admin/runtime-settings/query_observations` | `api.admin.delete_runtime_settings_query_observations()` |
+| GET | `/api/v1/admin/runtime-settings/schema` | `api.admin.get_runtime_settings_schema()` |
+| GET | `/api/v1/admin/runtime-settings/{group}` | `api.admin.get_runtime_settings_by_group()` |
+| PATCH | `/api/v1/admin/runtime-settings/{group}` | `api.admin.patch_runtime_settings_by_group()` |
 | POST | `/api/v1/auth/login` | `api.auth.post_auth_login()` |
 | POST | `/api/v1/auth/logout` | `api.auth.post_auth_logout()` |
 | POST | `/api/v1/auth/logout/token` | `api.auth.post_auth_logout_token()` |

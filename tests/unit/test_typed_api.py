@@ -517,3 +517,25 @@ async def test_server_naive_timestamps_remain_typed(asynchronous: bool) -> None:
         assert result.body.created_at == datetime(2026, 10, 23, 9, 0, 0, 123456)
     finally:
         await resolve(client.close())
+
+
+@pytest.mark.parametrize("valid", [True, False])
+def test_runtime_provider_configuration_is_redacted(valid: bool) -> None:
+    payload = {
+        "name": "directory",
+        "kind": "ldap" if valid else "invalid",
+        "enabled": True,
+        "source": "runtime",
+        "configuration": {"bind_password": "provider-password-canary"},
+    }
+    if valid:
+        provider = models.RuntimeAuthenticationProviderRequestRuntime.model_validate(payload)
+        request = models.AuthenticationSettingsRequest(expected_revision=1, providers=[provider])
+        assert "provider-password-canary" not in repr(request)
+        assert request.wire_payload() == {"expected_revision": 1, "providers": [payload]}
+    else:
+        with pytest.raises(ValidationError) as error:
+            models.AuthenticationSettingsRequest.model_validate(
+                {"expected_revision": 1, "providers": [payload]}
+            )
+        assert "provider-password-canary" not in str(error.value)

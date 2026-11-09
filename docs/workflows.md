@@ -2,7 +2,7 @@
 
 The convenience services below are available on both `Client` and `AsyncClient`.
 Await asynchronous network calls; service selection itself does not perform IO.
-They use the committed Hubuum v0.0.21 contract. Response types are the exact
+They use the committed Hubuum v0.0.22 contract. Response types are the exact
 models in `hubuum_client.api.models`, except task and export results, which use
 `Task` and `ExportOutput` from the existing convenience API.
 
@@ -301,7 +301,7 @@ with the capability and omit bearer credentials, even when an invalidated manage
 session is still installed. `wait()` returns `succeeded`, `failed`, or `expired`;
 callers must inspect the status. Its timeout bounds polling and does not cancel
 the restore. The stage has its own expiry, and execution requires a matching
-v0.0.21 restore executor. Reauthenticate after recovery.
+v0.0.22 restore executor. Reauthenticate after recovery.
 
 Full restore tests run only on the wrapper-owned disposable stack. Caller-managed
 servers never run destructive recovery tests. See [end-to-end tests](e2e.md).
