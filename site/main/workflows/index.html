@@ -1434,7 +1434,7 @@
 <h1 id="resource-workflows">Resource workflows<a class="headerlink" href="#resource-workflows" title="Permanent link">&para;</a></h1>
 <p>The convenience services below are available on both <code>Client</code> and <code>AsyncClient</code>.
 Await asynchronous network calls; service selection itself does not perform IO.
-They use the committed Hubuum v0.0.21 contract. Response types are the exact
+They use the committed Hubuum v0.0.22 contract. Response types are the exact
 models in <code>hubuum_client.api.models</code>, except task and export results, which use
 <code>Task</code> and <code>ExportOutput</code> from the existing convenience API.</p>
 <p>Request models are exported from <code>hubuum_client</code>. They reject unknown top-level
@@ -1682,7 +1682,7 @@ with the capability and omit bearer credentials, even when an invalidated manage
 session is still installed. <code>wait()</code> returns <code>succeeded</code>, <code>failed</code>, or <code>expired</code>;
 callers must inspect the status. Its timeout bounds polling and does not cancel
 the restore. The stage has its own expiry, and execution requires a matching
-v0.0.21 restore executor. Reauthenticate after recovery.</p>
+v0.0.22 restore executor. Reauthenticate after recovery.</p>
 <p>Full restore tests run only on the wrapper-owned disposable stack. Caller-managed
 servers never run destructive recovery tests. See <a href="../e2e/">end-to-end tests</a>.</p>
 

@@ -608,6 +608,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#v0022-target" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        v0.0.22 target
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0021-target" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -751,10 +762,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#optional-runtime-settings-discovery" class="md-nav__link">
+  <a href="#runtime-settings-discovery" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Optional runtime settings discovery
+        Runtime settings discovery
       </span>
     </span>
   </a>
@@ -1445,6 +1456,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#v0022-target" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        v0.0.22 target
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0021-target" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1588,10 +1610,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#optional-runtime-settings-discovery" class="md-nav__link">
+  <a href="#runtime-settings-discovery" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Optional runtime settings discovery
+        Runtime settings discovery
       </span>
     </span>
   </a>
@@ -1641,6 +1663,12 @@
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>0.0.15</td>
+<td><a href="https://github.com/hubuum/hubuum/tree/v0.0.22"><code>v0.0.22</code></a></td>
+<td>Verified</td>
+<td><a href="../compatibility-evidence/#v0022-target">60 core and 4 recovery tests, including eight full restore cycles</a></td>
+</tr>
 <tr>
 <td>0.0.14</td>
 <td><a href="https://github.com/hubuum/hubuum/tree/v0.0.21"><code>v0.0.21</code></a></td>
@@ -1730,30 +1758,36 @@
 <p><code>Verified</code> means the complete Docker-backed suite passed for the exact
 client/server pair. The current server target is selected by tag and locked to
 an immutable multi-platform image:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>ghcr.io/hubuum/hubuum-server:v0.0.21@sha256:a5e1ad7a17281eefb4c1ed4da172a80bf815840f78bde6390d1e42bb2d51e0b6
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>ghcr.io/hubuum/hubuum-server:v0.0.22@sha256:71ff4090eac071f23ae59f7265dc07165939d42771a73d1d291defa023b4964b
 </code></pre></div>
 <p>The tag identifies the supported server release; the digest prevents that tag
 from resolving to different content later. The same reference is stored in
 <code>src/hubuum_client/_constants.py</code>, the e2e wrapper, and CI.</p>
 <h2 id="typed-parity">Typed parity<a class="headerlink" href="#typed-parity" title="Permanent link">&para;</a></h2>
 <p>The <code>client.api</code> interface, available since 0.0.13, provides matching sync and
-async types for all 261 operations and 401 schemas in this pinned contract. See
+async types for all 272 operations and 431 schemas in this pinned contract. See
 <a href="../typed-api/">typed API usage</a> and the <a href="../typed-operations/">operation table</a>.
 Existing convenience services retain their established return types.</p>
 <h2 id="before-upgrading">Before upgrading<a class="headerlink" href="#before-upgrading" title="Permanent link">&para;</a></h2>
-<p>Client 0.0.14 targets server v0.0.21 with matching sync and async behavior.
+<p>Client 0.0.15 targets server v0.0.22 with matching sync and async behavior.
 Use <a href="../credentials/">credential approvals</a> before protected mutations and
 <a href="../schema/">schema evolution</a> when changing validation policy on populated
-classes. The registered OpenAPI surface covers all 261 operations; dedicated
+classes. The registered OpenAPI surface covers all 272 operations; dedicated
 typed services and generic operation calls are distinguished in the API guides.</p>
-<p>Server v0.0.21 requires four migrations after v0.0.20. Stop old API and worker
-processes, apply the migrations and role grants during a quiet period, then
+<p>Stop old API and worker processes, apply the server v0.0.22 migrations and role
+grants during a quiet period, then
 start matching API, worker, template-worker, and restore-executor binaries.
 Provide writable temporary disk for backup and restore spooling and keep a
 pre-upgrade backup for rollback. Backup output remains format 10; restore input
 supports formats 6–10. Follow the
-<a href="https://hubuum.github.io/hubuum/v0.0.21/deployment/">server deployment guide</a>
-and <a href="https://hubuum.github.io/hubuum/v0.0.21/backup-restore/">backup compatibility</a>.</p>
+<a href="https://hubuum.github.io/hubuum/v0.0.22/deployment/">server deployment guide</a>
+and <a href="https://hubuum.github.io/hubuum/v0.0.22/backup-restore/">backup compatibility</a>.</p>
+<p><strong>Breaking client migration:</strong> replace generated <code>get_query_observations</code> and
+<code>put_query_observations</code> calls with the runtime-settings helpers below. Read
+ownership and revisions from the group, rather than the removed override field.
+Named-class permission results are typed <code>GroupPermission</code> models; use attributes
+or <code>model_dump()</code> instead of dictionary indexing. Review server template fuel
+limits and rendering changes before upgrading workloads that render templates.</p>
 <p>Suggestions inspect authorized raw object data only and never activate a policy.
 Review the sampled report, stage its candidate explicitly, then run whole-class
 impact analysis before activation. Reports expire after 24 hours. See the
@@ -1761,6 +1795,9 @@ impact analysis before activation. Reports expire after 24 hours. See the
 <h2 id="verification-evidence">Verification evidence<a class="headerlink" href="#verification-evidence" title="Permanent link">&para;</a></h2>
 <p><a href="../compatibility-evidence/">Detailed evidence and historical migrations</a> retain tested
 image identities, dates, suite results, and earlier compatibility limits.</p>
+<h2 id="v0022-target">v0.0.22 target<a class="headerlink" href="#v0022-target" title="Permanent link">&para;</a></h2>
+<p>See <a href="../compatibility-evidence/#v0022-target">v0.0.22 evidence</a> for the tagged
+contract and installed-wheel core/recovery verification.</p>
 <h2 id="v0021-target">v0.0.21 target<a class="headerlink" href="#v0021-target" title="Permanent link">&para;</a></h2>
 <p>See <a href="../compatibility-evidence/#v0021-target">v0.0.21 evidence</a> for the published
 contract and installed-wheel core/recovery verification.</p>
@@ -1818,20 +1855,20 @@ Migrate interactive callers from <code>login()</code>, which remains available o
 older servers. There is no automatic authentication downgrade. The server no
 longer supports legacy interactive clients; explicit PAT injection remains valid.
 The complete live suite requires rotation, replay revocation, and logout checks.</p>
-<p>The operation registry includes all 261 server operations. The seven generic
+<p>The operation registry includes all 272 server operations. The seven generic
 authentication operation IDs replace <code>ApiV0Auth</code> with <code>ApiV1Auth</code>; callers using
 those identifiers must update them. Dedicated
 convenience services remain projections of that contract. The complete typed
 <code>client.api</code> includes history, search hydration, credential activity, and
 observation-management operations. Generic <code>client.openapi.call()</code> and
 authenticated relative <code>request()</code> remain available.</p>
-<h2 id="optional-runtime-settings-discovery">Optional runtime settings discovery<a class="headerlink" href="#optional-runtime-settings-discovery" title="Permanent link">&para;</a></h2>
-<p>Newer servers implementing discovery version 1 expose runtime configuration
+<h2 id="runtime-settings-discovery">Runtime settings discovery<a class="headerlink" href="#runtime-settings-discovery" title="Permanent link">&para;</a></h2>
+<p>Server v0.0.22 implements discovery version 1 and exposes runtime configuration
 through <code>client.admin.runtime_settings_schema()</code> and
 <code>client.admin.runtime_settings_group(group)</code>. Both synchronous and asynchronous
-clients provide matching methods. This optional feature does not change the
-pinned v0.0.21 compatibility target. Discovery may return <code>NotFoundError</code> on an
-older server; do not fall back to an unrevisioned write.</p>
+clients provide matching methods. Discovery is required by the pinned v0.0.22
+compatibility target. Older servers may return <code>NotFoundError</code>; upgrade them
+before using runtime settings and do not fall back to an unrevisioned write.</p>
 <p>Use <code>RuntimeSettingsPatch(expected_revision=state.revision, changes={...})</code> with
 <code>client.admin.patch_runtime_settings(group, patch)</code> to edit only selected fields.
 The server preserves omitted values and validates correlated settings atomically.
