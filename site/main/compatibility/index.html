@@ -750,6 +750,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#optional-runtime-settings-discovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Optional runtime settings discovery
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1576,6 +1587,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#optional-runtime-settings-discovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Optional runtime settings discovery
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1803,6 +1825,29 @@ convenience services remain projections of that contract. The complete typed
 <code>client.api</code> includes history, search hydration, credential activity, and
 observation-management operations. Generic <code>client.openapi.call()</code> and
 authenticated relative <code>request()</code> remain available.</p>
+<h2 id="optional-runtime-settings-discovery">Optional runtime settings discovery<a class="headerlink" href="#optional-runtime-settings-discovery" title="Permanent link">&para;</a></h2>
+<p>Newer servers implementing discovery version 1 expose runtime configuration
+through <code>client.admin.runtime_settings_schema()</code> and
+<code>client.admin.runtime_settings_group(group)</code>. Both synchronous and asynchronous
+clients provide matching methods. This optional feature does not change the
+pinned v0.0.21 compatibility target. Discovery may return <code>NotFoundError</code> on an
+older server; do not fall back to an unrevisioned write.</p>
+<p>Use <code>RuntimeSettingsPatch(expected_revision=state.revision, changes={...})</code> with
+<code>client.admin.patch_runtime_settings(group, patch)</code> to edit only selected fields.
+The server preserves omitted values and validates correlated settings atomically.
+<code>PreconditionFailedError</code> requires refetching and reviewing the edit; the client
+does not automatically retry it. <code>RuntimeSettingsRelease</code> is the explicit reset
+to deployment ownership. Successful updates report the responding replica's
+application separately from the durable commit.</p>
+<p>Group keys and JSON Schema fields are open-ended. Form clients should reject
+unknown catalogue versions, ignore unfamiliar annotations, and show unsupported
+shapes read-only. Authentication retains the server's dedicated preflight flow.</p>
+<p>The contract is implemented in <a href="https://github.com/hubuum/hubuum/pull/584">server PR #584</a>.
+<code>RuntimeSettingsDescriptor.value_schema</code> preserves field <code>title</code>, <code>description</code>,
+<code>default</code>, bounds, <code>x-unit</code>, and <code>x-enum-descriptions</code>. The last annotation maps
+supported string-enum values to plain-text explanations. Client interfaces can
+display this server-provided help without hard-coding setting names; unfamiliar
+annotations remain available in the schema dictionary.</p>
 
 
 
