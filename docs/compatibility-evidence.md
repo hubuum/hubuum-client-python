@@ -4,6 +4,7 @@
 
 | Python client | Hubuum server contract | Status | End-to-end evidence |
 | --- | --- | --- | --- |
+| 0.0.15 | [`v0.0.22`](https://github.com/hubuum/hubuum/tree/v0.0.22) | Verified | [60 core and 4 recovery tests against the published immutable image](#v0022-target) |
 | 0.0.14 | [`v0.0.21`](https://github.com/hubuum/hubuum/tree/v0.0.21) | Verified | [46 core and 4 recovery tests against the published immutable image](#v0021-target) |
 | 0.0.13 | [`v0.0.20`](https://github.com/hubuum/hubuum/tree/v0.0.20) | Verified | 40 core and 4 recovery tests passed on 2026-10-24 using the installed 0.0.13 wheel (Python 3.13.3, Podman, released Linux AMD64 image), including typed API workflows, relation pagination, IAM/integration imports, service-account lifecycle/token invalidation, and eight complete restore cycles |
 | 0.0.12 | [`v0.0.20`](https://github.com/hubuum/hubuum/tree/v0.0.20) | Verified | 26 core and 4 recovery tests passed on 2026-10-22 using the installed 0.0.12 wheel (Python 3.12.15, Podman, released Linux AMD64 image), including rotation, replay revocation, logout, approvals, and eight complete restore cycles |
@@ -30,6 +31,26 @@ ghcr.io/hubuum/hubuum-server:v0.0.20@sha256:eaf59f8a4b4793030a78bc1637a8e2b9fad2
 The tag identifies the supported server release; the digest prevents that tag
 from resolving to different content later. The corresponding release tags retain that reference in
 `src/hubuum_client/_constants.py`, the e2e wrapper, and CI.
+
+## v0.0.22 target
+
+Client 0.0.15 targets the 272-operation, 431-schema contract from server v0.0.22.
+OpenAPI revision: `242285411044459c3ac73563d9338905f3b4f377`.
+OpenAPI SHA-256: `4981b76ff4e4a96392f9a59e41e3c2e86b1d4b3d7049911b7565c224ba7ca2b7`.
+Immutable image: `ghcr.io/hubuum/hubuum-server:v0.0.22@sha256:71ff4090eac071f23ae59f7265dc07165939d42771a73d1d291defa023b4964b`.
+
+On 2026-11-09, the canonical wrapper passed all 60 core and four recovery tests
+using the installed 0.0.15 wheel, Python 3.14.2, Docker, and the published Linux
+ARM64 image. Recovery completed eight full restore cycles with and without
+history. Both image architectures identify the source revision above. The tag
+document, immutable source revision, checksum, and generated operation registry
+were verified against the authoritative server contract.
+
+Both runtimes require the runtime-settings catalogue, retain server field and
+enum help, read ownership and revisions, submit partial edits, reject stale
+revisions without retry, and restore the original values and ownership. The full
+suite also covers typed workflows, credentials, sessions, delegation, history,
+computed fields, templates, integrations, and approved backup/restore operations.
 
 ## v0.0.21 target
 

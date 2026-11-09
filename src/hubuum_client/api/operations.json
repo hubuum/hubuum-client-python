@@ -7,6 +7,22 @@
     "method": "delete_login_rate_limit_by_id",
     "service": "meta"
   },
+  "deleteApiV1AdminRuntimeSettingsAuthentication": {
+    "method": "delete_runtime_settings_authentication",
+    "service": "admin"
+  },
+  "deleteApiV1AdminRuntimeSettingsAuthorization": {
+    "method": "delete_runtime_settings_authorization",
+    "service": "admin"
+  },
+  "deleteApiV1AdminRuntimeSettingsPagination": {
+    "method": "delete_runtime_settings_pagination",
+    "service": "admin"
+  },
+  "deleteApiV1AdminRuntimeSettingsQueryObservations": {
+    "method": "delete_runtime_settings_query_observations",
+    "service": "admin"
+  },
   "deleteApiV1ClassesByClassId": {
     "method": "delete",
     "service": "classes"
@@ -143,8 +159,20 @@
     "method": "get_config",
     "service": "admin"
   },
-  "getApiV1AdminQueryObservations": {
-    "method": "get_query_observations",
+  "getApiV1AdminRuntimeSettings": {
+    "method": "get_runtime_settings",
+    "service": "admin"
+  },
+  "getApiV1AdminRuntimeSettingsByGroup": {
+    "method": "get_runtime_settings_by_group",
+    "service": "admin"
+  },
+  "getApiV1AdminRuntimeSettingsHistoryByGroup": {
+    "method": "get_runtime_settings_history_by_group",
+    "service": "admin"
+  },
+  "getApiV1AdminRuntimeSettingsSchema": {
+    "method": "get_runtime_settings_schema",
     "service": "admin"
   },
   "getApiV1AuthProviders": {
@@ -691,6 +719,10 @@
     "method": "get_readyz",
     "service": "probes"
   },
+  "patchApiV1AdminRuntimeSettingsByGroup": {
+    "method": "patch_runtime_settings_by_group",
+    "service": "admin"
+  },
   "patchApiV1ClassesByClassId": {
     "method": "update",
     "service": "classes"
@@ -774,6 +806,10 @@
   "patchApiV1SystemEventSubscriptionsBySubscriptionId": {
     "method": "patch_system_event_subscriptions_by_subscription_id",
     "service": "event_subscriptions"
+  },
+  "postApiV1AdminRuntimeSettingsAuthenticationPreflight": {
+    "method": "post_runtime_settings_authentication_preflight",
+    "service": "admin"
   },
   "postApiV1AuthLogin": {
     "method": "post_auth_login",
@@ -1015,8 +1051,16 @@
     "method": "post_cancel",
     "service": "tasks"
   },
-  "putApiV1AdminQueryObservations": {
-    "method": "put_query_observations",
+  "putApiV1AdminRuntimeSettingsAuthorization": {
+    "method": "put_runtime_settings_authorization",
+    "service": "admin"
+  },
+  "putApiV1AdminRuntimeSettingsPagination": {
+    "method": "put_runtime_settings_pagination",
+    "service": "admin"
+  },
+  "putApiV1AdminRuntimeSettingsQueryObservations": {
+    "method": "put_runtime_settings_query_observations",
     "service": "admin"
   },
   "putApiV1ClassesByClassIdQueryUsageByDeclarationId": {
