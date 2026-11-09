@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from contextlib import suppress
-from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -139,7 +138,9 @@ async def test_export_template_lifecycle(
             )
         ] == [created.id]
         point = await resolve(typed_client.api.export_templates.get(created.id))
-        at = datetime.now(UTC)
+        history = typed_client.export_templates.audit(created.id).history
+        # Use the server's history boundary rather than a different machine's clock.
+        at = (await resolve(history.list(Query().limit(1))))[0].valid_from
         updated = await resolve(
             typed_client.export_templates.update(
                 created.id, ExportTemplateUpdate(description="Updated"), if_match=point.etag
@@ -156,7 +157,6 @@ async def test_export_template_lifecycle(
             typed_client.export_templates.run(created.id, timeout_seconds=90, poll_interval=0.2)
         )
         assert result.body == "workflow-output"
-        history = typed_client.export_templates.audit(created.id).history
         assert len(await resolve(history.all(Query().limit(1)))) >= 2
         assert (await resolve(history.as_of(at))).description == "Reusable output"
         assert await resolve(
@@ -189,7 +189,11 @@ async def test_remote_target_lifecycle_and_safe_invocation(
         )
     )
     try:
-        at = datetime.now(UTC)
+        at = (
+            await resolve(
+                typed_client.remote_targets.audit(target.id).history.list(Query().limit(1))
+            )
+        )[0].valid_from
         assert (await resolve(typed_client.remote_targets.get(target.id))).id == target.id
         assert any(
             item.id == target.id
@@ -277,7 +281,9 @@ async def test_delegated_permissions_audit_and_principal_settings(
         assert await resolve(delegated.audit.collection(parent.id).events.list()) == []
         await resolve(grants.grant_permission(group.id, Permission.READ_AUDIT))
         assert await resolve(grants.check(group.id, Permission.READ_AUDIT))
-        at = datetime.now(UTC)
+        at = (await resolve(delegated.audit.collection(parent.id).history.list(Query().limit(1))))[
+            0
+        ].valid_from
         client.collections.update(parent.id, CollectionUpdate(description="Changed"))
         events = await resolve(
             delegated.audit.collection(parent.id).events.all(EventQuery().limit(1))
