@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+- Add matching synchronous and asynchronous admin helpers for runtime settings discovery, group state, partial edits, and deployment resets. Group and field names remain open-ended. This optional newer-server capability does not change the pinned v0.0.21 target.
+
 ### Added
 
 - Matching sync/async convenience workflows for permission delegation, guarded

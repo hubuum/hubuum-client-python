@@ -86,6 +86,11 @@ from .models import (
     RenderedExport,
     RenewTokenRequest,
     RestoreConfirmRequest,
+    RuntimeSettingsCatalogue,
+    RuntimeSettingsGroupState,
+    RuntimeSettingsPatch,
+    RuntimeSettingsRelease,
+    RuntimeSettingsUpdateResponse,
     SchemaActivationRequest,
     SchemaActivationResponse,
     SchemaCompliancePage,
@@ -2494,4 +2499,40 @@ class AsyncAdminService:
     async def clear_rate_limits(self) -> wire.ClearRateLimitResponse:
         return await self._client.request(
             "DELETE", "/api/v0/meta/login-rate-limit", response_model=wire.ClearRateLimitResponse
+        )
+
+    async def runtime_settings_schema(self) -> RuntimeSettingsCatalogue:
+        """Discover this server's runtime contract; older servers may return 404."""
+        return await self._client.request(
+            "GET", "/api/v1/admin/runtime-settings/schema", response_model=RuntimeSettingsCatalogue
+        )
+
+    async def runtime_settings_group(self, group: str) -> RuntimeSettingsGroupState:
+        """Read requested values and responding-replica application status."""
+        return await self._client.request(
+            "GET",
+            f"/api/v1/admin/runtime-settings/{_segment(group)}",
+            response_model=RuntimeSettingsGroupState,
+        )
+
+    async def patch_runtime_settings(
+        self, group: str, patch: RuntimeSettingsPatch
+    ) -> RuntimeSettingsUpdateResponse:
+        """Commit edited fields; expose stale revisions without retrying the edit."""
+        return await self._client.request(
+            "PATCH",
+            f"/api/v1/admin/runtime-settings/{_segment(group)}",
+            json=patch.payload(),
+            response_model=RuntimeSettingsUpdateResponse,
+        )
+
+    async def release_runtime_settings(
+        self, group: str, request: RuntimeSettingsRelease
+    ) -> RuntimeSettingsUpdateResponse:
+        """Return a group to deployment ownership with optimistic concurrency."""
+        return await self._client.request(
+            "DELETE",
+            f"/api/v1/admin/runtime-settings/{_segment(group)}",
+            options=RequestOptions(params={"expected_revision": str(request.expected_revision)}),
+            response_model=RuntimeSettingsUpdateResponse,
         )

@@ -138,3 +138,31 @@ convenience services remain projections of that contract. The complete typed
 `client.api` includes history, search hydration, credential activity, and
 observation-management operations. Generic `client.openapi.call()` and
 authenticated relative `request()` remain available.
+
+## Optional runtime settings discovery
+
+Newer servers implementing discovery version 1 expose runtime configuration
+through `client.admin.runtime_settings_schema()` and
+`client.admin.runtime_settings_group(group)`. Both synchronous and asynchronous
+clients provide matching methods. This optional feature does not change the
+pinned v0.0.21 compatibility target. Discovery may return `NotFoundError` on an
+older server; do not fall back to an unrevisioned write.
+
+Use `RuntimeSettingsPatch(expected_revision=state.revision, changes={...})` with
+`client.admin.patch_runtime_settings(group, patch)` to edit only selected fields.
+The server preserves omitted values and validates correlated settings atomically.
+`PreconditionFailedError` requires refetching and reviewing the edit; the client
+does not automatically retry it. `RuntimeSettingsRelease` is the explicit reset
+to deployment ownership. Successful updates report the responding replica's
+application separately from the durable commit.
+
+Group keys and JSON Schema fields are open-ended. Form clients should reject
+unknown catalogue versions, ignore unfamiliar annotations, and show unsupported
+shapes read-only. Authentication retains the server's dedicated preflight flow.
+
+The contract is implemented in [server PR #584](https://github.com/hubuum/hubuum/pull/584).
+`RuntimeSettingsDescriptor.value_schema` preserves field `title`, `description`,
+`default`, bounds, `x-unit`, and `x-enum-descriptions`. The last annotation maps
+supported string-enum values to plain-text explanations. Client interfaces can
+display this server-provided help without hard-coding setting names; unfamiliar
+annotations remain available in the schema dictionary.
