@@ -1677,7 +1677,7 @@ class ImportMode(RequestModel):
 
 
 class ImportGraph(_ImportModel):
-    """Strictly typed Hubuum v0.0.21 graph, including identity and integrations."""
+    """Strictly typed Hubuum v0.0.22 graph, including identity and integrations."""
 
     collections: tuple[ImportCollectionInput, ...] = ()
     classes: tuple[ImportClassInput, ...] = ()
@@ -2536,3 +2536,70 @@ class SettingsPatchOperation(ObjectDataPatchOperation, APIModel):
 
 RemoteTargetCreate.model_rebuild(_types_namespace=vars(_wire_models))
 RemoteTargetUpdate.model_rebuild(_types_namespace=vars(_wire_models))
+
+
+class RuntimeSettingsDescriptor(HubuumModel):
+    """An open-ended group of settings described by the connected server."""
+
+    key: str
+    title: str
+    description: str
+    value_schema: dict[str, JsonValue] = Field(alias="schema")
+    patch_supported: bool
+    requires_local_admin: bool
+    takes_effect: str
+    read_only_reason: str | None = None
+
+
+class RuntimeSettingsCatalogue(HubuumModel):
+    """Discovery protocol metadata; unknown groups and annotations are preserved."""
+
+    schema_version: int
+    groups: list[RuntimeSettingsDescriptor]
+
+
+class RuntimeSettingsGroupState(HubuumModel):
+    """Requested and applied values on the responding replica."""
+
+    group: str
+    source: str
+    revision: ResourceRevision | None
+    mutable: bool
+    restart_required: bool
+    takes_effect: str
+    replica: dict[str, JsonValue]
+    effective: dict[str, JsonValue]
+    runtime: dict[str, JsonValue] | None
+    deployment: dict[str, JsonValue] | None
+    constrained_by_ceiling: bool
+
+
+class RuntimeSettingsPatch(RequestModel):
+    """Explicit partial edit; omitted fields are preserved by the server."""
+
+    expected_revision: ResourceRevision
+    changes: dict[str, JsonValue] = Field(min_length=1, repr=False)
+
+    @model_validator(mode="after")
+    def validate_changes(self) -> Self:
+        if "expected_revision" in self.changes or any(v is None for v in self.changes.values()):
+            raise ValueError(
+                "Changes must contain concrete setting values, without revision metadata"
+            )
+        return self
+
+
+class RuntimeSettingsRelease(RequestModel):
+    """Return the complete group to deployment ownership."""
+
+    expected_revision: ResourceRevision
+
+
+class RuntimeSettingsUpdateResponse(HubuumModel):
+    """Commit acknowledgement, separate from replica application status."""
+
+    group: str
+    committed_revision: ResourceRevision
+    changed: bool
+    applied_by_responding_replica: bool
+    settings: dict[str, JsonValue]

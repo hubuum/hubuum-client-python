@@ -529,6 +529,10 @@ class PaginationConfig(APIModel):
     max_traversal_work_rows: int
 
 
+class PaginationPolicyValue(APIModel):
+    default_page_limit: Annotated[int, Field(ge=1)]
+
+
 class PatchOperation1(AddOperation):
     op: Literal["add"]
 
@@ -606,13 +610,29 @@ class ProvenancePrincipal(APIModel):
     principal_id: Annotated[int, Field(ge=1)]
 
 
+class QueryObservationCeilingsValue(APIModel):
+    max_patterns: Annotated[int, Field(ge=0)]
+    max_patterns_per_class: Annotated[int, Field(ge=0)]
+    max_predicates_per_query: Annotated[int, Field(ge=0)]
+    max_retention_seconds: Annotated[int, Field(ge=0)]
+    min_sample_every: Annotated[int, Field(ge=0)]
+
+
 class QueryObservationConfig(APIModel):
     enabled: bool
     max_patterns: Annotated[int, Field(ge=0)]
     max_patterns_per_class: Annotated[int, Field(ge=0)]
     max_predicates_per_query: Annotated[int, Field(ge=0)]
     retention_seconds: Annotated[int, Field(ge=0)]
-    runtime_override: bool | None = None
+    sample_every: Annotated[int, Field(ge=0)]
+
+
+class QueryObservationPolicyValue(APIModel):
+    enabled: bool
+    max_patterns: Annotated[int, Field(ge=0)]
+    max_patterns_per_class: Annotated[int, Field(ge=0)]
+    max_predicates_per_query: Annotated[int, Field(ge=0)]
+    retention_seconds: Annotated[int, Field(ge=0)]
     sample_every: Annotated[int, Field(ge=0)]
 
 
@@ -623,11 +643,6 @@ class QueryObservationSettings(APIModel):
     max_predicates_per_query: Annotated[int, Field(ge=0)]
     retention_seconds: Annotated[int, Field(ge=0)]
     sample_every: Annotated[int, Field(ge=0)]
-
-
-class QueryObservationUpdateRequest(APIModel):
-    model_config = ConfigDict(extra="forbid")
-    enabled: bool
 
 
 class QueryUsageAdapterProgress(APIModel):
@@ -773,6 +788,46 @@ class RetainedImportDetails(APIModel):
     dry_run: bool | None = None
     has_failed_items: bool | None = None
     permission_policy: Literal["abort", "continue"] | None = None
+
+
+class RuntimeAuthenticationProviderRequestDeployment(APIModel):
+    enabled: bool
+    kind: Literal["ldap"]
+    name: str
+    source: Literal["deployment"]
+
+
+class RuntimeAuthenticationProviderRequestRuntime(APIModel):
+    adopt_deployment: bool | None = None
+    configuration: dict[str, JsonValue]
+    enabled: bool
+    kind: Literal["ldap"]
+    name: str
+    source: Literal["runtime"]
+
+
+class RuntimeSettingsChangeActor(APIModel):
+    kind: str
+    principal_id: PrincipalID | None = None
+
+
+class RuntimeSettingsPatch(APIModel):
+    model_config = ConfigDict(extra="forbid")
+    changes: dict[str, JsonValue]
+    expected_revision: Annotated[int, Field(ge=1)]
+
+
+class RuntimeSettingsReplicaStatus(APIModel):
+    applied_at: datetime | None = None
+    last_refresh_attempt_at: datetime | None = None
+    last_refresh_failure_at: datetime | None = None
+    reconcile_interval_seconds: Annotated[int, Field(ge=0)]
+    status: Literal["not_loaded", "current", "stale"]
+
+
+class RuntimeSettingsValueResponse(APIModel):
+    source: Literal["deployment", "runtime"]
+    value: dict[str, JsonValue] | None = None
 
 
 class String(APIModel):
@@ -1329,6 +1384,20 @@ class UserResponse(APIModel):
     provider_managed: bool
     revision: Annotated[int, Field(ge=1)]
     updated_at: datetime
+
+
+class AuthenticationSettingsRequest(APIModel):
+    model_config = ConfigDict(extra="forbid")
+    expected_revision: Annotated[int, Field(ge=1)]
+    providers: list[
+        RuntimeAuthenticationProviderRequestDeployment | RuntimeAuthenticationProviderRequestRuntime
+    ]
+
+
+class AuthorizationSettingsRequest(APIModel):
+    model_config = ConfigDict(extra="forbid")
+    backend: Literal["local", "treetop"]
+    expected_revision: Annotated[int, Field(ge=1)]
 
 
 class BackupDocument(APIModel):
@@ -2185,6 +2254,12 @@ class ObjectKey(APIModel):
     name: str
 
 
+class PaginationSettingsRequest(APIModel):
+    model_config = ConfigDict(extra="forbid")
+    default_page_limit: Annotated[int, Field(ge=1, le=4294967295)]
+    expected_revision: Annotated[int, Field(ge=1)]
+
+
 class PatchOperation2(RemoveOperation):
     op: Literal["remove"]
 
@@ -2272,6 +2347,17 @@ class PrincipalTokenPointResponse(APIModel):
 class ProvenanceActor(APIModel):
     kind: str | None = None
     principal: ProvenancePrincipal | None = None
+
+
+class QueryObservationSettingsRequest(APIModel):
+    model_config = ConfigDict(extra="forbid")
+    enabled: bool
+    expected_revision: Annotated[int, Field(ge=1)]
+    max_patterns: Annotated[int | None, Field(ge=1, le=16384)] = None
+    max_patterns_per_class: Annotated[int | None, Field(ge=1, le=128)] = None
+    max_predicates_per_query: Annotated[int | None, Field(ge=1, le=32)] = None
+    retention_seconds: Annotated[int | None, Field(ge=1, le=604800)] = None
+    sample_every: Annotated[int | None, Field(ge=1, le=1000000)] = None
 
 
 class QueryUsagePatternSchema(APIModel):
@@ -2435,6 +2521,51 @@ class RetainedExportDetails(APIModel):
     template_id: ExportTemplateID | None = None
     truncated: bool | None = None
     warning_count: int | None = None
+
+
+class RuntimeAuthenticationProviderStatus(APIModel):
+    available: bool
+    definition_mutable: bool
+    enabled: bool
+    name: str
+    source: Literal["deployment", "runtime"]
+
+
+class RuntimeSettingsChangeResponse(APIModel):
+    actor: RuntimeSettingsChangeActor
+    changed_at: datetime
+    correlation_id: str | None = None
+    current: RuntimeSettingsValueResponse
+    group: Literal["authentication", "authorization", "query_observations", "pagination"]
+    previous: RuntimeSettingsValueResponse
+    request_id: UUID | None = None
+    revision: Annotated[int, Field(ge=1)]
+
+
+class RuntimeSettingsDescriptor(APIModel):
+    description: str
+    key: Literal["authentication", "authorization", "query_observations", "pagination"]
+    patch_supported: bool
+    read_only_reason: str | None = None
+    requires_local_admin: bool
+    schema_: Annotated[dict[str, JsonValue], Field(alias="schema")]
+    takes_effect: Literal["next_request", "next_query"]
+    title: str
+
+
+class RuntimeSettingsHistoryResponse(APIModel):
+    changes: list[RuntimeSettingsChangeResponse]
+    next_before_revision: ResourceRevision | None = None
+
+
+class RuntimeSettingsOwnership(APIModel):
+    changed_at: datetime | None = None
+    changed_by: PrincipalID | None = None
+    mutable: bool
+    restart_required: bool
+    revision: ResourceRevision | None = None
+    source: Literal["deployment", "runtime"]
+    takes_effect: Literal["next_request", "next_query"]
 
 
 class SchemaActivationRequest(APIModel):
@@ -2759,6 +2890,17 @@ class AuthenticationConfig(APIModel):
     token_retention_purge_batch_size: Annotated[int, Field(ge=10)]
     token_retention_purge_enabled: bool
     token_retention_purge_interval_seconds: Annotated[int, Field(ge=0)]
+
+
+class AuthenticationSettingsReport(RuntimeSettingsOwnership):
+    providers: list[RuntimeAuthenticationProviderStatus]
+
+
+class AuthorizationSettingsReport(RuntimeSettingsOwnership):
+    available: bool
+    deployment_backend: str
+    effective_backend: str
+    runtime_backend: str | None = None
 
 
 class BackupTaskDetails(APIModel):
@@ -3319,10 +3461,27 @@ class ObjectSchemaEvidence(APIModel):
     validated_at: datetime
 
 
+class PaginationSettingsReport(RuntimeSettingsOwnership):
+    constrained_by_ceiling: bool
+    deployment: PaginationPolicyValue
+    effective: PaginationPolicyValue
+    max_page_limit: Annotated[int, Field(ge=0)]
+    runtime: PaginationPolicyValue | None = None
+
+
 class Provenance(APIModel):
     actor: ProvenanceActor
     initiator: ProvenancePrincipal | None = None
     task_id: TaskID | None = None
+
+
+class QueryObservationSettingsReport(RuntimeSettingsOwnership):
+    ceilings: QueryObservationCeilingsValue
+    collection_paused: bool
+    constrained_by_ceiling: bool
+    deployment: QueryObservationPolicyValue
+    effective: QueryObservationPolicyValue
+    runtime: QueryObservationPolicyValue | None = None
 
 
 class QueryPatternObservation(APIModel):
@@ -3359,23 +3518,34 @@ class QueryUsageSuggestion(APIModel):
     rationale: str
 
 
-class RunningConfig(APIModel):
-    authentication: AuthenticationConfig
-    backups: BackupConfig
-    database: DatabaseConfig
-    events: EventConfig
-    exports: ExportConfig
-    network: NetworkConfig
-    pagination: PaginationConfig
-    permissions: PermissionConfig
-    query_observations: QueryObservationConfig
-    remote_calls: RemoteCallConfig
-    restores: RestoreConfig
-    schema_validation: SchemaValidationConfig
-    secrets: SecretSourceConfig
-    server: ServerConfig
-    tasks: TaskConfig
-    tracing: TracingConfig
+class RuntimeSettingsCatalogue(APIModel):
+    groups: list[RuntimeSettingsDescriptor]
+    schema_version: Annotated[int, Field(ge=0)]
+
+
+class RuntimeSettingsGroupState(RuntimeSettingsOwnership):
+    constrained_by_ceiling: bool
+    deployment: dict[str, JsonValue] | None = None
+    effective: dict[str, JsonValue]
+    group: Literal["authentication", "authorization", "query_observations", "pagination"]
+    replica: RuntimeSettingsReplicaStatus
+    runtime: dict[str, JsonValue] | None = None
+
+
+class RuntimeSettingsReport(APIModel):
+    authentication: AuthenticationSettingsReport
+    authorization: AuthorizationSettingsReport
+    pagination: PaginationSettingsReport
+    query_observations: QueryObservationSettingsReport
+    replica: RuntimeSettingsReplicaStatus
+
+
+class RuntimeSettingsUpdateResponse(APIModel):
+    applied_by_responding_replica: bool
+    changed: bool
+    committed_revision: Annotated[int, Field(ge=1)]
+    group: Literal["authentication", "authorization", "query_observations", "pagination"]
+    settings: RuntimeSettingsReport
 
 
 class SchemaActivationResponse(APIModel):
@@ -3790,6 +3960,26 @@ class QueryUsageAnalysisResponse(APIModel):
     suggestions: list[QueryUsageSuggestion]
 
 
+class RunningConfig(APIModel):
+    authentication: AuthenticationConfig
+    backups: BackupConfig
+    database: DatabaseConfig
+    events: EventConfig
+    exports: ExportConfig
+    network: NetworkConfig
+    pagination: PaginationConfig
+    permissions: PermissionConfig
+    query_observations: QueryObservationConfig
+    remote_calls: RemoteCallConfig
+    restores: RestoreConfig
+    runtime_settings: RuntimeSettingsReport | None = None
+    schema_validation: SchemaValidationConfig
+    secrets: SecretSourceConfig
+    server: ServerConfig
+    tasks: TaskConfig
+    tracing: TracingConfig
+
+
 class SchemaCompliancePage(APIModel):
     items: list[ObjectComplianceResponse]
     next_after: int | None = None
@@ -4118,6 +4308,17 @@ ResourceID: TypeAlias = Annotated[int, Field(ge=1)]
 ResourceRevision: TypeAlias = Annotated[int, Field(ge=1)]
 RestoreJobID: TypeAlias = Annotated[int, Field(ge=1)]
 RestoreJobStatus: TypeAlias = Literal["validated", "confirmed", "succeeded", "failed", "expired"]
+RuntimeAuthenticationProviderKind: TypeAlias = Literal["ldap"]
+RuntimeAuthenticationProviderRequest: TypeAlias = (
+    RuntimeAuthenticationProviderRequestDeployment | RuntimeAuthenticationProviderRequestRuntime
+)
+RuntimeAuthorizationBackend: TypeAlias = Literal["local", "treetop"]
+RuntimeSettingsApplicationStatus: TypeAlias = Literal["not_loaded", "current", "stale"]
+RuntimeSettingsEffect: TypeAlias = Literal["next_request", "next_query"]
+RuntimeSettingsGroup: TypeAlias = Literal[
+    "authentication", "authorization", "query_observations", "pagination"
+]
+RuntimeSettingsSource: TypeAlias = Literal["deployment", "runtime"]
 SchemaActivationPolicy: TypeAlias = Literal["reject_incompatible", "allow_pending"]
 SchemaActualValue: TypeAlias = (
     Literal["null"]

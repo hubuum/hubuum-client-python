@@ -1,4 +1,4 @@
-"""Immutable Hubuum v0.0.21 OpenAPI operation manifest."""
+"""Immutable Hubuum v0.0.22 OpenAPI operation manifest."""
 
 from __future__ import annotations
 
@@ -33,6 +33,30 @@ class OperationSpec(NamedTuple):
 _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
     ("deleteApiV0MetaLoginRateLimit", "DELETE", "/api/v0/meta/login-rate-limit", None),
     ("deleteApiV0MetaLoginRateLimitById", "DELETE", "/api/v0/meta/login-rate-limit/{id}", None),
+    (
+        "deleteApiV1AdminRuntimeSettingsAuthentication",
+        "DELETE",
+        "/api/v1/admin/runtime-settings/authentication",
+        None,
+    ),
+    (
+        "deleteApiV1AdminRuntimeSettingsAuthorization",
+        "DELETE",
+        "/api/v1/admin/runtime-settings/authorization",
+        None,
+    ),
+    (
+        "deleteApiV1AdminRuntimeSettingsPagination",
+        "DELETE",
+        "/api/v1/admin/runtime-settings/pagination",
+        None,
+    ),
+    (
+        "deleteApiV1AdminRuntimeSettingsQueryObservations",
+        "DELETE",
+        "/api/v1/admin/runtime-settings/query_observations",
+        None,
+    ),
     ("deleteApiV1ClassesByClassId", "DELETE", "/api/v1/classes/{class_id}", None),
     (
         "deleteApiV1ClassesByClassIdByFromObjectIdRelationsByToClassIdByToObjectId",
@@ -172,7 +196,15 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
     ("getApiV0MetaLoginRateLimit", "GET", "/api/v0/meta/login-rate-limit", None),
     ("getApiV0MetaTasks", "GET", "/api/v0/meta/tasks", None),
     ("getApiV1AdminConfig", "GET", "/api/v1/admin/config", None),
-    ("getApiV1AdminQueryObservations", "GET", "/api/v1/admin/query-observations", None),
+    ("getApiV1AdminRuntimeSettings", "GET", "/api/v1/admin/runtime-settings", None),
+    ("getApiV1AdminRuntimeSettingsByGroup", "GET", "/api/v1/admin/runtime-settings/{group}", None),
+    (
+        "getApiV1AdminRuntimeSettingsHistoryByGroup",
+        "GET",
+        "/api/v1/admin/runtime-settings/history/{group}",
+        None,
+    ),
+    ("getApiV1AdminRuntimeSettingsSchema", "GET", "/api/v1/admin/runtime-settings/schema", None),
     ("getApiV1AuthProviders", "GET", "/api/v1/auth/providers", None),
     ("getApiV1AuthValidate", "GET", "/api/v1/auth/validate", None),
     ("getApiV1BackupsByTaskId", "GET", "/api/v1/backups/{task_id}", None),
@@ -704,6 +736,12 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
     ("getApiV1TasksByTaskIdEvents", "GET", "/api/v1/tasks/{task_id}/events", None),
     ("getHealthz", "GET", "/healthz", None),
     ("getReadyz", "GET", "/readyz", None),
+    (
+        "patchApiV1AdminRuntimeSettingsByGroup",
+        "PATCH",
+        "/api/v1/admin/runtime-settings/{group}",
+        "application/json",
+    ),
     ("patchApiV1ClassesByClassId", "PATCH", "/api/v1/classes/{class_id}", "application/json"),
     (
         "patchApiV1ClassesByClassIdByObjectId",
@@ -803,6 +841,12 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
         "patchApiV1SystemEventSubscriptionsBySubscriptionId",
         "PATCH",
         "/api/v1/system-event-subscriptions/{subscription_id}",
+        "application/json",
+    ),
+    (
+        "postApiV1AdminRuntimeSettingsAuthenticationPreflight",
+        "POST",
+        "/api/v1/admin/runtime-settings/authentication/preflight",
         "application/json",
     ),
     ("postApiV1AuthLogin", "POST", "/api/v1/auth/login", "application/json"),
@@ -1036,9 +1080,21 @@ _OPERATION_ROWS: tuple[tuple[str, str, str, str | None], ...] = (
     ),
     ("postApiV1TasksByTaskIdCancel", "POST", "/api/v1/tasks/{task_id}/cancel", "application/json"),
     (
-        "putApiV1AdminQueryObservations",
+        "putApiV1AdminRuntimeSettingsAuthorization",
         "PUT",
-        "/api/v1/admin/query-observations",
+        "/api/v1/admin/runtime-settings/authorization",
+        "application/json",
+    ),
+    (
+        "putApiV1AdminRuntimeSettingsPagination",
+        "PUT",
+        "/api/v1/admin/runtime-settings/pagination",
+        "application/json",
+    ),
+    (
+        "putApiV1AdminRuntimeSettingsQueryObservations",
+        "PUT",
+        "/api/v1/admin/runtime-settings/query_observations",
         "application/json",
     ),
     (

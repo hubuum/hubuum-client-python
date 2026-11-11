@@ -49,15 +49,15 @@ class AsyncAdminAPI:
             response, {"application/json": TypeAdapter[models.RunningConfig](models.RunningConfig)}
         )
 
-    async def get_query_observations(
+    async def get_runtime_settings(
         self, *, options: OpenAPIOptions | None = None
-    ) -> APIResponse[models.QueryObservationConfig]:
+    ) -> APIResponse[models.RuntimeSettingsReport]:
         """GET operation.
 
-        /api/v1/admin/query-observations
+        /api/v1/admin/runtime-settings
         """
         prepared = api_options(
-            "getApiV1AdminQueryObservations",
+            "getApiV1AdminRuntimeSettings",
             {},
             None,
             None,
@@ -66,26 +66,57 @@ class AsyncAdminAPI:
             accept="application/json",
         )
         response = await self._client.openapi._response(
-            "getApiV1AdminQueryObservations", json=None, options=prepared
+            "getApiV1AdminRuntimeSettings", json=None, options=prepared
         )
         return decode_api_response(
             response,
             {
-                "application/json": TypeAdapter[models.QueryObservationConfig](
-                    models.QueryObservationConfig
+                "application/json": TypeAdapter[models.RuntimeSettingsReport](
+                    models.RuntimeSettingsReport
                 )
             },
         )
 
-    async def put_query_observations(
-        self, *, body: models.QueryObservationUpdateRequest, options: OpenAPIOptions | None = None
-    ) -> APIResponse[models.QueryObservationConfig]:
-        """PUT operation.
+    async def delete_runtime_settings_authentication(
+        self,
+        *,
+        query: controls.AdminDeleteRuntimeSettingsAuthenticationQuery,
+        options: OpenAPIOptions | None = None,
+    ) -> APIResponse[models.RuntimeSettingsUpdateResponse]:
+        """DELETE operation.
 
-        /api/v1/admin/query-observations
+        /api/v1/admin/runtime-settings/authentication
         """
         prepared = api_options(
-            "putApiV1AdminQueryObservations",
+            "deleteApiV1AdminRuntimeSettingsAuthentication",
+            {},
+            query,
+            None,
+            options,
+            content_type=None,
+            accept="application/json",
+        )
+        response = await self._client.openapi._response(
+            "deleteApiV1AdminRuntimeSettingsAuthentication", json=None, options=prepared
+        )
+        return decode_api_response(
+            response,
+            {
+                "application/json": TypeAdapter[models.RuntimeSettingsUpdateResponse](
+                    models.RuntimeSettingsUpdateResponse
+                )
+            },
+        )
+
+    async def post_runtime_settings_authentication_preflight(
+        self, *, body: models.AuthenticationSettingsRequest, options: OpenAPIOptions | None = None
+    ) -> APIResponse[models.RuntimeSettingsUpdateResponse]:
+        """POST operation.
+
+        /api/v1/admin/runtime-settings/authentication/preflight
+        """
+        prepared = api_options(
+            "postApiV1AdminRuntimeSettingsAuthenticationPreflight",
             {},
             None,
             None,
@@ -94,12 +125,12 @@ class AsyncAdminAPI:
             accept="application/json",
         )
         response = await self._client.openapi._response(
-            "putApiV1AdminQueryObservations",
+            "postApiV1AdminRuntimeSettingsAuthenticationPreflight",
             json=api_body(
                 body,
                 {
-                    "application/json": TypeAdapter[models.QueryObservationUpdateRequest](
-                        models.QueryObservationUpdateRequest
+                    "application/json": TypeAdapter[models.AuthenticationSettingsRequest](
+                        models.AuthenticationSettingsRequest
                     )
                 },
                 content_type=prepared.content_type,
@@ -110,8 +141,349 @@ class AsyncAdminAPI:
         return decode_api_response(
             response,
             {
-                "application/json": TypeAdapter[models.QueryObservationConfig](
-                    models.QueryObservationConfig
+                "application/json": TypeAdapter[models.RuntimeSettingsUpdateResponse](
+                    models.RuntimeSettingsUpdateResponse
+                )
+            },
+        )
+
+    async def put_runtime_settings_authorization(
+        self, *, body: models.AuthorizationSettingsRequest, options: OpenAPIOptions | None = None
+    ) -> APIResponse[models.RuntimeSettingsUpdateResponse]:
+        """PUT operation.
+
+        /api/v1/admin/runtime-settings/authorization
+        """
+        prepared = api_options(
+            "putApiV1AdminRuntimeSettingsAuthorization",
+            {},
+            None,
+            None,
+            options,
+            content_type="application/json",
+            accept="application/json",
+        )
+        response = await self._client.openapi._response(
+            "putApiV1AdminRuntimeSettingsAuthorization",
+            json=api_body(
+                body,
+                {
+                    "application/json": TypeAdapter[models.AuthorizationSettingsRequest](
+                        models.AuthorizationSettingsRequest
+                    )
+                },
+                content_type=prepared.content_type,
+                optional=False,
+            ),
+            options=prepared,
+        )
+        return decode_api_response(
+            response,
+            {
+                "application/json": TypeAdapter[models.RuntimeSettingsUpdateResponse](
+                    models.RuntimeSettingsUpdateResponse
+                )
+            },
+        )
+
+    async def delete_runtime_settings_authorization(
+        self,
+        *,
+        query: controls.AdminDeleteRuntimeSettingsAuthorizationQuery,
+        options: OpenAPIOptions | None = None,
+    ) -> APIResponse[models.RuntimeSettingsUpdateResponse]:
+        """DELETE operation.
+
+        /api/v1/admin/runtime-settings/authorization
+        """
+        prepared = api_options(
+            "deleteApiV1AdminRuntimeSettingsAuthorization",
+            {},
+            query,
+            None,
+            options,
+            content_type=None,
+            accept="application/json",
+        )
+        response = await self._client.openapi._response(
+            "deleteApiV1AdminRuntimeSettingsAuthorization", json=None, options=prepared
+        )
+        return decode_api_response(
+            response,
+            {
+                "application/json": TypeAdapter[models.RuntimeSettingsUpdateResponse](
+                    models.RuntimeSettingsUpdateResponse
+                )
+            },
+        )
+
+    async def get_runtime_settings_history_by_group(
+        self,
+        group: models.RuntimeSettingsGroup,
+        *,
+        query: controls.AdminGetRuntimeSettingsHistoryByGroupQuery | None = None,
+        options: OpenAPIOptions | None = None,
+    ) -> APIResponse[models.RuntimeSettingsHistoryResponse]:
+        """GET operation.
+
+        /api/v1/admin/runtime-settings/history/{group}
+        """
+        prepared = api_options(
+            "getApiV1AdminRuntimeSettingsHistoryByGroup",
+            {"group": group},
+            query,
+            None,
+            options,
+            content_type=None,
+            accept="application/json",
+        )
+        response = await self._client.openapi._response(
+            "getApiV1AdminRuntimeSettingsHistoryByGroup", json=None, options=prepared
+        )
+        return decode_api_response(
+            response,
+            {
+                "application/json": TypeAdapter[models.RuntimeSettingsHistoryResponse](
+                    models.RuntimeSettingsHistoryResponse
+                )
+            },
+        )
+
+    async def put_runtime_settings_pagination(
+        self, *, body: models.PaginationSettingsRequest, options: OpenAPIOptions | None = None
+    ) -> APIResponse[models.RuntimeSettingsUpdateResponse]:
+        """PUT operation.
+
+        /api/v1/admin/runtime-settings/pagination
+        """
+        prepared = api_options(
+            "putApiV1AdminRuntimeSettingsPagination",
+            {},
+            None,
+            None,
+            options,
+            content_type="application/json",
+            accept="application/json",
+        )
+        response = await self._client.openapi._response(
+            "putApiV1AdminRuntimeSettingsPagination",
+            json=api_body(
+                body,
+                {
+                    "application/json": TypeAdapter[models.PaginationSettingsRequest](
+                        models.PaginationSettingsRequest
+                    )
+                },
+                content_type=prepared.content_type,
+                optional=False,
+            ),
+            options=prepared,
+        )
+        return decode_api_response(
+            response,
+            {
+                "application/json": TypeAdapter[models.RuntimeSettingsUpdateResponse](
+                    models.RuntimeSettingsUpdateResponse
+                )
+            },
+        )
+
+    async def delete_runtime_settings_pagination(
+        self,
+        *,
+        query: controls.AdminDeleteRuntimeSettingsPaginationQuery,
+        options: OpenAPIOptions | None = None,
+    ) -> APIResponse[models.RuntimeSettingsUpdateResponse]:
+        """DELETE operation.
+
+        /api/v1/admin/runtime-settings/pagination
+        """
+        prepared = api_options(
+            "deleteApiV1AdminRuntimeSettingsPagination",
+            {},
+            query,
+            None,
+            options,
+            content_type=None,
+            accept="application/json",
+        )
+        response = await self._client.openapi._response(
+            "deleteApiV1AdminRuntimeSettingsPagination", json=None, options=prepared
+        )
+        return decode_api_response(
+            response,
+            {
+                "application/json": TypeAdapter[models.RuntimeSettingsUpdateResponse](
+                    models.RuntimeSettingsUpdateResponse
+                )
+            },
+        )
+
+    async def put_runtime_settings_query_observations(
+        self, *, body: models.QueryObservationSettingsRequest, options: OpenAPIOptions | None = None
+    ) -> APIResponse[models.RuntimeSettingsUpdateResponse]:
+        """PUT operation.
+
+        /api/v1/admin/runtime-settings/query_observations
+        """
+        prepared = api_options(
+            "putApiV1AdminRuntimeSettingsQueryObservations",
+            {},
+            None,
+            None,
+            options,
+            content_type="application/json",
+            accept="application/json",
+        )
+        response = await self._client.openapi._response(
+            "putApiV1AdminRuntimeSettingsQueryObservations",
+            json=api_body(
+                body,
+                {
+                    "application/json": TypeAdapter[models.QueryObservationSettingsRequest](
+                        models.QueryObservationSettingsRequest
+                    )
+                },
+                content_type=prepared.content_type,
+                optional=False,
+            ),
+            options=prepared,
+        )
+        return decode_api_response(
+            response,
+            {
+                "application/json": TypeAdapter[models.RuntimeSettingsUpdateResponse](
+                    models.RuntimeSettingsUpdateResponse
+                )
+            },
+        )
+
+    async def delete_runtime_settings_query_observations(
+        self,
+        *,
+        query: controls.AdminDeleteRuntimeSettingsQueryObservationsQuery,
+        options: OpenAPIOptions | None = None,
+    ) -> APIResponse[models.RuntimeSettingsUpdateResponse]:
+        """DELETE operation.
+
+        /api/v1/admin/runtime-settings/query_observations
+        """
+        prepared = api_options(
+            "deleteApiV1AdminRuntimeSettingsQueryObservations",
+            {},
+            query,
+            None,
+            options,
+            content_type=None,
+            accept="application/json",
+        )
+        response = await self._client.openapi._response(
+            "deleteApiV1AdminRuntimeSettingsQueryObservations", json=None, options=prepared
+        )
+        return decode_api_response(
+            response,
+            {
+                "application/json": TypeAdapter[models.RuntimeSettingsUpdateResponse](
+                    models.RuntimeSettingsUpdateResponse
+                )
+            },
+        )
+
+    async def get_runtime_settings_schema(
+        self, *, options: OpenAPIOptions | None = None
+    ) -> APIResponse[models.RuntimeSettingsCatalogue]:
+        """GET operation.
+
+        /api/v1/admin/runtime-settings/schema
+        """
+        prepared = api_options(
+            "getApiV1AdminRuntimeSettingsSchema",
+            {},
+            None,
+            None,
+            options,
+            content_type=None,
+            accept="application/json",
+        )
+        response = await self._client.openapi._response(
+            "getApiV1AdminRuntimeSettingsSchema", json=None, options=prepared
+        )
+        return decode_api_response(
+            response,
+            {
+                "application/json": TypeAdapter[models.RuntimeSettingsCatalogue](
+                    models.RuntimeSettingsCatalogue
+                )
+            },
+        )
+
+    async def get_runtime_settings_by_group(
+        self, group: models.RuntimeSettingsGroup, *, options: OpenAPIOptions | None = None
+    ) -> APIResponse[models.RuntimeSettingsGroupState]:
+        """GET operation.
+
+        /api/v1/admin/runtime-settings/{group}
+        """
+        prepared = api_options(
+            "getApiV1AdminRuntimeSettingsByGroup",
+            {"group": group},
+            None,
+            None,
+            options,
+            content_type=None,
+            accept="application/json",
+        )
+        response = await self._client.openapi._response(
+            "getApiV1AdminRuntimeSettingsByGroup", json=None, options=prepared
+        )
+        return decode_api_response(
+            response,
+            {
+                "application/json": TypeAdapter[models.RuntimeSettingsGroupState](
+                    models.RuntimeSettingsGroupState
+                )
+            },
+        )
+
+    async def patch_runtime_settings_by_group(
+        self,
+        group: models.RuntimeSettingsGroup,
+        *,
+        body: models.RuntimeSettingsPatch,
+        options: OpenAPIOptions | None = None,
+    ) -> APIResponse[models.RuntimeSettingsUpdateResponse]:
+        """PATCH operation.
+
+        /api/v1/admin/runtime-settings/{group}
+        """
+        prepared = api_options(
+            "patchApiV1AdminRuntimeSettingsByGroup",
+            {"group": group},
+            None,
+            None,
+            options,
+            content_type="application/json",
+            accept="application/json",
+        )
+        response = await self._client.openapi._response(
+            "patchApiV1AdminRuntimeSettingsByGroup",
+            json=api_body(
+                body,
+                {
+                    "application/json": TypeAdapter[models.RuntimeSettingsPatch](
+                        models.RuntimeSettingsPatch
+                    )
+                },
+                content_type=prepared.content_type,
+                optional=False,
+            ),
+            options=prepared,
+        )
+        return decode_api_response(
+            response,
+            {
+                "application/json": TypeAdapter[models.RuntimeSettingsUpdateResponse](
+                    models.RuntimeSettingsUpdateResponse
                 )
             },
         )

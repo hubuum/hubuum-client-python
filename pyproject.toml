@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hubuum-client"
-version = "0.0.14"
-description = "Modern typed Python client for Hubuum server v0.0.21"
+version = "0.0.15"
+description = "Modern typed Python client for Hubuum server v0.0.22"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
@@ -37,7 +37,7 @@ Repository = "https://github.com/hubuum/hubuum-client-python"
 docs = [
   "mkdocs-material>=9.5,<10",
   "mkdocstrings[python]>=1.0.6,<2",
-  "zensical==0.0.72",
+  "zensical==0.0.74",
 ]
 test = [
   "pytest>=8.3,<10",
@@ -47,7 +47,7 @@ test = [
 ]
 dev = [
   "bandit>=1.9.4,<2",
-  "datamodel-code-generator==0.86.0",
+  "datamodel-code-generator==0.87.0",
   "mkdocs-material>=9.5,<10",
   "mkdocstrings[python]>=1.0.6,<2",
   "mypy>=2.4.0,<3",
@@ -56,7 +56,7 @@ dev = [
   "pytest-cov>=6,<8",
   "respx>=0.22,<1",
   "ruff>=0.16.10,<1",
-  "zensical==0.0.72",
+  "zensical==0.0.74",
   "zizmor>=1.30.1,<2",
 ]
 
@@ -67,7 +67,7 @@ packages = ["src/hubuum_client"]
 addopts = "-ra --strict-config --strict-markers"
 testpaths = ["tests/unit"]
 asyncio_mode = "auto"
-markers = ["e2e: requires a live Hubuum v0.0.21 server"]
+markers = ["e2e: requires a live Hubuum v0.0.22 server"]
 
 [tool.coverage.run]
 branch = true

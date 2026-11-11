@@ -4,6 +4,7 @@
 
 | Python client | Hubuum server contract | Status | End-to-end evidence |
 | --- | --- | --- | --- |
+| 0.0.15 | [`v0.0.22`](https://github.com/hubuum/hubuum/tree/v0.0.22) | Verified | [60 core and 4 recovery tests, including eight full restore cycles](compatibility-evidence.md#v0022-target) |
 | 0.0.14 | [`v0.0.21`](https://github.com/hubuum/hubuum/tree/v0.0.21) | Verified | [46 core and 4 recovery tests, including eight full restore cycles](compatibility-evidence.md#v0021-target) |
 | 0.0.13 | [`v0.0.20`](https://github.com/hubuum/hubuum/tree/v0.0.20) | Verified | [40 core and 4 recovery tests, including typed API workflows, service accounts, and eight complete restore cycles](compatibility-evidence.md#v0020-target) |
 | 0.0.12 | [`v0.0.20`](https://github.com/hubuum/hubuum/tree/v0.0.20) | Verified | [26 core and 4 recovery tests, including rotating sessions and eight complete restore cycles](compatibility-evidence.md#v0020-target) |
@@ -24,7 +25,7 @@ client/server pair. The current server target is selected by tag and locked to
 an immutable multi-platform image:
 
 ```text
-ghcr.io/hubuum/hubuum-server:v0.0.21@sha256:a5e1ad7a17281eefb4c1ed4da172a80bf815840f78bde6390d1e42bb2d51e0b6
+ghcr.io/hubuum/hubuum-server:v0.0.22@sha256:71ff4090eac071f23ae59f7265dc07165939d42771a73d1d291defa023b4964b
 ```
 
 The tag identifies the supported server release; the digest prevents that tag
@@ -34,26 +35,33 @@ from resolving to different content later. The same reference is stored in
 ## Typed parity
 
 The `client.api` interface, available since 0.0.13, provides matching sync and
-async types for all 261 operations and 401 schemas in this pinned contract. See
+async types for all 272 operations and 431 schemas in this pinned contract. See
 [typed API usage](typed-api.md) and the [operation table](typed-operations.md).
 Existing convenience services retain their established return types.
 
 ## Before upgrading
 
-Client 0.0.14 targets server v0.0.21 with matching sync and async behavior.
+Client 0.0.15 targets server v0.0.22 with matching sync and async behavior.
 Use [credential approvals](credentials.md) before protected mutations and
 [schema evolution](schema.md) when changing validation policy on populated
-classes. The registered OpenAPI surface covers all 261 operations; dedicated
+classes. The registered OpenAPI surface covers all 272 operations; dedicated
 typed services and generic operation calls are distinguished in the API guides.
 
-Server v0.0.21 requires four migrations after v0.0.20. Stop old API and worker
-processes, apply the migrations and role grants during a quiet period, then
+Stop old API and worker processes, apply the server v0.0.22 migrations and role
+grants during a quiet period, then
 start matching API, worker, template-worker, and restore-executor binaries.
 Provide writable temporary disk for backup and restore spooling and keep a
 pre-upgrade backup for rollback. Backup output remains format 10; restore input
 supports formats 6–10. Follow the
-[server deployment guide](https://hubuum.github.io/hubuum/v0.0.21/deployment/)
-and [backup compatibility](https://hubuum.github.io/hubuum/v0.0.21/backup-restore/).
+[server deployment guide](https://hubuum.github.io/hubuum/v0.0.22/deployment/)
+and [backup compatibility](https://hubuum.github.io/hubuum/v0.0.22/backup-restore/).
+
+**Breaking client migration:** replace generated `get_query_observations` and
+`put_query_observations` calls with the runtime-settings helpers below. Read
+ownership and revisions from the group, rather than the removed override field.
+Named-class permission results are typed `GroupPermission` models; use attributes
+or `model_dump()` instead of dictionary indexing. Review server template fuel
+limits and rendering changes before upgrading workloads that render templates.
 
 Suggestions inspect authorized raw object data only and never activate a policy.
 Review the sampled report, stage its candidate explicitly, then run whole-class
@@ -64,6 +72,11 @@ impact analysis before activation. Reports expire after 24 hours. See the
 
 [Detailed evidence and historical migrations](compatibility-evidence.md) retain tested
 image identities, dates, suite results, and earlier compatibility limits.
+
+## v0.0.22 target
+
+See [v0.0.22 evidence](compatibility-evidence.md#v0022-target) for the tagged
+contract and installed-wheel core/recovery verification.
 
 ## v0.0.21 target
 
@@ -131,10 +144,38 @@ older servers. There is no automatic authentication downgrade. The server no
 longer supports legacy interactive clients; explicit PAT injection remains valid.
 The complete live suite requires rotation, replay revocation, and logout checks.
 
-The operation registry includes all 261 server operations. The seven generic
+The operation registry includes all 272 server operations. The seven generic
 authentication operation IDs replace `ApiV0Auth` with `ApiV1Auth`; callers using
 those identifiers must update them. Dedicated
 convenience services remain projections of that contract. The complete typed
 `client.api` includes history, search hydration, credential activity, and
 observation-management operations. Generic `client.openapi.call()` and
 authenticated relative `request()` remain available.
+
+## Runtime settings discovery
+
+Server v0.0.22 implements discovery version 1 and exposes runtime configuration
+through `client.admin.runtime_settings_schema()` and
+`client.admin.runtime_settings_group(group)`. Both synchronous and asynchronous
+clients provide matching methods. Discovery is required by the pinned v0.0.22
+compatibility target. Older servers may return `NotFoundError`; upgrade them
+before using runtime settings and do not fall back to an unrevisioned write.
+
+Use `RuntimeSettingsPatch(expected_revision=state.revision, changes={...})` with
+`client.admin.patch_runtime_settings(group, patch)` to edit only selected fields.
+The server preserves omitted values and validates correlated settings atomically.
+`PreconditionFailedError` requires refetching and reviewing the edit; the client
+does not automatically retry it. `RuntimeSettingsRelease` is the explicit reset
+to deployment ownership. Successful updates report the responding replica's
+application separately from the durable commit.
+
+Group keys and JSON Schema fields are open-ended. Form clients should reject
+unknown catalogue versions, ignore unfamiliar annotations, and show unsupported
+shapes read-only. Authentication retains the server's dedicated preflight flow.
+
+The contract is implemented in [server PR #584](https://github.com/hubuum/hubuum/pull/584).
+`RuntimeSettingsDescriptor.value_schema` preserves field `title`, `description`,
+`default`, bounds, `x-unit`, and `x-enum-descriptions`. The last annotation maps
+supported string-enum values to plain-text explanations. Client interfaces can
+display this server-provided help without hard-coding setting names; unfamiliar
+annotations remain available in the schema dictionary.

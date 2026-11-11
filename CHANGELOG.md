@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.0.15] - 2026-11-09
+
+This release targets Hubuum server v0.0.22 and its 272-operation, 431-schema
+contract. Upgrade the server and its workers before updating clients.
+
+- Add matching synchronous and asynchronous admin helpers for runtime settings discovery, group state, partial edits, and deployment resets. Group and field names remain open-ended. Runtime discovery is part of the pinned v0.0.22 contract.
+
 ### Added
 
 - Matching sync/async convenience workflows for permission delegation, guarded
@@ -21,12 +28,19 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
-- Named-class permission reads return exact-contract `GroupPermission` models.
+- **Breaking:** remove the generated `get_query_observations` and
+  `put_query_observations` operations and the old query-observation override
+  field, matching server v0.0.22. Use `admin.runtime_settings_group()` and
+  `admin.patch_runtime_settings()` with the group revision instead. Generic
+  operation-ID calls must use the runtime-settings operation IDs.
+- **Breaking:** named-class permission reads return exact-contract `GroupPermission` models.
   Replace dictionary indexing with attributes, or call `model_dump()`; see the
   resource workflow migration guide.
 
 ### Fixed
 
+- Redact runtime authentication provider configuration in representations and
+  validation errors while preserving credentials in explicit request payloads.
 - Redact nested integration configuration, embedded URL credentials, backup
   content, restore digests, and expression/request payloads in diagnostics.
   Sink requests and restore confirmations also redact validation inputs.
@@ -533,7 +547,8 @@ field discovery and schema suggestions.
   error diagnostics.
 - Redacted login tokens from model representations.
 
-[Unreleased]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.14...HEAD
+[Unreleased]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.15...HEAD
+[0.0.15]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.14...v0.0.15
 [0.0.14]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.13...v0.0.14
 [0.0.13]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.12...v0.0.13
 [0.0.12]: https://github.com/hubuum/hubuum-client-python/compare/v0.0.11...v0.0.12
