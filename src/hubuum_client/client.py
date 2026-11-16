@@ -6,12 +6,19 @@ from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from functools import cached_property
 from threading import Lock
+from time import monotonic
 from typing import TYPE_CHECKING, Any, Self, TypeVar, overload
 
 import httpx
 from pydantic import BaseModel
 
 from ._constants import __version__
+from ._interactions import (
+    MAX_AUTHENTICATION_SECONDS,
+    append_authentication_body,
+    authentication_timeout,
+    completed_response,
+)
 from ._sessions import SessionState, validate_client_id
 from ._transport import (
     decode_json,
@@ -24,7 +31,7 @@ from ._transport import (
     sensitive_request_values,
     validate_relative_path,
 )
-from .errors import TransportError
+from .errors import AuthenticationInteractionError, TransportError
 from .models import ClientConfig, LoginResponse, MeResponse, ProbeResponse, SessionResponse
 from .options import ClientOptions, RequestOptions
 from .streaming import ResponseStream
@@ -421,6 +428,55 @@ class Client:
             headers=request_headers,
         )
         return request, request_body
+
+    def _authentication_response(
+        self,
+        method: str,
+        path: str,
+        *,
+        json: Mapping[str, Any] | None = None,
+        headers: Mapping[str, str] | None = None,
+    ) -> httpx.Response:
+        """One bounded origin-locked attempt; no bearer injection or refresh."""
+        request, body = self._build_request(
+            method, path, json=json, options=RequestOptions(authenticated=False, headers=headers)
+        )
+        request.extensions["timeout"] = authentication_timeout(self._http.timeout)
+        deadline = monotonic() + MAX_AUTHENTICATION_SECONDS
+        response = self._send_request(request, body, stream=True)
+        try:
+            data = bytearray()
+            for chunk in response.iter_bytes():
+                append_authentication_body(data, chunk, deadline)
+            return completed_response(response, data)
+        except httpx.HTTPError:
+            failure = TransportError(
+                request.method,
+                str(request.url.copy_with(query=None, fragment=None)),
+                "Authentication response could not be read",
+            )
+        finally:
+            response.close()
+        raise failure
+
+    def _authentication_request(
+        self,
+        method: str,
+        path: str,
+        *,
+        response_model: type[T],
+        json: Mapping[str, Any] | None = None,
+        headers: Mapping[str, str] | None = None,
+    ) -> T:
+        response = self._authentication_response(method, path, json=json, headers=headers)
+        raise_api_error(response)
+        return decode_model(response, response_model)
+
+    def _authentication_bearer(self) -> str:
+        self._ensure_session()
+        if self._token is None:
+            raise AuthenticationInteractionError("An authenticated client is required")
+        return "Bearer " + self._token.value
 
     def _send_request(
         self,

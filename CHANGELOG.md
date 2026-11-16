@@ -6,6 +6,19 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Project-only matching sync/async provider discovery, owned login/verification
+  interactions, bounded polling, single-attempt completion with issued-family
+  cleanup, and ordinary serialized session renewal.
+- Exact-operation fresh approval with original-credential binding, explicit
+  unsupported OAuth outcomes, and runtime LDAP/OIDC/OAuth candidate creation,
+  write-only credentials, non-provisioning previews and approved activation.
+- Separate accepted project OpenAPI/48-vector pins, secret-safe validation and
+  independent live Keycloak/OAuth consumers. The released v0.0.22 contract and
+  immutable compatibility baseline remain unchanged; no stable support or real
+  GitHub client qualification is claimed by these additions.
+
 ## [0.0.15] - 2026-11-09
 
 This release targets Hubuum server v0.0.22 and its 272-operation, 431-schema

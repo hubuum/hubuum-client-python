@@ -1,0 +1,153 @@
+{
+  "sdk_source_commit": "e89eefd5d2f242f0cca422bc71db06a0e6a906a7",
+  "qualified_input_trees": {
+    "src": "db088f63330106a353cb7676562f8c0e348b36cd",
+    "tests": "1ca36e060d365128a776a462f99edde00ee5ce3c",
+    "scripts": "d5c2016abaf8c11bb465f1c1ed6ca62b9bced926",
+    "pyproject.toml": "37af545db7b306f3f2f1c5e80b1072fc0a9e1f58",
+    "uv.lock": "9f7190dd8ef146020ba85d19c34ad3ef49de1a03"
+  },
+  "consumer_sha256": "014f47f90127fcf5faf9d280323688ea5924262018fb5b6e0d5ef09cf0d2174b",
+  "controller_sha256": "c9106f770464eb02178fe4d3cfe42c2f69c47c2c1cc56c6c4cde7db98785fda9",
+  "server_source_commit": "ad0c2c40bed5b0328f56f1327e10ffe7f9aac09a",
+  "checks_passed": 66,
+  "profiles": {
+    "id_token": {
+      "report_sha256": "d402a2aa824cc055ffda02d958c8ddc2a1a7c16c9248b78ecacd80c4e8fcbe1e",
+      "images_sha256": "f05dd0acf60878a92d3e55b96fa562198a77c1e71d7f6bd1e37cd7d9bc2ca612",
+      "images": {
+        "provider": "quay.io/keycloak/keycloak:26.8.2@sha256:c68e286cacd87b942ac1939a0a1481461109d6acd3a57dc496969a319a76bbf0",
+        "database": "postgres:18.6@sha256:5a5a84b19854a9ffaa54082c166ff4ec27473a361e496e5ea167f298f2da9722",
+        "server": "sha256:bf6ac41d8e8b927f5c5402b08709699f7f0c32af9d1266896ef52678eee76f37",
+        "fixture_sha256": "5ad9252790cac0b2a2cc53e4e1944be4a8dc1fb7838d11f0710d71cb75a85cde",
+        "group_source": "id_token",
+        "server_source_commit": "ad0c2c40bed5b0328f56f1327e10ffe7f9aac09a",
+        "sdk_source_commit": "e89eefd5d2f242f0cca422bc71db06a0e6a906a7",
+        "sdk_source_dirty": false
+      },
+      "modes": {
+        "sync": [
+          "local administrator session is available before external setup",
+          "candidate preview leaves six identity/session tables unchanged",
+          "runtime encrypted configuration, non-login preview and exact fresh-approved activation",
+          "session renewal preserves the exact issued family",
+          "browser login adopts an ordinary rotating session and retains principal",
+          "OIDC exact-operation fresh approval retains originating credential",
+          "local logout revokes external session",
+          "OIDC exact-operation fresh approval retains originating credential",
+          "local logout revokes external session",
+          "repeat browser login resolves the same immutable principal",
+          "local recovery remains available after runtime activation"
+        ],
+        "async": [
+          "local administrator session is available before external setup",
+          "candidate preview leaves six identity/session tables unchanged",
+          "runtime encrypted configuration, non-login preview and exact fresh-approved activation",
+          "session renewal preserves the exact issued family",
+          "browser login adopts an ordinary rotating session and retains principal",
+          "OIDC exact-operation fresh approval retains originating credential",
+          "local logout revokes external session",
+          "OIDC exact-operation fresh approval retains originating credential",
+          "local logout revokes external session",
+          "repeat browser login resolves the same immutable principal",
+          "local recovery remains available after runtime activation"
+        ]
+      }
+    },
+    "userinfo": {
+      "report_sha256": "fa0c711fe48af1001e142a08a3fcf669f10a45c255a6d7635fa9598ffdf212e2",
+      "images_sha256": "8d1c295018bbfd9df6a44ac144ab0921c9cdbd3d046d4f105c19a3dc34eafe37",
+      "images": {
+        "provider": "quay.io/keycloak/keycloak:26.8.2@sha256:c68e286cacd87b942ac1939a0a1481461109d6acd3a57dc496969a319a76bbf0",
+        "database": "postgres:18.6@sha256:5a5a84b19854a9ffaa54082c166ff4ec27473a361e496e5ea167f298f2da9722",
+        "server": "sha256:bf6ac41d8e8b927f5c5402b08709699f7f0c32af9d1266896ef52678eee76f37",
+        "fixture_sha256": "5ad9252790cac0b2a2cc53e4e1944be4a8dc1fb7838d11f0710d71cb75a85cde",
+        "group_source": "userinfo",
+        "server_source_commit": "ad0c2c40bed5b0328f56f1327e10ffe7f9aac09a",
+        "sdk_source_commit": "e89eefd5d2f242f0cca422bc71db06a0e6a906a7",
+        "sdk_source_dirty": false
+      },
+      "modes": {
+        "sync": [
+          "local administrator session is available before external setup",
+          "candidate preview leaves six identity/session tables unchanged",
+          "runtime encrypted configuration, non-login preview and exact fresh-approved activation",
+          "session renewal preserves the exact issued family",
+          "browser login adopts an ordinary rotating session and retains principal",
+          "OIDC exact-operation fresh approval retains originating credential",
+          "local logout revokes external session",
+          "OIDC exact-operation fresh approval retains originating credential",
+          "local logout revokes external session",
+          "repeat browser login resolves the same immutable principal",
+          "local recovery remains available after runtime activation"
+        ],
+        "async": [
+          "local administrator session is available before external setup",
+          "candidate preview leaves six identity/session tables unchanged",
+          "runtime encrypted configuration, non-login preview and exact fresh-approved activation",
+          "session renewal preserves the exact issued family",
+          "browser login adopts an ordinary rotating session and retains principal",
+          "OIDC exact-operation fresh approval retains originating credential",
+          "local logout revokes external session",
+          "OIDC exact-operation fresh approval retains originating credential",
+          "local logout revokes external session",
+          "repeat browser login resolves the same immutable principal",
+          "local recovery remains available after runtime activation"
+        ]
+      }
+    },
+    "oauth": {
+      "report_sha256": "da557dfb52546bf00994e342da811249e426dfb861afa2bb72cd88482e124d65",
+      "images_sha256": "8c19534a198616e9c4f74cc72d762247b0b29f0308ea4de412def29ac56b023c",
+      "images": {
+        "profile": "synthetic-json-user",
+        "database": "postgres:18.6@sha256:5a5a84b19854a9ffaa54082c166ff4ec27473a361e496e5ea167f298f2da9722",
+        "server": "sha256:bf6ac41d8e8b927f5c5402b08709699f7f0c32af9d1266896ef52678eee76f37",
+        "fixture_sha256": "fea7af036d5082f0de2372be9e90e6227449b0dcec2205b267eea84372373b02",
+        "server_source_commit": "ad0c2c40bed5b0328f56f1327e10ffe7f9aac09a",
+        "sdk_source_commit": "e89eefd5d2f242f0cca422bc71db06a0e6a906a7",
+        "sdk_source_dirty": false
+      },
+      "modes": {
+        "sync": [
+          "local administrator session is available before external setup",
+          "candidate preview leaves six identity/session tables unchanged",
+          "runtime encrypted configuration, non-login preview and exact fresh-approved activation",
+          "session renewal preserves the exact issued family",
+          "browser login adopts an ordinary rotating session and retains principal",
+          "OAuth fresh approval is explicitly unsupported",
+          "local logout revokes external session",
+          "OAuth fresh approval is explicitly unsupported",
+          "local logout revokes external session",
+          "repeat browser login resolves the same immutable principal",
+          "local recovery remains available after runtime activation"
+        ],
+        "async": [
+          "local administrator session is available before external setup",
+          "candidate preview leaves six identity/session tables unchanged",
+          "runtime encrypted configuration, non-login preview and exact fresh-approved activation",
+          "session renewal preserves the exact issued family",
+          "browser login adopts an ordinary rotating session and retains principal",
+          "OAuth fresh approval is explicitly unsupported",
+          "local logout revokes external session",
+          "OAuth fresh approval is explicitly unsupported",
+          "local logout revokes external session",
+          "repeat browser login resolves the same immutable principal",
+          "local recovery remains available after runtime activation"
+        ]
+      }
+    }
+  },
+  "limitations": [
+    "Project-only; released v0.0.22 compatibility target unchanged.",
+    "Synthetic OAuth is not native real GitHub acceptance; that remains owned by server #581.",
+    "Client wire vectors do not independently establish callback/security/persistence effects owned by the server."
+  ],
+  "server_image": {
+    "docker_image_id": "sha256:bf6ac41d8e8b927f5c5402b08709699f7f0c32af9d1266896ef52678eee76f37",
+    "manifest": "sha256:f7c920c410f0c5ef7b1eea2bf2e48c8d106dab9318567c103b48b3b78cad67ab",
+    "config": "sha256:d9592b8d01c7af44290088eb4f1922c0c00acf46662ba301ffe9e16d56ec4e3f",
+    "platform": "linux/arm64",
+    "source": "ad0c2c40bed5b0328f56f1327e10ffe7f9aac09a"
+  }
+}

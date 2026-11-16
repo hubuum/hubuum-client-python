@@ -32,6 +32,36 @@ The tag identifies the supported server release; the digest prevents that tag
 from resolving to different content later. The same reference is stored in
 `src/hubuum_client/_constants.py`, the e2e wrapper, and CI.
 
+## Authentication project candidate
+
+The `project/auth-support` branch has an additional project-only contract pinned
+in [authentication-project-source.json](authentication-project-source.json).
+It records accepted server source, tested merge, CI artifact archive checksum,
+production manifests/configs, live fixture hashes, canonical OpenAPI checksum and
+the separate 32-operation snapshot. All 48 shared wire cases are consumed by the
+unit suite. This snapshot supplements the unchanged released 272-operation
+manifest; it does not regenerate or reclassify v0.0.22 compatibility.
+
+See [external authentication](authentication.md) for supported client flows and
+reproduction. Native Keycloak ID-token/UserInfo and synthetic OAuth qualification
+passed **66/66 checks** on clean source `e89eefd5d2f242f0cca422bc71db06a0e6a906a7`:
+11 checks per profile and client mode. The
+[sanitized ledger](assets/authentication-qualification.json) pins the exact source,
+consumer/controller, accepted server production image, PostgreSQL 18.6 and
+Keycloak 26.8.2 digests and report hashes. All six modes preserved preview table
+counts and the exact session family during renewal, then checked fresh approval
+or explicit OAuth rejection, logout, repeat identity and local recovery.
+
+The unchanged canonical v0.0.22 Docker suite separately passed **60 core and
+4 recovery tests**, including eight full restore cycles, on Python 3.14.10.
+The complete unit suite passed 2,777 tests (10 existing bodyless skips) with
+98.4% coverage; Python 3.11–3.14 and all ten application CI jobs passed on the
+qualified source. Later evidence-only documentation updates must preserve the
+qualified runtime, consumer, fixture, build and lockfile input trees. Real GitHub
+client qualification and ecosystem acceptance remain owned by server #581;
+Google and Apple are outside the initial milestone. Project candidate artifacts
+are temporary CI inputs and must be requalified after expiry or source drift.
+
 ## Typed parity
 
 The `client.api` interface, available since 0.0.13, provides matching sync and

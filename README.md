@@ -19,6 +19,12 @@ against the tag-and-digest server image recorded in the
 [compatibility matrix](docs/compatibility.md), including repeated full restores
 and JSON-null recovery in both runtimes.
 
+The `project/auth-support` integration branch additionally provides generic
+Hubuum-owned external authentication and runtime provider administration. See
+[external authentication](docs/authentication.md) for its separately pinned
+project contract and qualification limits. These capabilities require the auth
+project server candidate; the released v0.0.22 compatibility target stays pinned.
+
 Runtime configuration uses server-discovered groups, field types, labels, help,
 limits, and enum explanations. Matching sync/async helpers read current values,
 apply revision-checked partial edits, and reset groups to deployment ownership.
