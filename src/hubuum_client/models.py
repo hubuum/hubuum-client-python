@@ -6,9 +6,11 @@ import json
 from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from dataclasses import field as dataclass_field
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from enum import StrEnum
 from typing import Annotated, Any, Generic, Literal, Self, TypeAlias, TypeVar, cast
+from unicodedata import category
+from urllib.parse import urlsplit
 from uuid import UUID
 
 from pydantic import (
@@ -21,11 +23,13 @@ from pydantic import (
     RootModel,
     SecretStr,
     ValidationError,
+    field_validator,
     model_validator,
 )
 from pydantic_core import InitErrorDetails, PydanticCustomError
 
 from .types import (
+    AuthenticationProviderId,
     ClassId,
     ClassRelationId,
     CollectionId,
@@ -1897,15 +1901,34 @@ class ConfirmRestoreOperation(RequestModel):
     confirmation: RestoreConfirmRequest = Field(repr=False)
 
 
+class ActivateSecurityCandidateOperation(RequestModel, APIModel):
+    """Exact activation; the receipt is excluded from approval descriptions."""
+
+    kind: Literal["activate_security_candidate"] = "activate_security_candidate"
+    candidate_id: UUID
+    group: Literal["authentication", "authorization"]
+    expected_revision: ResourceRevision
+    verification_receipt: SecretStr = Field(exclude=True, repr=False)
+
+
 CredentialOperation: TypeAlias = Annotated[
     CreateTokenOperation
     | RenewTokenOperation
     | CreateUserOperation
     | UpdateUserOperation
     | ImportCredentialsOperation
-    | ConfirmRestoreOperation,
+    | ConfirmRestoreOperation
+    | ActivateSecurityCandidateOperation,
     Field(discriminator="kind"),
 ]
+
+
+def _credential_operation_payload(operation: CredentialOperation) -> dict[str, Any]:
+    result = operation.payload()
+    result["kind"] = operation.kind
+    if isinstance(operation, ImportCredentialsOperation):
+        result["import"] = operation.import_.payload()
+    return result
 
 
 class CredentialApprovalRequest(RequestModel):
@@ -1956,9 +1979,7 @@ class CredentialApprovalRequest(RequestModel):
     def payload(self) -> dict[str, Any]:
         # Defaulted discriminator values must survive exclude_unset serialization.
         result = super().payload()
-        result["operation"]["kind"] = self.operation.kind
-        if isinstance(self.operation, ImportCredentialsOperation):
-            result["operation"]["import"] = self.operation.import_.payload()
+        result["operation"] = _credential_operation_payload(self.operation)
         return result
 
 
@@ -2556,6 +2577,7 @@ class RuntimeSettingsCatalogue(HubuumModel):
 
     schema_version: int
     groups: list[RuntimeSettingsDescriptor]
+    security: RuntimeSecurityCapabilities | None = None
 
 
 class RuntimeSettingsGroupState(HubuumModel):
@@ -2603,3 +2625,450 @@ class RuntimeSettingsUpdateResponse(HubuumModel):
     changed: bool
     applied_by_responding_replica: bool
     settings: dict[str, JsonValue]
+
+
+AuthenticationProviderKind: TypeAlias = Literal["local", "ldap", "oidc", "oauth"]
+SecuritySettingsGroup: TypeAlias = Literal["authentication", "authorization"]
+_AUTH_PROOF_LENGTH = 69
+_MAX_PROVIDER_NAME_BYTES = 255
+
+
+def _valid_authentication_proof(value: SecretStr, prefix: str) -> SecretStr:
+    raw = value.get_secret_value()
+    if (
+        len(raw) != _AUTH_PROOF_LENGTH
+        or not raw.startswith(prefix)
+        or any(char not in "0123456789abcdef" for char in raw[len(prefix) :])
+    ):
+        raise ValueError("Invalid authentication proof")
+    return value
+
+
+def _valid_authentication_endpoint(value: JsonValue, schemes: set[str]) -> bool:
+    if not isinstance(value, str) or any(not char.isprintable() for char in value):
+        return False
+    try:
+        endpoint = urlsplit(value)
+        return (
+            endpoint.scheme in schemes
+            and bool(endpoint.hostname)
+            and endpoint.username is None
+            and endpoint.password is None
+            and not endpoint.query
+            and not endpoint.fragment
+        )
+    except ValueError:
+        return False
+
+
+class AuthenticationMethod(APIModel):
+    """Public capabilities; names are display metadata, IDs select providers."""
+
+    provider_id: AuthenticationProviderId
+    name: str
+    kind: AuthenticationProviderKind
+    interaction: Literal["credentials", "browser"]
+    fresh_authentication: bool
+    browser_available: bool = False
+
+
+class _VersionOneAuthenticationResponse(APIModel):
+    interaction_version: Literal[1]
+
+    @field_validator("interaction_version", mode="before")
+    @classmethod
+    def validate_version_type(cls, value: object) -> object:
+        if type(value) is not int:
+            raise ValueError("Authentication interaction version must be an integer")
+        return value
+
+
+class AuthenticationMethods(_VersionOneAuthenticationResponse):
+    methods: list[AuthenticationMethod]
+
+
+class AuthenticationInteractionRequest(APIModel):
+    """One client/provider binding, with optional exact registered BFF delivery."""
+
+    model_config = ConfigDict(extra="forbid")
+    client_id: str = Field(pattern=r"^[A-Za-z0-9._:-]{1,128}$")
+    provider_id: AuthenticationProviderId
+    delivery: Literal["poll", "bff"] = "poll"
+    interaction_mode: Literal["credentials", "browser"] = "credentials"
+    return_target_id: str | None = Field(default=None, min_length=1, max_length=64)
+    return_nonce: SecretStr | None = Field(default=None, min_length=32, max_length=128)
+
+    @model_validator(mode="after")
+    def validate_delivery(self) -> Self:
+        if self.delivery == "bff":
+            if self.return_target_id is None or self.return_nonce is None:
+                raise _api_validation_error(type(self))
+            if any(
+                not char.isprintable()
+                for char in self.return_target_id + self.return_nonce.get_secret_value()
+            ):
+                raise _api_validation_error(type(self))
+        elif self.return_target_id is not None or self.return_nonce is not None:
+            raise _api_validation_error(type(self))
+        if isinstance(self.provider_id, UUID) and not self.provider_id.int:
+            raise _api_validation_error(type(self))
+        return self
+
+    def wire_payload(self) -> dict[str, JsonValue]:
+        result: dict[str, JsonValue] = {
+            key: value for key, value in super().wire_payload().items() if value is not None
+        }
+        result.update(delivery=self.delivery, interaction_mode=self.interaction_mode)
+        return result
+
+
+class AuthenticationCredentialsNext(APIModel):
+    kind: Literal["credentials"]
+
+
+class AuthenticationBrowserNext(APIModel):
+    kind: Literal["browser"]
+    verification_uri: str
+    user_code: str = Field(min_length=1, max_length=128)
+
+
+AuthenticationNext: TypeAlias = Annotated[
+    AuthenticationCredentialsNext | AuthenticationBrowserNext, Field(discriminator="kind")
+]
+
+
+class AuthenticationInteractionBegun(_VersionOneAuthenticationResponse):
+    """Private redemption proof; only a handle should retain this response."""
+
+    id: UUID
+    redemption_secret: SecretStr
+    expires_at: AwareDatetime
+    interval_seconds: int = Field(ge=1, le=600, strict=True)
+    next: AuthenticationNext
+
+    @field_validator("redemption_secret")
+    @classmethod
+    def validate_proof(cls, value: SecretStr) -> SecretStr:
+        return _valid_authentication_proof(value, "hai1.")
+
+
+class AuthenticationInteractionStatus(APIModel):
+    id: UUID
+    state: Literal["pending", "ready", "denied", "expired", "cancelled", "consumed", "failed"]
+    expires_at: AwareDatetime
+    session_id: str | None = None
+    approval_id: CredentialApprovalId | None = None
+
+    @property
+    def terminal(self) -> bool:
+        return self.state not in {"pending", "ready"}
+
+
+class ProviderCredentialInput(APIModel):
+    """Explicit write-only credential action; ordinary dumps redact values."""
+
+    model_config = ConfigDict(extra="forbid")
+    action: Literal["keep", "clear", "reference", "replace"]
+    alias: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_.:-]{1,128}$")
+    value: SecretStr | None = Field(default=None, min_length=1)
+
+    @model_validator(mode="after")
+    def validate_action(self) -> Self:
+        if (self.action == "replace") != (self.value is not None) or (
+            (self.action == "reference") != (self.alias is not None)
+        ):
+            raise _api_validation_error(type(self))
+        return self
+
+    def wire_payload(self) -> dict[str, JsonValue]:
+        return {key: value for key, value in super().wire_payload().items() if value is not None}
+
+
+class AuthenticationProviderInput(APIModel):
+    """Desired external provider; dynamic definition fields follow server schema.
+
+    Omitted LDAP bind_password keeps an encrypted value; explicit None clears it.
+    Keep immutable IDs when editing. Local authentication cannot be disabled here.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+    provider_id: UUID | None = None
+    name: str = Field(min_length=1, max_length=_MAX_PROVIDER_NAME_BYTES)
+    kind: Literal["ldap", "oidc", "oauth"]
+    source: Literal["runtime", "deployment"] = "runtime"
+    enabled: bool = True
+    configuration: dict[str, JsonValue] | None = None
+    credential: ProviderCredentialInput | None = None
+    bind_password: SecretStr | None = Field(default=None, min_length=1)
+    adopt_deployment: bool = False
+
+    @field_validator("name")
+    @classmethod
+    def validate_provider_name(cls, value: str) -> str:
+        if (
+            not value.strip()
+            or value == "local"
+            or len(value.encode()) > _MAX_PROVIDER_NAME_BYTES
+            or any(category(char) == "Cc" for char in value)
+        ):
+            raise ValueError("Invalid external provider name")
+        return value
+
+    @field_validator("provider_id")
+    @classmethod
+    def validate_provider_id(cls, value: UUID | None) -> UUID | None:
+        if value is not None and not value.int:
+            raise ValueError("Provider ID must not be nil")
+        return value
+
+    @model_validator(mode="after")
+    def validate_configuration(self) -> Self:
+        if self.source == "deployment":
+            if (
+                self.kind != "ldap"
+                or self.configuration is not None
+                or self.credential is not None
+                or "bind_password" in self.model_fields_set
+                or self.adopt_deployment
+            ):
+                raise _api_validation_error(type(self))
+        elif self.configuration is None:
+            raise _api_validation_error(type(self))
+        if self.kind == "ldap":
+            if self.credential is not None:
+                raise _api_validation_error(type(self))
+        elif (
+            self.credential is None
+            or "bind_password" in self.model_fields_set
+            or self.adopt_deployment
+        ):
+            raise _api_validation_error(type(self))
+        self._validate_definition()
+        return self
+
+    def _validate_definition(self) -> None:
+        if self.configuration is not None and any(
+            key in self.configuration
+            for key in (
+                "credential",
+                "bind_password",
+                "client_secret",
+                "runtime_bind_password_envelope",
+                "runtime_credential_envelope",
+            )
+        ):
+            raise _api_validation_error(type(self))
+        if self.configuration is not None:
+            if self.kind == "ldap":
+                if not _valid_authentication_endpoint(
+                    self.configuration.get("url"), {"ldap", "ldaps"}
+                ):
+                    raise _api_validation_error(type(self))
+                if (
+                    self.bind_password is not None
+                    and self.configuration.get("bind_password_ref") is not None
+                ):
+                    raise _api_validation_error(type(self))
+            else:
+                keys = (
+                    ("issuer",)
+                    if self.kind == "oidc"
+                    else ("authorization_endpoint", "token_endpoint", "profile_endpoint")
+                )
+                for key in keys:
+                    if not _valid_authentication_endpoint(self.configuration.get(key), {"https"}):
+                        raise _api_validation_error(type(self))
+
+    def wire_payload(self) -> dict[str, JsonValue]:
+        result: dict[str, JsonValue] = {
+            "name": self.name,
+            "kind": self.kind,
+            "source": self.source,
+            "enabled": self.enabled,
+            "adopt_deployment": self.adopt_deployment,
+        }
+        if self.provider_id is not None:
+            result["provider_id"] = str(self.provider_id)
+        if self.configuration is not None:
+            definition = self.configuration.copy()
+            if self.credential is not None:
+                definition["credential"] = self.credential.wire_payload()
+            if "bind_password" in self.model_fields_set:
+                definition["bind_password"] = (
+                    self.bind_password.get_secret_value()
+                    if self.bind_password is not None
+                    else None
+                )
+            result["configuration"] = definition
+        return result
+
+
+class RuntimeAuthorizationConnection(APIModel):
+    model_config = ConfigDict(extra="forbid")
+    url: str
+    connect_timeout_ms: int = Field(default=1000, ge=1, le=30_000)
+    request_timeout_ms: int = Field(default=1000, ge=1, le=30_000)
+    trust_profile_id: Literal["system", "deployment"]
+
+    @model_validator(mode="after")
+    def validate_timeouts(self) -> Self:
+        if not _valid_authentication_endpoint(self.url, {"https"}):
+            raise _api_validation_error(type(self))
+        if self.connect_timeout_ms > self.request_timeout_ms:
+            raise _api_validation_error(type(self))
+        return self
+
+
+class SecurityCandidateRequest(APIModel):
+    model_config = ConfigDict(extra="forbid")
+    group: SecuritySettingsGroup
+    expected_revision: ResourceRevision
+    providers: list[AuthenticationProviderInput] | None = None
+    backend: Literal["local", "treetop"] | None = None
+    source: Literal["runtime", "deployment"] | None = None
+    connection: RuntimeAuthorizationConnection | None = None
+    release_ownership: bool = False
+
+    @model_validator(mode="after")
+    def validate_group(self) -> Self:
+        if self.group == "authentication":
+            if self.providers is None or any(
+                value is not None for value in (self.backend, self.source, self.connection)
+            ):
+                raise _api_validation_error(type(self))
+        elif (
+            self.providers is not None
+            or self.backend is None
+            or self.source is None
+            or (
+                (self.source == "runtime" and self.backend == "treetop")
+                != (self.connection is not None)
+            )
+        ):
+            raise _api_validation_error(type(self))
+        return self
+
+    def wire_payload(self) -> dict[str, JsonValue]:
+        result: dict[str, JsonValue] = {
+            key: value for key, value in super().wire_payload().items() if value is not None
+        }
+        if self.providers is not None:
+            result["providers"] = [provider.wire_payload() for provider in self.providers]
+        if self.connection is not None:
+            result["connection"] = self.connection.model_dump(mode="json")
+        return result
+
+
+class SecurityCandidateCheck(APIModel):
+    kind: str
+    status: str
+    reason: str
+
+
+class SecurityCandidateProvider(APIModel):
+    provider_id: UUID
+    name: str
+    kind: AuthenticationProviderKind
+
+
+class SecurityCandidateReport(APIModel):
+    id: UUID
+    group: SecuritySettingsGroup
+    base_revision: ResourceRevision
+    expires_at: AwareDatetime
+    checks: list[SecurityCandidateCheck]
+    state: Literal["unverified", "verified", "failed", "expired", "activated"]
+    providers: list[SecurityCandidateProvider]
+    verification_receipt: SecretStr | None = None
+
+    @field_validator("verification_receipt")
+    @classmethod
+    def validate_receipt(cls, value: SecretStr | None) -> SecretStr | None:
+        return _valid_authentication_proof(value, "hcv1.") if value is not None else None
+
+    def activation_operation(self) -> ActivateSecurityCandidateOperation:
+        if (
+            self.state != "verified"
+            or self.expires_at <= datetime.now(UTC)
+            or self.verification_receipt is None
+        ):
+            raise ValueError("Candidate is unverified, expired or has no activation receipt")
+        return ActivateSecurityCandidateOperation(
+            candidate_id=self.id,
+            group=self.group,
+            expected_revision=self.base_revision,
+            verification_receipt=self.verification_receipt,
+        )
+
+
+class SecurityCandidateVerificationPreview(APIModel):
+    candidate_id: UUID
+    provider_id: UUID
+    subject: str
+    admitted: bool
+    membership: str
+    groups: list[dict[str, JsonValue]]
+    issued_session: bool
+    provisioned: bool
+
+
+class SecurityCandidateVerification(APIModel):
+    candidate: SecurityCandidateReport
+    verification: SecurityCandidateVerificationPreview
+
+
+class SecurityCandidateActivated(APIModel):
+    group: SecuritySettingsGroup
+    revision: ResourceRevision
+    changed: bool
+
+
+class LdapCandidateVerificationRequest(APIModel):
+    model_config = ConfigDict(extra="forbid")
+    provider_id: UUID
+    username: str = Field(min_length=1, max_length=255)
+    password: SecretStr = Field(min_length=1, max_length=4096)
+
+
+class RuntimeSecurityCapabilities(APIModel):
+    candidate_endpoint: str
+    configurable_provider_kinds: list[AuthenticationProviderKind]
+    activatable_provider_kinds: list[AuthenticationProviderKind]
+    replacement_credentials_available: bool
+    ldap_verification_timeout_seconds: int
+    treetop_connect_timeout_ceiling_ms: int
+    treetop_request_timeout_ceiling_ms: int
+    trust_profiles: list[str]
+
+
+class RuntimeAuthenticationProviderState(APIModel):
+    provider_id: UUID | None
+    kind: AuthenticationProviderKind
+    name: str
+    source: Literal["runtime", "deployment"]
+    enabled: bool
+    definition_mutable: bool
+    runtime_definition: dict[str, JsonValue] | None
+    credential_configured: bool
+    available: bool
+
+
+class RuntimeSettingsReplicaStatus(APIModel):
+    status: Literal["not_loaded", "current", "stale"]
+    reconcile_interval_seconds: int
+    applied_at: AwareDatetime | None
+    last_refresh_attempt_at: AwareDatetime | None
+    last_refresh_failure_at: AwareDatetime | None
+
+
+class EffectiveAuthenticationSettings(APIModel):
+    state: RuntimeSettingsGroupState
+    providers: list[RuntimeAuthenticationProviderState]
+    replica: RuntimeSettingsReplicaStatus
+
+    @property
+    def expected_revision(self) -> int:
+        return self.state.revision or 1
+
+
+RuntimeSettingsCatalogue.model_rebuild()

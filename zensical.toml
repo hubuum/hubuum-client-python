@@ -14,6 +14,7 @@ nav = [
     { "Server compatibility" = "compatibility.md" },
   ] },
   { "Guides" = [
+    { "External authentication" = "authentication.md" },
     { "Credential approvals" = "credentials.md" },
     { "Service accounts" = "service-accounts.md" },
     { "Querying and pagination" = "querying.md" },

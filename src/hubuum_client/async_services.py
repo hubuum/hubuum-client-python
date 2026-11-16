@@ -5,16 +5,20 @@ from __future__ import annotations
 import asyncio
 import builtins
 from collections.abc import AsyncIterator, Sequence
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from dataclasses import replace
 from datetime import datetime
+from http import HTTPStatus
 from math import isfinite
 from time import monotonic
 from typing import TYPE_CHECKING, Generic, TypeVar
 from urllib.parse import quote
+from uuid import UUID
 
 from pydantic import BaseModel, SecretStr
 
+from . import _interactions as interaction
+from ._sessions import SessionState
 from ._transport import (
     decode_content_type,
     decode_html,
@@ -22,10 +26,27 @@ from ._transport import (
     decode_json_object_list,
     decode_model,
     decode_model_list,
+    raise_api_error,
 )
 from .api import models as wire
-from .errors import NotFoundError, ResultCardinalityError, TaskUnsuccessfulError
+from .errors import (
+    APIError,
+    AuthenticationInteractionError,
+    DecodeError,
+    HubuumError,
+    NotFoundError,
+    ResultCardinalityError,
+    SessionExpiredError,
+    TaskUnsuccessfulError,
+    TransportError,
+)
 from .models import (
+    AuthenticationCredentialsNext,
+    AuthenticationInteractionBegun,
+    AuthenticationInteractionRequest,
+    AuthenticationInteractionStatus,
+    AuthenticationMethods,
+    AuthenticationNext,
     BackupRequest,
     ClassCreate,
     ClassFieldInventory,
@@ -45,6 +66,8 @@ from .models import (
     CredentialApprovalRecord,
     CredentialApprovalRequest,
     CredentialApprovalResponse,
+    CredentialOperation,
+    EffectiveAuthenticationSettings,
     EventSink,
     EventSinkCreate,
     EventSinkUpdate,
@@ -67,6 +90,7 @@ from .models import (
     ImportRequest,
     ImportRunResult,
     ImportTaskResult,
+    LdapCandidateVerificationRequest,
     LoginResponse,
     NewTokenRequest,
     ObjectAggregateRow,
@@ -100,10 +124,14 @@ from .models import (
     SchemaRevisionResponse,
     SchemaStageRequest,
     SchemaWorkResponse,
+    SecurityCandidateReport,
+    SecurityCandidateRequest,
+    SecurityCandidateVerification,
     ServiceAccount,
     ServiceAccountCreate,
     ServiceAccountPoint,
     ServiceAccountUpdate,
+    SessionResponse,
     SettingsPatchOperation,
     SettingsRequest,
     Task,
@@ -114,6 +142,7 @@ from .models import (
     UserCreate,
     UserPoint,
     UserUpdate,
+    _credential_operation_payload,
     _EventSinkCollectionIds,
     _object_data_patch_payload,
 )
@@ -129,11 +158,13 @@ from .query import (
 from .streaming import AsyncResponseStream
 from .types import (
     AccessToken,
+    AuthenticationProviderId,
     ClassId,
     CollectionId,
     ComputedFieldId,
     CredentialApprovalId,
     CredentialApprovalSecret,
+    Credentials,
     EventDeliveryId,
     EventSinkId,
     ExportTemplateId,
@@ -834,6 +865,23 @@ class AsyncCredentialApprovalsService:
             "/api/v1/iam/credential-approvals",
             json=payload,
             response_model=CredentialApprovalResponse,
+        )
+
+    async def approve(
+        self, password: str, operation: CredentialOperation
+    ) -> AsyncApprovedCredentialOperation:
+        """Retain the exact operation and originating bearer through one mutation."""
+        bearer = await self._client._authentication_bearer()
+        owned = operation.model_copy(deep=True)
+        response = await self._client._authentication_request(
+            "POST",
+            "/api/v1/iam/credential-approvals",
+            json=CredentialApprovalRequest(password=password, operation=owned).payload(),
+            response_model=CredentialApprovalResponse,
+            headers={"Authorization": bearer},
+        )
+        return AsyncApprovedCredentialOperation(
+            self._client, interaction.approved_request(owned, response), bearer
         )
 
     async def get(self, approval_id: CredentialApprovalId | int) -> CredentialApprovalRecord:
@@ -2412,6 +2460,55 @@ class AsyncAuthService:
     def __init__(self, client: AsyncClient) -> None:
         self._client = client
 
+    async def methods(self) -> AuthenticationMethods:
+        """Discover without credentials; never automatically downgrade to password login."""
+        return await self._client._authentication_request(
+            "GET", interaction.METHODS, response_model=AuthenticationMethods
+        )
+
+    async def _begin(
+        self,
+        request: AuthenticationInteractionRequest,
+        purpose: dict[str, object],
+        bearer: str | None = None,
+    ) -> interaction.InteractionBinding:
+        body = request.wire_payload() | purpose
+        response = await self._client._authentication_request(
+            "POST",
+            interaction.INTERACTIONS,
+            json=body,
+            response_model=AuthenticationInteractionBegun,
+            headers={"Authorization": bearer} if bearer is not None else None,
+        )
+        return interaction.InteractionBinding.receive(response, request, self._client.base_url)
+
+    async def begin_login(self, request: AuthenticationInteractionRequest) -> AsyncLoginInteraction:
+        return AsyncLoginInteraction(self._client, await self._begin(request, {"purpose": "login"}))
+
+    async def begin_approval(
+        self, request: AuthenticationInteractionRequest, operation: CredentialOperation
+    ) -> AsyncApprovalInteraction:
+        bearer = await self._client._authentication_bearer()
+        owned = operation.model_copy(deep=True)
+        binding = await self._begin(
+            request,
+            {"purpose": "credential_approval", "operation": _credential_operation_payload(owned)},
+            bearer,
+        )
+        return AsyncApprovalInteraction(self._client, binding, owned, bearer)
+
+    async def begin_provider_verification(
+        self, request: AuthenticationInteractionRequest, candidate_id: UUID
+    ) -> AsyncProviderVerificationInteraction:
+        interaction.candidate_path(candidate_id)
+        bearer = await self._client._authentication_bearer()
+        binding = await self._begin(
+            request, {"purpose": "provider_verification", "candidate_id": str(candidate_id)}, bearer
+        )
+        return AsyncProviderVerificationInteraction(
+            self._client, binding, candidate_id, request.provider_id
+        )
+
     async def providers(self) -> wire.AuthProvidersResponse:
         return await self._client.request(
             "GET",
@@ -2536,3 +2633,276 @@ class AsyncAdminService:
             options=RequestOptions(params={"expected_revision": str(request.expected_revision)}),
             response_model=RuntimeSettingsUpdateResponse,
         )
+
+    async def create_security_candidate(
+        self, request: SecurityCandidateRequest
+    ) -> SecurityCandidateReport:
+        return await self._client._authentication_request(
+            "POST",
+            interaction.CANDIDATES,
+            json=request.wire_payload(),
+            response_model=SecurityCandidateReport,
+            headers={"Authorization": await self._client._authentication_bearer()},
+        )
+
+    async def security_candidate(self, candidate_id: UUID) -> SecurityCandidateReport:
+        return await self._client._authentication_request(
+            "GET",
+            interaction.candidate_path(candidate_id),
+            response_model=SecurityCandidateReport,
+            headers={"Authorization": await self._client._authentication_bearer()},
+        )
+
+    async def verify_ldap_candidate(
+        self, candidate_id: UUID, request: LdapCandidateVerificationRequest
+    ) -> SecurityCandidateVerification:
+        result = await self._client._authentication_request(
+            "POST",
+            interaction.candidate_path(candidate_id) + "/verify-ldap",
+            json=request.wire_payload(),
+            response_model=SecurityCandidateVerification,
+            headers={"Authorization": await self._client._authentication_bearer()},
+        )
+        return interaction.verified_preview(result, candidate_id, request.provider_id)
+
+    async def effective_authentication_settings(self) -> EffectiveAuthenticationSettings:
+        state = await self.runtime_settings_group("authentication")
+        if state.group != "authentication":
+            raise AuthenticationInteractionError("Invalid effective authentication group")
+        return EffectiveAuthenticationSettings.model_validate(
+            {
+                "state": state,
+                "providers": state.effective.get("providers"),
+                "replica": state.replica,
+            }
+        )
+
+
+class _AsyncAuthenticationInteraction:
+    def __init__(self, client: AsyncClient, binding: interaction.InteractionBinding) -> None:
+        self._client = client
+        self._binding = binding
+        self._lock = asyncio.Lock()
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}(<redacted>)"
+
+    @property
+    def id(self) -> UUID:
+        return self._binding.begun.id
+
+    @property
+    def next(self) -> AuthenticationNext:
+        return self._binding.begun.next
+
+    @property
+    def expires_at(self) -> datetime:
+        return self._binding.begun.expires_at
+
+    @property
+    def poll_after(self) -> float:
+        """Seconds to wait; expiry/terminal state still forbids another request."""
+        return self._binding.poll_after
+
+    async def poll(self) -> AuthenticationInteractionStatus:
+        async with self._lock:
+            self._binding.before_poll()
+            try:
+                response = await self._client._authentication_response(
+                    "POST",
+                    self._binding.path("status"),
+                    json=self._binding.body,
+                    headers={"Authorization": self._binding.authorization},
+                )
+            except TransportError:
+                self._binding.transport_failure()
+                raise
+            self._binding.after_poll(response.status_code, response.headers)
+            raise_api_error(response)
+            return self._binding.status(decode_model(response, AuthenticationInteractionStatus))
+
+    async def submit_credentials(self, credentials: Credentials) -> AuthenticationInteractionStatus:
+        async with self._lock:
+            self._binding.require_live()
+            if (
+                not isinstance(self.next, AuthenticationCredentialsNext)
+                or credentials.identity_scope is not None
+                or not credentials.name
+                or not credentials.password
+            ):
+                raise AuthenticationInteractionError(
+                    "Use unscoped credentials only for a credential interaction"
+                )
+            status = await self._client._authentication_request(
+                "POST",
+                self._binding.path("credentials"),
+                json=self._binding.body
+                | {"name": credentials.name, "password": credentials.password},
+                response_model=AuthenticationInteractionStatus,
+                headers={"Authorization": self._binding.authorization},
+            )
+            return self._binding.status(status)
+
+    async def cancel(self) -> None:
+        async with self._lock:
+            self._binding.consume()
+            response = await self._client._authentication_response(
+                "POST",
+                self._binding.path("cancel"),
+                json=self._binding.body,
+                headers={"Authorization": self._binding.authorization},
+            )
+            raise_api_error(response)
+
+    async def _redeem(self, model: type[ModelT]) -> ModelT:
+        self._binding.consume()
+        return await self._client._authentication_request(
+            "POST",
+            self._binding.path("complete"),
+            json=self._binding.body,
+            response_model=model,
+            headers={"Authorization": self._binding.authorization},
+        )
+
+
+class AsyncIssuedSessionCleanup:
+    """Idempotent exact-family cleanup, retained before consuming a login flow."""
+
+    def __init__(self, client: AsyncClient, binding: interaction.InteractionBinding) -> None:
+        self._client = client
+        self._binding = binding
+
+    def __repr__(self) -> str:
+        return "AsyncIssuedSessionCleanup(<redacted>)"
+
+    async def revoke(self) -> None:
+        cancel_failure: HubuumError | None = None
+        try:
+            cancelled = await self._client._authentication_response(
+                "POST",
+                self._binding.path("cancel"),
+                json=self._binding.body,
+                headers={"Authorization": self._binding.authorization},
+            )
+            raise_api_error(cancelled)
+        except HubuumError as error:
+            cancel_failure = error
+        response = await self._client._authentication_response(
+            "POST",
+            self._binding.path("issued-session/revoke"),
+            json=self._binding.body,
+            headers={"Authorization": self._binding.authorization},
+        )
+        try:
+            raise_api_error(response)
+        except APIError as error:
+            if error.status_code != HTTPStatus.CONFLICT or error.reason != "interaction_pending":
+                raise
+            if cancel_failure is not None:
+                raise cancel_failure from None
+
+
+class AsyncLoginInteraction(_AsyncAuthenticationInteraction):
+    def issued_session_cleanup(self) -> AsyncIssuedSessionCleanup:
+        return AsyncIssuedSessionCleanup(self._client, self._binding)
+
+    async def complete(self) -> AsyncClient:
+        async with self._lock, self._client._session_lock:
+            # Repeated/expired local use must not revoke an accepted session.
+            self._binding.require_live()
+            try:
+                response = await self._redeem(SessionResponse)
+                self._client._install_session(
+                    SessionState.receive(response, self._binding.client_id)
+                )
+            except AuthenticationInteractionError:
+                if self._binding.closed:
+                    with suppress(HubuumError):
+                        await self.issued_session_cleanup().revoke()
+                raise
+            except (TransportError, DecodeError, SessionExpiredError):
+                with suppress(HubuumError):
+                    await self.issued_session_cleanup().revoke()
+                raise
+            except APIError as error:
+                if error.status_code >= HTTPStatus.INTERNAL_SERVER_ERROR:
+                    with suppress(HubuumError):
+                        await self.issued_session_cleanup().revoke()
+                raise
+            return self._client
+
+
+class AsyncApprovedCredentialOperation:
+    def __init__(
+        self, client: AsyncClient, request: interaction.ApprovedRequest, bearer: str
+    ) -> None:
+        self._client = client
+        self._request = request
+        self._bearer = bearer
+        self._used = False
+        self._lock = asyncio.Lock()
+
+    def __repr__(self) -> str:
+        return "AsyncApprovedCredentialOperation(<redacted>)"
+
+    @property
+    def evidence(self) -> CredentialApprovalRecord:
+        return self._request.evidence.record
+
+    async def send(self) -> interaction.CredentialResult:
+        async with self._lock:
+            if self._used:
+                raise AuthenticationInteractionError(
+                    "Approved operation has already been attempted"
+                )
+            self._used = True
+            request = self._request
+            result = await self._client._authentication_request(
+                request.method,
+                request.path,
+                json=request.body,
+                response_model=request.response_model,
+                headers=request.headers | {"Authorization": self._bearer},
+            )
+            return interaction.credential_result(result)
+
+
+class AsyncApprovalInteraction(_AsyncAuthenticationInteraction):
+    def __init__(
+        self,
+        client: AsyncClient,
+        binding: interaction.InteractionBinding,
+        operation: CredentialOperation,
+        bearer: str,
+    ) -> None:
+        super().__init__(client, binding)
+        self._operation = operation
+        self._bearer = bearer
+
+    async def complete(self) -> AsyncApprovedCredentialOperation:
+        async with self._lock:
+            response = await self._redeem(CredentialApprovalResponse)
+            return AsyncApprovedCredentialOperation(
+                self._client, interaction.approved_request(self._operation, response), self._bearer
+            )
+
+
+class AsyncProviderVerificationInteraction(_AsyncAuthenticationInteraction):
+    def __init__(
+        self,
+        client: AsyncClient,
+        binding: interaction.InteractionBinding,
+        candidate_id: UUID,
+        provider_id: AuthenticationProviderId,
+    ) -> None:
+        super().__init__(client, binding)
+        self._candidate_id = candidate_id
+        self._provider_id = provider_id
+
+    async def complete(self) -> SecurityCandidateVerification:
+        async with self._lock:
+            return interaction.verified_preview(
+                await self._redeem(SecurityCandidateVerification),
+                self._candidate_id,
+                self._provider_id,
+            )

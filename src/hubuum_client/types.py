@@ -5,7 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, NewType, TypeAlias
+from typing import Annotated, Literal, NewType, TypeAlias
+from uuid import UUID
 
 from pydantic import Field, SecretStr
 
@@ -32,6 +33,7 @@ EventSubscriptionId = NewType("EventSubscriptionId", int)
 TaskEventId = NewType("TaskEventId", int)
 TokenId = NewType("TokenId", int)
 CredentialApprovalId = NewType("CredentialApprovalId", int)
+AuthenticationProviderId: TypeAlias = UUID | Literal["local"]
 RestoreJobId = NewType("RestoreJobId", int)
 ImportResultId = NewType("ImportResultId", int)
 ResourceRevision: TypeAlias = Annotated[int, Field(ge=1)]
