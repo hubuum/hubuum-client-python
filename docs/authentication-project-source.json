@@ -9,7 +9,7 @@
   "source_fixture_cases": 48,
   "candidate_artifact_id": 14208469576,
   "candidate_archive_sha256": "a0b2711b0984bc53fdd1346d4c7c35a8017c6587e90d571f94c71923ef4e7fcc",
-  "live_sdk_qualification": "Python qualification pending; Rust evidence is owned by Rust#147",
+  "live_sdk_qualification": "See docs/assets/authentication-qualification.json: 66 checks on clean Python source e89eefd5d2f242f0cca422bc71db06a0e6a906a7; native real GitHub owned by server #581.",
   "server_pull_request": "https://github.com/hubuum/hubuum/pull/596",
   "server_merge_state": "merged at 9e665c05e223a2c47b2ae3964932b13ca1ea2a9c with identical accepted source tree",
   "candidate_tested_commit": "a15f90dca1d0dbddc27bfd5f5dbb1594b0937bc8",
