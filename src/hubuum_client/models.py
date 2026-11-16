@@ -1910,6 +1910,18 @@ class ActivateSecurityCandidateOperation(RequestModel, APIModel):
     expected_revision: ResourceRevision
     verification_receipt: SecretStr = Field(exclude=True, repr=False)
 
+    @field_validator("candidate_id")
+    @classmethod
+    def validate_candidate_id(cls, value: UUID) -> UUID:
+        if not value.int:
+            raise ValueError("Candidate ID must not be nil")
+        return value
+
+    @field_validator("verification_receipt")
+    @classmethod
+    def validate_activation_receipt(cls, value: SecretStr) -> SecretStr:
+        return _valid_authentication_proof(value, "hcv1.")
+
 
 CredentialOperation: TypeAlias = Annotated[
     CreateTokenOperation

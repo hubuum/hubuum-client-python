@@ -10,6 +10,7 @@ import pytest
 from pydantic import SecretStr, ValidationError
 
 from hubuum_client import (
+    ActivateSecurityCandidateOperation,
     AuthenticationInteractionRequest,
     AuthenticationMethods,
     AuthenticationProviderInput,
@@ -271,3 +272,27 @@ def test_activation_requires_a_current_verified_receipt(
     report = SecurityCandidateReport.model_validate(value)
     with pytest.raises(ValueError, match="unverified, expired or has no activation receipt"):
         report.activation_operation()
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"candidate_id": "00000000-0000-0000-0000-000000000000"},
+        {"verification_receipt": "private-invalid-receipt"},
+        {"expected_revision": 0},
+    ],
+)
+def test_direct_activation_operations_validate_without_retaining_receipts(
+    changes: dict[str, Any],
+) -> None:
+    values = {
+        "candidate_id": str(uuid4()),
+        "group": "authentication",
+        "expected_revision": 1,
+        "verification_receipt": "hcv1." + "a" * 64,
+    } | changes
+    with pytest.raises(ValidationError) as failed:
+        ActivateSecurityCandidateOperation.model_validate(values)
+    assert "private-" not in str(failed.value.errors())
+    assert "hcv1." not in str(failed.value.errors())
+    assert failed.value.__context__ is None
