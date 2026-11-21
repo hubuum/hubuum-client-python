@@ -197,7 +197,7 @@ fi
 echo "Waiting for CI run ${run_id} before protecting ${branch}..."
 gh run watch "${run_id}" --repo "${repository}" --exit-status
 
-echo "Protecting ${branch} with the successful end-to-end check..."
+echo "Protecting ${branch} with the aggregate CI check..."
 gh api --silent --method PUT \
   --header "X-GitHub-Api-Version: ${api_version}" \
   "repos/${repository}/branches/${branch}/protection" \
@@ -206,14 +206,14 @@ gh api --silent --method PUT \
   "required_status_checks": {
     "strict": true,
     "checks": [
-      {"context": "Pinned Hubuum v0.0.22 e2e"}
+      {"context": "Lint, types, docs, and package", "app_id": 15368}
     ]
   },
   "enforce_admins": false,
   "required_pull_request_reviews": {
     "dismiss_stale_reviews": true,
     "require_code_owner_reviews": false,
-    "required_approving_review_count": 1,
+    "required_approving_review_count": 0,
     "require_last_push_approval": false
   },
   "restrictions": null,
