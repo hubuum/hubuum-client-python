@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gzip
 import inspect
 import json
 from collections.abc import AsyncIterator, Awaitable, Iterator
@@ -582,6 +583,7 @@ class Stream(httpx.SyncByteStream, httpx.AsyncByteStream):
     "case",
     [
         "success",
+        "gzip",
         "unsupported",
         "outage",
         "bad_version",
@@ -616,6 +618,13 @@ async def test_authentication_transport_is_bounded_and_never_downgrades(
         body: object = {"interaction_version": 2 if case == "bad_version" else 1, "methods": []}
         if case == "malformed":
             body = []
+        if case == "gzip":
+            encoded = gzip.compress(json.dumps(body).encode())
+            return httpx.Response(
+                status,
+                headers={"Content-Encoding": "gzip", "Content-Length": str(len(encoded))},
+                stream=Stream(encoded),
+            )
         return httpx.Response(status, json=body)
 
     instance = mode(
@@ -625,7 +634,7 @@ async def test_authentication_transport_is_bounded_and_never_downgrades(
         transport=httpx.MockTransport(handle),
     )
     try:
-        if case == "success":
+        if case in {"success", "gzip"}:
             assert (await resolve(instance.auth.methods())).methods == []
         else:
             with pytest.raises(
