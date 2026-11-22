@@ -151,9 +151,13 @@ def authentication_timeout(timeout: httpx.Timeout) -> dict[str, float]:
 
 
 def completed_response(response: httpx.Response, body: bytearray) -> httpx.Response:
+    # HTTPX has already decoded the streamed body. Its wire headers describe the encoded bytes.
+    headers = response.headers.copy()
+    for name in ("Content-Encoding", "Content-Length", "Transfer-Encoding"):
+        headers.pop(name, None)
     return httpx.Response(
         response.status_code,
-        headers=response.headers,
+        headers=headers,
         content=bytes(body),
         request=response.request,
     )

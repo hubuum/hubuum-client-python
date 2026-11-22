@@ -19,6 +19,11 @@ All notable changes to this project are documented here. The format follows
   immutable compatibility baseline remain unchanged; no stable support or real
   GitHub client qualification is claimed by these additions.
 
+### Fixed
+
+- Synchronous and asynchronous authentication requests now accept compressed
+  responses, including gzip-encoded provider discovery results.
+
 ## [0.0.15] - 2026-11-09
 
 This release targets Hubuum server v0.0.22 and its 272-operation, 431-schema
