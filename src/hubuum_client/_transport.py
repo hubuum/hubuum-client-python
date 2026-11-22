@@ -46,6 +46,8 @@ _SENSITIVE_KEY_PARTS = (
     "password",
     "passwd",
     "secret",
+    "nonce",
+    "receipt",
     "token",
 )
 _SENSITIVE_BODY_KEYS = {
@@ -242,7 +244,11 @@ def sensitive_request_values(
         if _sensitive_key(name) and value:
             result.add(value)
             scheme, separator, credential = value.partition(" ")
-            if separator and scheme.casefold() in {"basic", "bearer"} and credential:
+            if (
+                separator
+                and scheme.casefold() in {"basic", "bearer", "hubuum-interaction"}
+                and credential
+            ):
                 result.add(credential)
     for name, value in httpx.QueryParams(params).multi_items():
         if _sensitive_key(name) and value:

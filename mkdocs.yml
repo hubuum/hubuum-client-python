@@ -56,6 +56,7 @@ nav:
   - Overview: index.md
   - Atlas example inventory: example-dataset.md
   - Client setup: client.md
+  - External authentication: authentication.md
   - Credential approvals: credentials.md
   - Service accounts: service-accounts.md
   - Querying and pagination: querying.md

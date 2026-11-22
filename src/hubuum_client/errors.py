@@ -34,6 +34,10 @@ class SessionExpiredError(HubuumError):
     """An interactive session is no longer usable; authenticate again."""
 
 
+class AuthenticationInteractionError(HubuumError):
+    """An invalid, expired, terminal or prematurely polled interaction."""
+
+
 class ConfigurationError(HubuumError, ValueError):
     """Raised when client configuration is unsafe or invalid."""
 
